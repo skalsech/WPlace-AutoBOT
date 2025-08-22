@@ -5566,7 +5566,13 @@
         for (let x = y === startRow ? startCol : 0; x < width; x++) {
           if (state.stopFlag) {
             if (pixelBatch && pixelBatch.pixels.length > 0) {
-              await sendPixelBatch(pixelBatch.pixels, pixelBatch.regionX, pixelBatch.regionY);
+              console.log(`🎯 Sending final batch before stop with ${pixelBatch.pixels.length} pixels`);
+              const success = await sendBatchWithRetry(pixelBatch.pixels, pixelBatch.regionX, pixelBatch.regionY);
+              if (success) {
+                pixelBatch.pixels.forEach(() => { state.paintedPixels++; });
+                state.currentCharges -= pixelBatch.pixels.length;
+                updateStats();
+              }
             }
             state.lastPosition = { x, y }
             updateUI("paintingPaused", "warning", { x, y })
@@ -5612,23 +5618,8 @@
             pixelBatch.regionY !== regionY + adderY) {
 
             if (pixelBatch && pixelBatch.pixels.length > 0) {
-              let success = await sendPixelBatch(pixelBatch.pixels, pixelBatch.regionX, pixelBatch.regionY);
-              if (success === "token_error") {
-                updateUI("captchaSolving", "warning");
-                try {
-                  await handleCaptcha();
-                  success = await sendPixelBatch(pixelBatch.pixels, pixelBatch.regionX, pixelBatch.regionY);
-                  if (success === "token_error") {
-                    updateUI("captchaFailed", "error");
-                    state.stopFlag = true;
-                    break outerLoop;
-                  }
-                } catch (e) {
-                  updateUI("captchaFailed", "error");
-                  state.stopFlag = true;
-                  break outerLoop;
-                }
-              }
+              const success = await sendBatchWithRetry(pixelBatch.pixels, pixelBatch.regionX, pixelBatch.regionY);
+              
               if (success) {
                 pixelBatch.pixels.forEach((p) => { state.paintedPixels++; });
                 state.currentCharges -= pixelBatch.pixels.length;
@@ -5648,12 +5639,11 @@
                 }
                 updateStats();
               } else {
-                // If batch failed, don't mark pixels as painted so they can be retried
-                console.warn(`⚠️ Batch failed for region ${pixelBatch.regionX},${pixelBatch.regionY} with ${pixelBatch.pixels.length} pixels. Will retry later.`);
-                // Wait a bit before continuing to avoid rapid retries
-                await Utils.sleep(1000);
+                // If batch failed after all retries, stop painting to prevent infinite loops
+                console.error(`❌ Batch failed permanently after retries. Stopping painting.`);
+                state.stopFlag = true;
+                break outerLoop;
               }
-
             }
 
             pixelBatch = {
@@ -5672,23 +5662,7 @@
           });
 
           if (pixelBatch.pixels.length >= Math.floor(state.currentCharges)) {
-            let success = await sendPixelBatch(pixelBatch.pixels, pixelBatch.regionX, pixelBatch.regionY);
-            if (success === "token_error") {
-              updateUI("captchaSolving", "warning");
-              try {
-                await handleCaptcha();
-                success = await sendPixelBatch(pixelBatch.pixels, pixelBatch.regionX, pixelBatch.regionY);
-                if (success === "token_error") {
-                  updateUI("captchaFailed", "error");
-                  state.stopFlag = true;
-                  break outerLoop;
-                }
-              } catch (e) {
-                updateUI("captchaFailed", "error");
-                state.stopFlag = true;
-                break outerLoop;
-              }
-            }
+            const success = await sendBatchWithRetry(pixelBatch.pixels, pixelBatch.regionX, pixelBatch.regionY);
 
             if (success) {
               pixelBatch.pixels.forEach((pixel) => {
@@ -5712,10 +5686,10 @@
                 await Utils.sleep(totalDelay)
               }
             } else {
-              // If batch failed, don't mark pixels as painted so they can be retried
-              console.warn(`⚠️ Batch failed with ${pixelBatch.pixels.length} pixels. Will retry later.`);
-              // Wait a bit before continuing to avoid rapid retries
-              await Utils.sleep(1000);
+              // If batch failed after all retries, stop painting to prevent infinite loops
+              console.error(`❌ Batch failed permanently after retries. Stopping painting.`);
+              state.stopFlag = true;
+              break outerLoop;
             }
 
             pixelBatch.pixels = [];
@@ -5745,7 +5719,7 @@
       }
 
       if (pixelBatch && pixelBatch.pixels.length > 0 && !state.stopFlag) {
-        const success = await sendPixelBatch(pixelBatch.pixels, pixelBatch.regionX, pixelBatch.regionY);
+        const success = await sendBatchWithRetry(pixelBatch.pixels, pixelBatch.regionX, pixelBatch.regionY);
         if (success) {
           pixelBatch.pixels.forEach((pixel) => {
             state.paintedPixels++
@@ -5757,8 +5731,8 @@
             await Utils.sleep(totalDelay)
           }
         } else {
-          // If final batch failed, log it but don't retry to avoid infinite loops
-          console.warn(`⚠️ Final batch failed with ${pixelBatch.pixels.length} pixels. These pixels will need to be painted on next run.`);
+          // If final batch failed after retries, log it
+          console.warn(`⚠️ Final batch failed with ${pixelBatch.pixels.length} pixels after all retries.`);
         }
       }
     } finally {
@@ -5791,6 +5765,50 @@
     console.log(`   Total processed: ${state.paintedPixels + skippedPixels.transparent + skippedPixels.white + skippedPixels.alreadyPainted}`);
 
     updateStats()
+  }
+
+  // Helper function to retry batch until success with exponential backoff
+  async function sendBatchWithRetry(pixels, regionX, regionY, maxRetries = 10) {
+    let attempt = 0;
+    while (attempt < maxRetries && !state.stopFlag) {
+      attempt++;
+      console.log(`🔄 Attempting to send batch (attempt ${attempt}/${maxRetries}) for region ${regionX},${regionY} with ${pixels.length} pixels`);
+      
+      const result = await sendPixelBatch(pixels, regionX, regionY);
+      
+      if (result === true) {
+        console.log(`✅ Batch succeeded on attempt ${attempt}`);
+        return true;
+      } else if (result === "token_error") {
+        console.log(`🔑 Token error on attempt ${attempt}, regenerating...`);
+        updateUI("captchaSolving", "warning");
+        try {
+          await handleCaptcha();
+          // Don't count token regeneration as a failed attempt
+          attempt--;
+          continue;
+        } catch (e) {
+          console.error(`❌ Token regeneration failed on attempt ${attempt}:`, e);
+          updateUI("captchaFailed", "error");
+          // Wait longer before retrying after token failure
+          await Utils.sleep(5000);
+        }
+      } else {
+        console.warn(`⚠️ Batch failed on attempt ${attempt}, retrying...`);
+        // Exponential backoff with jitter
+        const baseDelay = Math.min(1000 * Math.pow(2, attempt - 1), 30000); // Max 30s
+        const jitter = Math.random() * 1000; // Add up to 1s random delay
+        await Utils.sleep(baseDelay + jitter);
+      }
+    }
+    
+    if (attempt >= maxRetries) {
+      console.error(`❌ Batch failed after ${maxRetries} attempts. This will stop painting to prevent infinite loops.`);
+      updateUI("paintingError", "error");
+      return false;
+    }
+    
+    return false;
   }
 
   async function sendPixelBatch(pixelBatch, regionX, regionY) {
