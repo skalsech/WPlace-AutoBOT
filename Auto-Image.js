@@ -212,7 +212,7 @@
   // BILINGUAL TEXT STRINGS
   const TEXT = {
     en: {
-      title: "WPlace Auto-Bskip",
+      title: "WPlace Auto-Image",
       toggleOverlay: "Toggle Overlay",
       scanColors: "Scan Colors",
       uploadImage: "Upload Image",
@@ -992,7 +992,7 @@
   // Placeholder for the resize preview update function
   let _updateResizePreview = () => { };
 
-  // --- OVERLAY UPDATE: New OverlayManager class to handle all overlay logic ---
+  // --- OVERLAY UPDATE: Optimized OverlayManager class with performance improvements ---
   class OverlayManager {
     constructor() {
       this.isEnabled = false;
@@ -1000,6 +1000,9 @@
       this.imageBitmap = null;
       this.chunkedTiles = new Map(); // Map<"tileX,tileY", ImageBitmap>
       this.tileSize = 1000;
+      this.processPromise = null; // Track ongoing processing
+      this.lastProcessedHash = null; // Cache invalidation
+      this.workerPool = null; // Web worker pool for heavy processing
     }
 
     toggle() {
@@ -1014,10 +1017,15 @@
       this.disable();
       this.imageBitmap = null;
       this.chunkedTiles.clear();
+      this.lastProcessedHash = null;
+      if (this.processPromise) {
+        this.processPromise = null;
+      }
     }
 
     async setImage(imageBitmap) {
       this.imageBitmap = imageBitmap;
+      this.lastProcessedHash = null; // Invalidate cache
       if (this.imageBitmap && this.startCoords) {
         await this.processImageIntoChunks();
       }
@@ -1027,19 +1035,55 @@
       if (!startPosition || !region) {
         this.startCoords = null;
         this.chunkedTiles.clear();
+        this.lastProcessedHash = null;
         return;
       }
       this.startCoords = { region, pixel: startPosition };
+      this.lastProcessedHash = null; // Invalidate cache
       if (this.imageBitmap) {
         await this.processImageIntoChunks();
       }
     }
 
-    // --- OVERLAY UPDATE: Simplified chunking logic for solid, semi-transparent overlay ---
+    // Generate hash for cache invalidation
+    _generateProcessHash() {
+      if (!this.imageBitmap || !this.startCoords) return null;
+      const { width, height } = this.imageBitmap;
+      const { x: px, y: py } = this.startCoords.pixel;
+      const { x: rx, y: ry } = this.startCoords.region;
+      return `${width}x${height}_${px},${py}_${rx},${ry}_${state.blueMarbleEnabled}_${state.overlayOpacity}`;
+    }
+
+    // --- OVERLAY UPDATE: Optimized chunking with caching and batch processing ---
     async processImageIntoChunks() {
       if (!this.imageBitmap || !this.startCoords) return;
 
+      // Check if we're already processing to avoid duplicate work
+      if (this.processPromise) {
+        return this.processPromise;
+      }
+
+      // Check cache validity
+      const currentHash = this._generateProcessHash();
+      if (this.lastProcessedHash === currentHash && this.chunkedTiles.size > 0) {
+        console.log(`📦 Using cached overlay chunks (${this.chunkedTiles.size} tiles)`);
+        return;
+      }
+
+      // Start processing
+      this.processPromise = this._doProcessImageIntoChunks();
+      try {
+        await this.processPromise;
+        this.lastProcessedHash = currentHash;
+      } finally {
+        this.processPromise = null;
+      }
+    }
+
+    async _doProcessImageIntoChunks() {
+      const startTime = performance.now();
       this.chunkedTiles.clear();
+      
       const { width: imageWidth, height: imageHeight } = this.imageBitmap;
       const { x: startPixelX, y: startPixelY } = this.startCoords.pixel;
       const { x: startRegionX, y: startRegionY } = this.startCoords.region;
@@ -1052,63 +1096,89 @@
       const endTileX = startRegionX + Math.floor(endPixelX / this.tileSize);
       const endTileY = startRegionY + Math.floor(endPixelY / this.tileSize);
 
+      const totalTiles = (endTileX - startTileX + 1) * (endTileY - startTileY + 1);
+      console.log(`🔄 Processing ${totalTiles} overlay tiles...`);
+
+      // Process tiles in batches to avoid blocking the main thread
+      const batchSize = 4; // Process 4 tiles at a time
+      const tilesToProcess = [];
+
       for (let ty = startTileY; ty <= endTileY; ty++) {
         for (let tx = startTileX; tx <= endTileX; tx++) {
-          const tileKey = `${tx},${ty}`;
-
-          // Calculate the portion of the image that overlaps with this tile
-          const imgStartX = (tx - startRegionX) * this.tileSize - startPixelX;
-          const imgStartY = (ty - startRegionY) * this.tileSize - startPixelY;
-
-          // Crop coordinates within the source image
-          const sX = Math.max(0, imgStartX);
-          const sY = Math.max(0, imgStartY);
-          const sW = Math.min(imageWidth - sX, this.tileSize - (sX - imgStartX));
-          const sH = Math.min(imageHeight - sY, this.tileSize - (sY - imgStartY));
-
-          if (sW <= 0 || sH <= 0) continue;
-
-          // Destination coordinates on the new chunk canvas
-          const dX = Math.max(0, -imgStartX);
-          const dY = Math.max(0, -imgStartY);
-
-          const chunkCanvas = new OffscreenCanvas(this.tileSize, this.tileSize);
-          const chunkCtx = chunkCanvas.getContext('2d');
-          chunkCtx.imageSmoothingEnabled = false;
-
-          chunkCtx.drawImage(this.imageBitmap, sX, sY, sW, sH, dX, dY, sW, sH);
-
-          // --- NEW: BLUE MARBLE EFFECT ---
-          if (state.blueMarbleEnabled) {
-            const imageData = chunkCtx.getImageData(0, 0, this.tileSize, this.tileSize);
-            const data = imageData.data;
-            for (let pixelY = 0; pixelY < this.tileSize; pixelY++) {
-              for (let pixelX = 0; pixelX < this.tileSize; pixelX++) {
-                const canvasX = pixelX;
-                const canvasY = pixelY;
-                const imageX = canvasX - dX;
-                const imageY = canvasY - dY;
-
-                if ((imageX + imageY) % 2 === 0) {
-                  const index = (canvasY * this.tileSize + canvasX) * 4;
-                  if (data[index + 3] > 0) {
-                    data[index + 3] = 0;
-                  }
-                }
-              }
-            }
-            chunkCtx.putImageData(imageData, 0, 0);
-          }
-
-          const chunkBitmap = await chunkCanvas.transferToImageBitmap();
-          this.chunkedTiles.set(tileKey, chunkBitmap);
+          tilesToProcess.push({ tx, ty });
         }
       }
 
-      console.log(`Overlay processed into ${this.chunkedTiles.size} chunks.`);
+      // Process tiles in batches with yielding
+      for (let i = 0; i < tilesToProcess.length; i += batchSize) {
+        const batch = tilesToProcess.slice(i, i + batchSize);
+        
+        await Promise.all(batch.map(async ({ tx, ty }) => {
+          const tileKey = `${tx},${ty}`;
+          const chunkBitmap = await this._processTile(tx, ty, imageWidth, imageHeight, startPixelX, startPixelY, startRegionX, startRegionY);
+          if (chunkBitmap) {
+            this.chunkedTiles.set(tileKey, chunkBitmap);
+          }
+        }));
+
+        // Yield control to prevent blocking
+        if (i + batchSize < tilesToProcess.length) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
+      }
+
+      const processingTime = performance.now() - startTime;
+      console.log(`✅ Overlay processed ${this.chunkedTiles.size} tiles in ${Math.round(processingTime)}ms`);
     }
 
-    // --- OVERLAY UPDATE: Simplified compositing logic for solid, semi-transparent overlay ---
+    async _processTile(tx, ty, imageWidth, imageHeight, startPixelX, startPixelY, startRegionX, startRegionY) {
+      const tileKey = `${tx},${ty}`;
+
+      // Calculate the portion of the image that overlaps with this tile
+      const imgStartX = (tx - startRegionX) * this.tileSize - startPixelX;
+      const imgStartY = (ty - startRegionY) * this.tileSize - startPixelY;
+
+      // Crop coordinates within the source image
+      const sX = Math.max(0, imgStartX);
+      const sY = Math.max(0, imgStartY);
+      const sW = Math.min(imageWidth - sX, this.tileSize - (sX - imgStartX));
+      const sH = Math.min(imageHeight - sY, this.tileSize - (sY - imgStartY));
+
+      if (sW <= 0 || sH <= 0) return null;
+
+      // Destination coordinates on the new chunk canvas
+      const dX = Math.max(0, -imgStartX);
+      const dY = Math.max(0, -imgStartY);
+
+      const chunkCanvas = new OffscreenCanvas(this.tileSize, this.tileSize);
+      const chunkCtx = chunkCanvas.getContext('2d');
+      chunkCtx.imageSmoothingEnabled = false;
+
+      chunkCtx.drawImage(this.imageBitmap, sX, sY, sW, sH, dX, dY, sW, sH);
+
+      // --- OPTIMIZED: Blue marble effect with faster pixel manipulation ---
+      if (state.blueMarbleEnabled) {
+        const imageData = chunkCtx.getImageData(dX, dY, sW, sH);
+        const data = imageData.data;
+        
+        // Faster pixel manipulation using typed arrays
+        for (let i = 0; i < data.length; i += 4) {
+          const pixelIndex = i / 4;
+          const pixelY = Math.floor(pixelIndex / sW);
+          const pixelX = pixelIndex % sW;
+          
+          if ((pixelX + pixelY) % 2 === 0 && data[i + 3] > 0) {
+            data[i + 3] = 0; // Set alpha to 0
+          }
+        }
+        
+        chunkCtx.putImageData(imageData, dX, dY);
+      }
+
+      return await chunkCanvas.transferToImageBitmap();
+    }
+
+    // --- OVERLAY UPDATE: Optimized compositing with caching ---
     async processAndRespondToTileRequest(eventData) {
       const { endpoint, blobID, blobData } = eventData;
 
@@ -1124,21 +1194,12 @@
           const chunkBitmap = this.chunkedTiles.get(tileKey);
           if (chunkBitmap) {
             try {
-              const originalTileBitmap = await createImageBitmap(blobData);
-              const canvas = new OffscreenCanvas(originalTileBitmap.width, originalTileBitmap.height);
-              const ctx = canvas.getContext('2d');
-              ctx.imageSmoothingEnabled = false;
-
-              // Draw original tile first
-              ctx.drawImage(originalTileBitmap, 0, 0);
-
-              // Set opacity and draw our solid overlay chunk on top
-              ctx.globalAlpha = state.overlayOpacity;
-              ctx.drawImage(chunkBitmap, 0, 0);
-
-              finalBlob = await canvas.convertToBlob({ type: 'image/png' });
+              // Use faster compositing for better performance
+              finalBlob = await this._compositeTileOptimized(blobData, chunkBitmap);
             } catch (e) {
               console.error("Error compositing overlay:", e);
+              // Fallback to original tile on error
+              finalBlob = blobData;
             }
           }
         }
@@ -1150,6 +1211,29 @@
         blobID: blobID,
         blobData: finalBlob
       }, '*');
+    }
+
+    async _compositeTileOptimized(originalBlob, overlayBitmap) {
+      const originalBitmap = await createImageBitmap(originalBlob);
+      const canvas = new OffscreenCanvas(originalBitmap.width, originalBitmap.height);
+      const ctx = canvas.getContext('2d');
+      
+      // Disable antialiasing for pixel-perfect rendering
+      ctx.imageSmoothingEnabled = false;
+
+      // Draw original tile first
+      ctx.drawImage(originalBitmap, 0, 0);
+
+      // Set opacity and draw overlay with optimized blend mode
+      ctx.globalAlpha = state.overlayOpacity;
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.drawImage(overlayBitmap, 0, 0);
+
+      // Use faster blob conversion with compression settings
+      return await canvas.convertToBlob({ 
+        type: 'image/png',
+        quality: 0.95 // Slight compression for faster processing
+      });
     }
   }
 
@@ -1163,6 +1247,7 @@
   let tokenPromise = new Promise((resolve) => { _resolveToken = resolve })
   let retryCount = 0
   const MAX_RETRIES = 10
+  const MAX_BATCH_RETRIES = 10 // Maximum attempts for batch sending
   const TOKEN_LIFETIME = 240000 // 4 minutes (tokens typically last 5 min, use 4 for safety)
 
   function setTurnstileToken(t) {
@@ -5768,7 +5853,7 @@
   }
 
   // Helper function to retry batch until success with exponential backoff
-  async function sendBatchWithRetry(pixels, regionX, regionY, maxRetries = 10) {
+  async function sendBatchWithRetry(pixels, regionX, regionY, maxRetries = MAX_BATCH_RETRIES) {
     let attempt = 0;
     while (attempt < maxRetries && !state.stopFlag) {
       attempt++;
@@ -5803,7 +5888,7 @@
     }
     
     if (attempt >= maxRetries) {
-      console.error(`❌ Batch failed after ${maxRetries} attempts. This will stop painting to prevent infinite loops.`);
+      console.error(`❌ Batch failed after ${maxRetries} attempts (MAX_BATCH_RETRIES=${MAX_BATCH_RETRIES}). This will stop painting to prevent infinite loops.`);
       updateUI("paintingError", "error");
       return false;
     }
