@@ -209,7 +209,7 @@
     }
   }
 
-  // BILINGUAL TEXT STRINGS
+  // BILINGUAL TEXT STRINGS:)
   const TEXT = {
     en: {
       title: "WPlace Auto-Image",
