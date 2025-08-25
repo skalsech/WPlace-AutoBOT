@@ -172,6 +172,7 @@
             },
         },
         currentTheme: "Classic Autobot",
+        autoSwap: false,
     }
 
     const getCurrentTheme = () => CONFIG.THEMES[CONFIG.currentTheme]
@@ -7302,60 +7303,90 @@
 
                         pixelBatch.pixels = [];
                     }
-
-                    if (state.currentCharges < state.cooldownChargeThreshold && !state.stopFlag) {
-                        console.log("⚠️ Charges too low, swapping to next account...");
-
-                        const accounts = JSON.parse(localStorage.getItem("accounts")) || [];
-                        if (accounts.length === 0) {
-                            console.warn("❌ No accounts available, stopping painting.");
-                            state.stopFlag = true;
-                            return;
-                        }
-
-                        state.accountIndex = (state.accountIndex + 1) % accounts.length;
-                        console.log("🔄 Switching to account index:", state.accountIndex);
-
-                        const nextToken = accounts[state.accountIndex];
-                        console.log("🔑 Next token:", nextToken);
-
-                        if (!nextToken) {
-                            console.warn("⚠️ Invalid token, skipping...");
-                            return;
-                        }
-
-                        swapAccountTrigger(nextToken);
-
-                        let maxRetries = 20;
-                        let retryCount = 0;
-                        let swapSuccess = false;
-
-                        while (!swapSuccess && retryCount < maxRetries) {
-                            console.log(`⏳ Waiting for account swap... (Attempt ${retryCount + 1}/${maxRetries})`);
-
-                            // Wait for a short period before checking.
-                            await new Promise(resolve => setTimeout(resolve, 1000));
-
-                            try {
-                                await fetchAccount();
-                                console.log("✅ Account swap confirmed.");
-                                swapSuccess = true;
-                            } catch (error) {
-                                console.warn("❌ Account swap not yet successful. Retrying...", error);
-                                retryCount++;
-                            }
-                        }
-
-                        if (swapSuccess) {
-
+                    if (!CONFIG.autoSwap) {
+                        while (state.currentCharges < state.cooldownChargeThreshold && !state.stopFlag) {
                             const { charges, cooldown } = await WPlaceService.getCharges();
                             state.currentCharges = Math.floor(charges);
                             state.cooldown = cooldown;
+
+                            if (state.currentCharges >= state.cooldownChargeThreshold) {
+                                // Edge-trigger a notification the instant threshold is crossed
+                                NotificationManager.maybeNotifyChargesReached(true);
+                                updateStats();
+                                break;
+                            }
+
+                            // Enable save button during cooldown wait
+                            saveBtn.disabled = false;
+
+                            updateUI("noChargesThreshold", "warning", {
+                                time: Utils.formatTime(state.cooldown),
+                                threshold: state.cooldownChargeThreshold,
+                                current: state.currentCharges
+                            });
+                            await updateStats();
+
+                            // Allow auto save during cooldown
                             Utils.performSmartSave();
-                            updateStats();
-                        } else {
-                            console.error("❌ Failed to swap account after multiple retries. Stopping loop.");
-                            state.stopFlag = true;
+
+                            await Utils.sleep(state.cooldown);
+                        }
+                    }
+                    else {
+                        if (state.currentCharges < state.cooldownChargeThreshold && !state.stopFlag) {
+                            console.log("⚠️ Charges too low, swapping to next account...");
+
+                            const accounts = JSON.parse(localStorage.getItem("accounts")) || [];
+                            if (accounts.length === 0) {
+                                console.warn("❌ No accounts available, stopping painting.");
+                                state.stopFlag = true;
+                                return;
+                            }
+
+                            state.accountIndex = (state.accountIndex + 1) % accounts.length;
+                            console.log("🔄 Switching to account index:", state.accountIndex);
+
+                            const nextToken = accounts[state.accountIndex];
+                            console.log("🔑 Next token:", nextToken);
+
+                            if (!nextToken) {
+                                console.warn("⚠️ Invalid token, skipping...");
+                                return;
+                            }
+
+                            swapAccountTrigger(nextToken);
+
+                            let maxRetries = 20;
+                            let retryCount = 0;
+                            let swapSuccess = false;
+
+                            while (!swapSuccess && retryCount < maxRetries) {
+                                console.log(`⏳ Waiting for account swap... (Attempt ${retryCount + 1}/${maxRetries})`);
+
+                                // Wait for a short period before checking.
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+
+                                try {
+                                    await fetchAccount();
+                                    console.log("✅ Account swap confirmed.");
+                                    swapSuccess = true;
+                                } catch (error) {
+                                    console.warn("❌ Account swap not yet successful. Retrying...", error);
+                                    retryCount++;
+                                }
+                            }
+
+                            if (swapSuccess) {
+
+                                const { charges, cooldown } = await WPlaceService.getCharges();
+                                state.currentCharges = Math.floor(charges);
+                                state.cooldown = cooldown;
+                                Utils.performSmartSave();
+                                updateStats();
+                            } else {
+                                console.error("❌ Failed to swap account after multiple retries. Stopping loop.");
+                                state.stopFlag = true;
+                            }
                         }
                     }
 
