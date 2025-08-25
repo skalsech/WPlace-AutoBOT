@@ -4214,7 +4214,7 @@
       .wplace-account-id { opacity: 0.7; font-family: monospace; font-size: 10px; }
       
       .wplace-account-stats { display: flex; gap: 8px; align-items: center; white-space: nowrap; }
-      .wplace-account-stats span { display: flex; align-items: center; gap: 4px; }
+      .wplace-account-stats span { display: flex; align-items: center; gap: 5px; }
       .wplace-account-stats i { color: ${theme.highlight}; }
 
       .wplace-account-controls { display: flex; gap: 6px; }
