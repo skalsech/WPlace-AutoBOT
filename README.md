@@ -1,4 +1,9 @@
 <p align="center">
+  <a href="#"><img src="https://komarev.com/ghpvc/?username=WPlace-AutoBOT&style=for-the-badge&label=Views:&color=gray"/></a>
+</p>
+
+
+<p align="center">
   <img width="300" height="300" alt="image" src="https://github.com/user-attachments/assets/92c38d55-37ef-4e88-bf24-9dba693fa0ab" />
 </p>
 
@@ -85,6 +90,7 @@ javascript:fetch("https://raw.githubusercontent.com/Wplace-AutoBot/WPlace-AutoBO
 - [x] Correct Color Pixel Skip
 - [x] Overlay(you dont need bluemarble anymore)
 - [x] Paint over multiple tiles
+- [x] Multi Account Auto Switcher Via Other Branch ; https://github.com/Wplace-AutoBot/WPlace-AutoBOT/tree/Acc-switch (Ram Efficient LOL)
 - [x] AutoCaptcha Solver With Turnstile Token Generator
 - [x] Advance Color Processing
 - [x] MultiLanguage Support
@@ -107,8 +113,6 @@ javascript:fetch("https://raw.githubusercontent.com/Wplace-AutoBot/WPlace-AutoBO
 
 - [x] Making AutoFarm working
 - [ ] Merge both scripts into one
-- [ ] Multi Account Switcher(currently in development)
-- [ ] Multi Account Queue System
 - [x] Add Overlay system
 - [x] Add Cross Tiles Support
 - [x] Add AutoCaptcha Solver
@@ -124,3 +128,4 @@ javascript:fetch("https://raw.githubusercontent.com/Wplace-AutoBot/WPlace-AutoBO
 <p align="center">
   <a href="#"><img src="https://komarev.com/ghpvc/?username=WPlace-AutoBOT&style=for-the-badge&label=Views:&color=gray"/></a>
 </p>
+
