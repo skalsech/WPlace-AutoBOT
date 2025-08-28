@@ -5585,18 +5585,18 @@
                 statsBtn.title = "Show Stats"
             })
 
-        const refreshAllAccountsBtn = statsContainer.querySelector("#refreshAllAccountsBtn");
-        if (refreshAllAccountsBtn) {
-            refreshAllAccountsBtn.addEventListener('click', fetchAllAccountDetails);
-        }
+            const refreshAllAccountsBtn = statsContainer.querySelector("#refreshAllAccountsBtn");
+            if (refreshAllAccountsBtn) {
+                refreshAllAccountsBtn.addEventListener('click', fetchAllAccountDetails);
+            }
 
-        const autoSwapToggle = statsContainer.querySelector("#autoSwapToggle");
-        if (autoSwapToggle) {
-            autoSwapToggle.checked = CONFIG.autoSwap;
-            autoSwapToggle.addEventListener('change', (e) => {
-                CONFIG.autoSwap = e.target.checked;
-            });
-        }
+            const autoSwapToggle = statsContainer.querySelector("#autoSwapToggle");
+            if (autoSwapToggle) {
+                autoSwapToggle.checked = CONFIG.autoSwap;
+                autoSwapToggle.addEventListener('change', (e) => {
+                    CONFIG.autoSwap = e.target.checked;
+                });
+            }
 
             if (refreshChargesBtn) {
                 refreshChargesBtn.addEventListener("click", async () => {
@@ -6077,7 +6077,7 @@
                 const progress = state.totalPixels > 0 ? Math.round((state.paintedPixels / state.totalPixels) * 100) : 0;
                 const remainingPixels = state.totalPixels - state.paintedPixels;
                 state.estimatedTime = Utils.calculateEstimatedTime(remainingPixels, state.currentCharges, state.cooldown);
-            if (progressBar) progressBar.style.width = `${progress}%`;
+                if (progressBar) progressBar.style.width = `${progress}%`;
 
                 imageStatsHTML = `
                 <div class="wplace-stat-item">
@@ -6106,13 +6106,14 @@
             let totalAllCharges = 0;
             if (state.allAccountsInfo.length > 0) {
                 totalAllCharges = state.allAccountsInfo.reduce((sum, acc) => sum + Math.floor(acc.Charges || 0), 0);
+                totalMaxCharges = state.allAccountsInfo.reduce((sum, acc) => sum + Math.floor(acc.Max || 0), 0);
             }
 
             if (statsArea) statsArea.innerHTML = `
             ${imageStatsHTML}
             <div class="wplace-stat-item">
                 <div class="wplace-stat-label"><i class="fas fa-coins"></i> Total All Accounts Charges</div>
-                <div class="wplace-stat-value">${totalAllCharges}</div>
+                <div class="wplace-stat-value">${totalAllCharges}/${totalMaxCharges}</div>
             </div>
             <div class="wplace-stat-item">
             <div class="wplace-stat-label"><i class="fas fa-bolt"></i> ${Utils.t("charges")}</div>
@@ -7508,6 +7509,7 @@
 
                                 try {
                                     await fetchAccount();
+
                                     console.log("✅ Account swap confirmed.");
                                     swapSuccess = true;
                                 } catch (error) {
@@ -7675,7 +7677,7 @@
 
             const details = Utils.createElement('div', { className: 'wplace-account-details' });
             details.appendChild(Utils.createElement('div', { className: 'wplace-account-name', title: displayName }, displayName));
-            details.appendChild(Utils.createElement('div', { className: 'wplace-account-id' }, `ID: ${info.ID}`));
+            // details.appendChild(Utils.createElement('div', { className: 'wplace-account-id' }, `ID: ${info.ID}`));
 
             let stats;
             if (info.error) {
@@ -7763,7 +7765,7 @@
                 let swapped = false;
                 let fetchedInfo = null;
                 while (retries < 5 && !swapped) {
-                    await Utils.sleep(2000);
+                    await Utils.sleep(1000);
                     try {
                         fetchedInfo = await WPlaceService.fetchCheck();
                         if (fetchedInfo.ID) swapped = true;
@@ -7771,6 +7773,8 @@
                 }
 
                 if (swapped) {
+                    await fetchAccount();
+                    // await purchase("max_charges");
                     const displayName = accountNames[token] || `Account ${i + 1}`;
                     if (fetchedInfo.ID === originalId) originalToken = token;
                     state.allAccountsInfo.push({ ...fetchedInfo, token, displayName, isCurrent: fetchedInfo.ID === originalId });
@@ -7785,7 +7789,7 @@
             if (accountsListArea) accountsListArea.innerHTML = `<div class="wplace-stat-item" style="color: ${getCurrentTheme().error};">Error loading accounts.</div>`;
         } finally {
             if (originalToken) swapAccountTrigger(originalToken);
-            await Utils.sleep(2000);
+            await Utils.sleep(1000);
 
             // After switching back, update stats and sync the list
             const meData = await WPlaceService.getCharges();
@@ -8217,7 +8221,7 @@
     loadThemePreference();
 
     async function purchase(type) {
-        loadThemePreference()
+        // loadThemePreference()
         let id;
         let chargeMultiplier;
         if (type === "max_charges") {
