@@ -1,5 +1,4 @@
-// eslint-disable-next-line prettier/prettier
-; (async () => {
+(async () => {
   // CONFIGURATION CONSTANTS
   const CONFIG = {
     COOLDOWN_DEFAULT: 31000,
@@ -313,9 +312,13 @@
       startPaintingMsg: '🎨 Starting painting...',
       paintingProgress: '🧱 Progress: {painted}/{total} pixels...',
       noCharges: '⌛ No charges. Waiting {time}...',
-      paintingStopped: '⏹️ Painting stopped by user',
+      overlayTilesNotLoaded: '❌ Required map tiles not loaded. Check connection or retry.',
+      paintingStoppedByUser: '⏹️ Painting stopped by user',
+      paintingBatchFailed: '❌ Failed to send pixel batch after retries. Painting stopped.',
+      paintingPixelCheckFailed: '❌ Failed to read pixel at ({x}, {y}). Painting stopped.',
+      paintingFinalBatchFailed: '⚠️ Final batch of {count} pixels failed after retries.',
       paintingComplete: '✅ Painting complete! {count} pixels painted.',
-      paintingError: '❌ Error during painting',
+      paintingError: '❌ Unexepcted error during painting',
       missingRequirements: '❌ Load an image and select a position first',
       progress: 'Progress',
       pixels: 'Pixels',
@@ -1300,13 +1303,15 @@
       const { x: startPixelX, y: startPixelY } = this.startCoords.pixel;
       const { x: startRegionX, y: startRegionY } = this.startCoords.region;
 
-      const endPixelX = startPixelX + imageWidth;
-      const endPixelY = startPixelY + imageHeight;
-
-      const startTileX = startRegionX + Math.floor(startPixelX / this.tileSize);
-      const startTileY = startRegionY + Math.floor(startPixelY / this.tileSize);
-      const endTileX = startRegionX + Math.floor(endPixelX / this.tileSize);
-      const endTileY = startRegionY + Math.floor(endPixelY / this.tileSize);
+      const { startTileX, startTileY, endTileX, endTileY } = Utils.calculateTileRange(
+        startRegionX,
+        startRegionY,
+        startPixelX,
+        startPixelY,
+        imageWidth,
+        imageHeight,
+        this.tileSize
+      );
 
       const totalTiles = (endTileX - startTileX + 1) * (endTileY - startTileY + 1);
       console.log(`🔄 Processing ${totalTiles} overlay tiles...`);
@@ -1485,7 +1490,9 @@
     // Returns [r,g,b,a] for a pixel inside a region tile (tileX, tileY are region coords)
     async getTilePixelColor(tileX, tileY, pixelX, pixelY) {
       const tileKey = `${tileX},${tileY}`;
-      // Prefer cached ImageData if available
+      const alphaThresh = state.customTransparencyThreshold || CONFIG.TRANSPARENCY_THRESHOLD;
+
+      // 1. Prefer cached ImageData if available
       const cached = this.originalTilesData.get(tileKey);
       if (cached && cached.data && cached.w > 0 && cached.h > 0) {
         const x = Math.max(0, Math.min(cached.w - 1, pixelX));
@@ -1493,56 +1500,74 @@
         const idx = (y * cached.w + x) * 4;
         const d = cached.data;
         const a = d[idx + 3];
-        const alphaThresh = state.customTransparencyThreshold || CONFIG.TRANSPARENCY_THRESHOLD;
+
         if (a < alphaThresh) {
           // Treat as transparent / unavailable
           // Lightweight debug: show when transparency causes skip (only if verbose enabled)
           if (window._overlayDebug)
-            console.debug('getTilePixelColor: transparent pixel, skipping', tileKey, x, y, a);
+            console.debug('OverlayManager: pixel transparent (cached), skipping', tileKey, x, y, a);
           return null;
         }
         return [d[idx], d[idx + 1], d[idx + 2], a];
       }
 
-      // Fallback: draw stored bitmap to canvas and read single pixel
-      const bitmap = this.originalTiles.get(tileKey);
-      if (!bitmap) return null;
-
-      try {
-        let canvas, ctx;
-        if (typeof OffscreenCanvas !== 'undefined') {
-          canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
-          ctx = canvas.getContext('2d');
-        } else {
-          canvas = document.createElement('canvas');
-          canvas.width = bitmap.width;
-          canvas.height = bitmap.height;
-          ctx = canvas.getContext('2d');
+      // 2. Fallback: use bitmap, with retry
+      const maxRetries = 3;
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        const bitmap = this.originalTiles.get(tileKey);
+        if (!bitmap) {
+          if (attempt === maxRetries) {
+            console.warn('OverlayManager: no bitmap for', tileKey, 'after', maxRetries, 'attempts');
+          } else {
+            await Utils.sleep(50 * attempt); // экспоненциальная задержка
+          }
+          continue;
         }
-        ctx.imageSmoothingEnabled = false;
-        ctx.drawImage(bitmap, 0, 0);
 
-        const x = Math.max(0, Math.min(bitmap.width - 1, pixelX));
-        const y = Math.max(0, Math.min(bitmap.height - 1, pixelY));
-        const data = ctx.getImageData(x, y, 1, 1).data;
-        const a = data[3];
-        const alphaThresh = state.customTransparencyThreshold || CONFIG.TRANSPARENCY_THRESHOLD;
-        if (a < alphaThresh) {
-          if (window._overlayDebug)
-            console.debug(
-              'getTilePixelColor: transparent pixel (fallback), skipping',
-              tileKey,
-              x,
-              y,
-              a
+        try {
+          let canvas, ctx;
+          if (typeof OffscreenCanvas !== 'undefined') {
+            canvas = new OffscreenCanvas(bitmap.width, bitmap.height);
+            ctx = canvas.getContext('2d');
+          } else {
+            canvas = document.createElement('canvas');
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            ctx = canvas.getContext('2d');
+          }
+          ctx.imageSmoothingEnabled = false;
+          ctx.drawImage(bitmap, 0, 0);
+
+          const x = Math.max(0, Math.min(bitmap.width - 1, pixelX));
+          const y = Math.max(0, Math.min(bitmap.height - 1, pixelY));
+          const data = ctx.getImageData(x, y, 1, 1).data;
+          const a = data[3];
+
+          if (a < alphaThresh) {
+            if (window._overlayDebug)
+              console.debug('OverlayManager: pixel transparent (fallback)', tileKey, x, y, a);
+            return null;
+          }
+
+          return [data[0], data[1], data[2], a];
+        } catch (e) {
+          console.warn('OverlayManager: failed to read pixel (attempt', attempt, ')', tileKey, e);
+          if (attempt < maxRetries) {
+            await Utils.sleep(50 * attempt);
+          } else {
+            console.error(
+              'OverlayManager: failed to read pixel after',
+              maxRetries,
+              'attempts',
+              tileKey
             );
-          return null;
+          }
         }
-        return [data[0], data[1], data[2], a];
-      } catch (e) {
-        console.warn('OverlayManager.getTilePixelColor failed for', tileKey, pixelX, pixelY, e);
-        return null;
       }
+
+      // 3. Если всё провалилось — можно вернуть null или [0,0,0,0]
+      // Лучше null — чтобы не вводить в заблуждение
+      return null;
     }
 
     async _compositeTileOptimized(originalBlob, overlayBitmap) {
@@ -1566,6 +1591,69 @@
         type: 'image/png',
         quality: 0.95, // Slight compression for faster processing
       });
+    }
+
+    /**
+     * Wait until all required tiles are loaded and cached
+     * @param {number} startRegionX
+     * @param {number} startRegionY
+     * @param {number} pixelWidth
+     * @param {number} pixelHeight
+     * @param {number} startPixelX
+     * @param {number} startPixelY
+     * @param {number} timeoutMs
+     * @returns {Promise<boolean>} true if tiles are ready
+     */
+    async waitForTiles(
+      startRegionX,
+      startRegionY,
+      pixelWidth,
+      pixelHeight,
+      startPixelX = 0,
+      startPixelY = 0,
+      timeoutMs = 10000
+    ) {
+      const { startTileX, startTileY, endTileX, endTileY } = Utils.calculateTileRange(
+        startRegionX,
+        startRegionY,
+        startPixelX,
+        startPixelY,
+        pixelWidth,
+        pixelHeight,
+        this.tileSize
+      );
+
+      const requiredTiles = [];
+      for (let ty = startTileY; ty <= endTileY; ty++) {
+        for (let tx = startTileX; tx <= endTileX; tx++) {
+          requiredTiles.push(`${tx},${ty}`);
+        }
+      }
+
+      if (requiredTiles.length === 0) return true;
+
+      const startTime = Date.now();
+
+      while (Date.now() - startTime < timeoutMs) {
+        if (state.stopFlag) {
+          console.log('waitForTiles: stopped by user');
+          return false;
+        }
+
+        const missing = requiredTiles.filter((key) => !this.originalTiles.has(key));
+        if (missing.length === 0) {
+          console.log(`✅ All ${requiredTiles.length} required tiles are loaded`);
+          return true;
+        }
+
+        await Utils.sleep(100);
+      }
+
+      console.warn(
+        `❌ Timeout waiting for tiles: ${requiredTiles.length} required, 
+        ${requiredTiles.filter((k) => this.originalTiles.has(k)).length} loaded`
+      );
+      return false;
     }
   }
 
@@ -1819,6 +1907,37 @@
     _turnstileOverlay: null,
     _turnstileWidgetId: null,
     _lastSitekey: null,
+
+    /**
+     * Calculate the range of tile coordinates (in region space) that cover a given image area.
+     * @param {number} startRegionX - Base region X
+     * @param {number} startRegionY - Base region Y
+     * @param {number} startPixelX - Starting pixel X within the region grid
+     * @param {number} startPixelY - Starting pixel Y within the region grid
+     * @param {number} width - Image width in pixels
+     * @param {number} height - Image height in pixels
+     * @param {number} tileSize - Size of a tile (default 1000)
+     * @returns {{ startTileX: number, startTileY: number, endTileX: number, endTileY: number }}
+     */
+    calculateTileRange(
+      startRegionX,
+      startRegionY,
+      startPixelX,
+      startPixelY,
+      width,
+      height,
+      tileSize = 1000
+    ) {
+      const endPixelX = startPixelX + width;
+      const endPixelY = startPixelY + height;
+
+      return {
+        startTileX: startRegionX + Math.floor(startPixelX / tileSize),
+        startTileY: startRegionY + Math.floor(startPixelY / tileSize),
+        endTileX: startRegionX + Math.floor((endPixelX - 1) / tileSize),
+        endTileY: startRegionY + Math.floor((endPixelY - 1) / tileSize),
+      };
+    },
 
     async loadTurnstile() {
       // If Turnstile is already present, just resolve.
@@ -2354,8 +2473,8 @@
       return r >= wt && g >= wt && b >= wt;
     },
 
-    resolveColor(targetRgb, palette, exactMatch = false) {
-      if (!palette || palette.length === 0) return { id: null, rgb: targetRgb };
+    resolveColor(targetRgb, availableColors, exactMatch = false) {
+      if (!availableColors || availableColors.length === 0) return { id: null, rgb: targetRgb };
 
       const cacheKey = `${targetRgb[0]},${targetRgb[1]},${targetRgb[2]}|${
         state.colorMatchingAlgorithm
@@ -2365,7 +2484,7 @@
 
       // точное совпадение
       if (exactMatch) {
-        const match = palette.find(
+        const match = availableColors.find(
           (c) => c.rgb[0] === targetRgb[0] && c.rgb[1] === targetRgb[1] && c.rgb[2] === targetRgb[2]
         );
         const result = match ? { id: match.id, rgb: [...match.rgb] } : { id: null, rgb: targetRgb };
@@ -2380,7 +2499,7 @@
         targetRgb[1] >= whiteThreshold &&
         targetRgb[2] >= whiteThreshold
       ) {
-        const whiteEntry = palette.find(
+        const whiteEntry = availableColors.find(
           (c) =>
             c.rgb[0] >= whiteThreshold && c.rgb[1] >= whiteThreshold && c.rgb[2] >= whiteThreshold
         );
@@ -2392,13 +2511,13 @@
       }
 
       // поиск ближайшего цвета
-      let bestId = palette[0].id;
-      let bestRgb = [...palette[0].rgb];
+      let bestId = availableColors[0].id;
+      let bestRgb = [...availableColors[0].rgb];
       let bestScore = Infinity;
 
       if (state.colorMatchingAlgorithm === 'legacy') {
-        for (let i = 0; i < palette.length; i++) {
-          const c = palette[i];
+        for (let i = 0; i < availableColors.length; i++) {
+          const c = availableColors[i];
           const [r, g, b] = c.rgb;
           const rmean = (r + targetRgb[0]) / 2;
           const rdiff = r - targetRgb[0];
@@ -2421,8 +2540,8 @@
         const targetChroma = Math.sqrt(at * at + bt * bt);
         const penaltyWeight = state.enableChromaPenalty ? state.chromaPenaltyWeight || 0.15 : 0;
 
-        for (let i = 0; i < palette.length; i++) {
-          const c = palette[i];
+        for (let i = 0; i < availableColors.length; i++) {
+          const c = availableColors[i];
           const [r, g, b] = c.rgb;
           const [L2, a2, b2] = Utils._lab(r, g, b);
           const dL = Lt - L2,
@@ -4636,7 +4755,7 @@
           refreshChargesBtn.disabled = true;
 
           try {
-            await updateStats();
+            await updateStats(true);
           } catch (error) {
             console.error('Error refreshing charges:', error);
           } finally {
@@ -5300,7 +5419,7 @@
           Utils.t('colorsUpdated', {
             oldCount: oldCount,
             newCount: newCount,
-            diffCount: oldCount - newCount,
+            diffCount: newCount - oldCount,
           }),
           'success'
         );
@@ -6370,7 +6489,7 @@
 
         // Keep state.imageData.processor as the original-based source; painting uses paletted pixels already stored
 
-        updateStats(true);
+        updateStats();
         updateUI('resizeSuccess', 'success', {
           width: newWidth,
           height: newHeight,
@@ -6666,7 +6785,8 @@
       try {
         await processImage();
         return true;
-      } catch {
+      } catch (e) {
+        console.error('Unexpected error:', e);
         updateUI('paintingError', 'error');
         return false;
       } finally {
@@ -6695,7 +6815,7 @@
         state.stopFlag = true;
         state.running = false;
         stopBtn.disabled = true;
-        updateUI('paintingStopped', 'warning');
+        updateUI('paintingStoppedByUser', 'warning');
 
         if (state.imageLoaded && state.paintedPixels > 0) {
           Utils.saveProgress();
@@ -6973,6 +7093,7 @@
     } else {
       console.error(`❌ Batch failed permanently after retries. Stopping painting.`);
       state.stopFlag = true;
+      updateUI('paintingBatchFailed', 'error');
     }
 
     pixelBatch.pixels = [];
@@ -6983,6 +7104,22 @@
     const { width, height, pixels } = state.imageData;
     const { x: startX, y: startY } = state.startPosition;
     const { x: regionX, y: regionY } = state.region;
+
+    const tilesReady = await overlayManager.waitForTiles(
+      regionX,
+      regionY,
+      width,
+      height,
+      startX,
+      startY,
+      10000 // timeout 10s
+    );
+
+    if (!tilesReady) {
+      updateUI('overlayTilesNotLoaded', 'error');
+      state.stopFlag = true;
+      return;
+    }
 
     let pixelBatch = null;
     let skippedPixels = { transparent: 0, white: 0, alreadyPainted: 0, colorUnavailable: 0 };
@@ -7012,14 +7149,14 @@
       );
 
       if (strictSkipUnavailable && !colorCheck.id)
-        return { eligible: false, reason: 'colorUnavailable' };
+        return { eligible: false, reason: 'colorUnavailable', r, g, b, a, colorId: colorCheck.id };
 
       return { eligible: true, r, g, b, a, colorId: colorCheck.id };
     }
 
     function skipPixel(reason, id, rgb, x, y) {
       if (reason !== 'transparent') {
-        console.log(`Skipped ${reason} pixel (id: ${id}, (${rgb.join(', ')})) at (${x}, ${y})`);
+        console.log(`Skipped pixel for ${reason} (id: ${id}, (${rgb.join(', ')})) at (${x}, ${y})`);
       }
       skippedPixels[reason]++;
     }
@@ -7072,8 +7209,8 @@
           continue;
         }
 
-        console.log(`[DEBUG] Pixel at (${pixelX}, ${pixelY}) eligible: RGB=${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b},
-         alpha=${targetPixelInfo.a}, colorId=${targetColorId}`);
+        // console.log(`[DEBUG] Pixel at (${pixelX}, ${pixelY}) eligible: RGB=${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b},
+        //  alpha=${targetPixelInfo.a}, colorId=${targetColorId}`);
 
         if (
           !pixelBatch ||
@@ -7086,7 +7223,7 @@
                 pixelBatch.pixels.length
               } pixels (switching to region ${regionX + adderX},${regionY + adderY})`
             );
-            const success = await flushBatch(pixelBatch);
+            const success = await flushPixelBatch(pixelBatch);
 
             if (success) {
               if (
@@ -7102,6 +7239,7 @@
             } else {
               console.error(`❌ Batch failed permanently after retries. Stopping painting.`);
               state.stopFlag = true;
+              updateUI('paintingBatchFailed', 'error');
               break outerLoop;
             }
           }
@@ -7125,9 +7263,16 @@
 
           if (existingColorRGBA && Array.isArray(existingColorRGBA)) {
             const [er, eg, eb] = existingColorRGBA;
-
             const existingColor = Utils.resolveColor([er, eg, eb], state.availableColors);
-            if (existingColor.id === targetColorId) {
+            const isMatch = existingColor.id === targetColorId;
+            console.debug(
+              `[COMPARE] Pixel at (${pixelX}, ${pixelY})\n` +
+                `  ├── Current color: rgb(${er}, ${eg}, ${eb}) (id: ${existingColor.id})\n` +
+                `  ├── Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}) (id: ${targetColorId})\n` +
+                `  └── Status: ${isMatch ? '✅ Already painted → SKIP' : '🔴 Needs paint → PAINT'}\n` +
+                `  📍 Absolute position: (${startX + x}, ${startY + y}) in region (${regionX + adderX}, ${regionY + adderY})`
+            );
+            if (isMatch) {
               skipPixel(
                 'alreadyPainted',
                 targetColorId,
@@ -7137,14 +7282,12 @@
               );
               continue;
             }
-          } else {
-            console.log(
-              `[DEBUG] Pixel (${pixelX}, ${pixelY}) has no existing color or invalid data:`,
-              existingColorRGBA
-            );
           }
         } catch (e) {
           console.error(`[DEBUG] Error checking existing pixel at (${pixelX}, ${pixelY}):`, e);
+          updateUI('paintingPixelCheckFailed', 'error', { x: pixelX, y: pixelY });
+          state.stopFlag = true;
+          break outerLoop;
         }
 
         pixelBatch.pixels.push({
@@ -7154,10 +7297,7 @@
           localX: x,
           localY: y,
         });
-        console.log(
-          `[DEBUG] pixelBatch.pixels.push Pixel (${pixelX}, ${pixelY}) Target color id: ${targetColorId}, target RGB: [${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}]`
-        );
-        debugger;
+
         const maxBatchSize = calculateBatchSize();
         if (pixelBatch.pixels.length >= maxBatchSize) {
           const modeText =
@@ -7171,6 +7311,7 @@
           if (!success) {
             console.error(`❌ Batch failed permanently after retries. Stopping painting.`);
             state.stopFlag = true;
+            updateUI('paintingBatchFailed', 'error');
             break outerLoop;
           }
 
@@ -7214,10 +7355,6 @@
     }
 
     if (state.stopFlag) {
-      if (state.chargesThresholdInterval) {
-        clearInterval(state.chargesThresholdInterval);
-      }
-      updateUI('paintingStopped', 'warning');
       // Save progress when stopped to preserve painted map
       Utils.saveProgress();
     } else {
@@ -7240,12 +7377,14 @@
     console.log(`   Skipped - Transparent: ${skippedPixels.transparent}`);
     console.log(`   Skipped - White (disabled): ${skippedPixels.white}`);
     console.log(`   Skipped - Already painted: ${skippedPixels.alreadyPainted}`);
+    console.log(`   Skipped - Color Unavailable: ${skippedPixels.colorUnavailable}`);
     console.log(
       `   Total processed: ${
         state.paintedPixels +
         skippedPixels.transparent +
         skippedPixels.white +
-        skippedPixels.alreadyPainted
+        skippedPixels.alreadyPainted +
+        skippedPixels.colorUnavailable
       }`
     );
 
