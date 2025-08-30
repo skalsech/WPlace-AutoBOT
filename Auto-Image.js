@@ -546,8 +546,7 @@
     initialSetupComplete: false, // Track if initial startup setup is complete (only happens once)
     overlayOpacity: CONFIG.OVERLAY.OPACITY_DEFAULT,
     blueMarbleEnabled: CONFIG.OVERLAY.BLUE_MARBLE_DEFAULT,
-    ditheringEnabled: true,
-    // Advanced color matching settings
+    ditheringEnabled: true, // Advanced color matching settings
     colorMatchingAlgorithm: 'lab',
     enableChromaPenalty: true,
     chromaPenaltyWeight: 0.15,
@@ -555,21 +554,18 @@
     customWhiteThreshold: CONFIG.WHITE_THRESHOLD,
     resizeSettings: null,
     originalImage: null,
-    resizeIgnoreMask: null,
-    // Coordinate generation settings
+    resizeIgnoreMask: null, // Coordinate generation settings
     coordinateMode: 'rows',
     coordinateDirection: 'bottom-left',
     coordinateSnake: true,
     blockWidth: 6,
-    blockHeight: 2,
-    // Notification prefs and runtime bookkeeping
+    blockHeight: 2, // Notification prefs and runtime bookkeeping
     notificationsEnabled: CONFIG.NOTIFICATIONS.ENABLED,
     notifyOnChargesReached: CONFIG.NOTIFICATIONS.ON_CHARGES_REACHED,
     notifyOnlyWhenUnfocused: CONFIG.NOTIFICATIONS.ONLY_WHEN_UNFOCUSED,
     notificationIntervalMinutes: CONFIG.NOTIFICATIONS.REPEAT_MINUTES,
     _lastChargesNotifyAt: 0,
-    _lastChargesBelow: true,
-    // Smart save tracking
+    _lastChargesBelow: true, // Smart save tracking
     _lastSavePixelCount: 0,
     _lastSaveTime: 0,
     _saveInProgress: false,
@@ -603,9 +599,11 @@
     enable() {
       this.isEnabled = true;
     }
+
     disable() {
       this.isEnabled = false;
     }
+
     clear() {
       this.disable();
       this.imageBitmap = null;
@@ -1029,10 +1027,8 @@
         await Utils.sleep(100);
       }
 
-      console.warn(
-        `❌ Timeout waiting for tiles: ${requiredTiles.length} required, 
-        ${requiredTiles.filter((k) => this.originalTiles.has(k)).length} loaded`
-      );
+      console.warn(`❌ Timeout waiting for tiles: ${requiredTiles.length} required, 
+        ${requiredTiles.filter((k) => this.originalTiles.has(k)).length} loaded`);
       return false;
     }
   }
@@ -1115,26 +1111,56 @@
   }
 
   async function handleCaptchaWithRetry() {
-    const startTime = Date.now();
-    try {
-      const sitekey = Utils.detectSitekey();
-      console.log('🔑 Generating Turnstile token for sitekey:', sitekey);
+    const startTime = performance.now();
 
-      if (typeof window !== 'undefined' && window.navigator) {
-        console.log('🧭 UA:', window.navigator.userAgent, 'Platform:', window.navigator.platform);
+    try {
+      const { sitekey, token: preGeneratedToken } = await Utils.obtainSitekeyAndToken();
+
+      if (!sitekey) {
+        throw new Error('No valid sitekey found');
       }
 
-      const token = await Utils.generatePaintToken(sitekey);
-      if (token && token.length > 20) {
-        const elapsed = Math.round(Date.now() - startTime);
+      console.log('🔑 Using sitekey:', sitekey);
+
+      if (typeof window !== 'undefined' && window.navigator) {
+        console.log(
+          '🧭 UA:',
+          window.navigator.userAgent.substring(0, 50) + '...',
+          'Platform:',
+          window.navigator.platform
+        );
+      }
+
+      let token = null;
+
+      if (
+        preGeneratedToken &&
+        typeof preGeneratedToken === 'string' &&
+        preGeneratedToken.length > 20
+      ) {
+        console.log('♻️ Reusing pre-generated Turnstile token');
+        token = preGeneratedToken;
+      } else {
+        if (isTokenValid()) {
+          console.log('♻️ Using existing cached token (from previous session)');
+          token = turnstileToken;
+        } else {
+          console.log('🔐 Generating new token with executeTurnstile...');
+          token = await Utils.executeTurnstile(sitekey, 'paint');
+          if (token) setTurnstileToken(token);
+        }
+      }
+
+      if (token && typeof token === 'string' && token.length > 20) {
+        const elapsed = Math.round(performance.now() - startTime);
         console.log(`✅ Turnstile token generated successfully in ${elapsed}ms`);
         return token;
       } else {
-        throw new Error('Invalid or empty token received');
+        throw new Error(`Invalid or empty token received - Length: ${token?.length || 0}`);
       }
     } catch (error) {
-      const elapsed = Math.round(Date.now() - startTime);
-      console.log(`❌ Turnstile token generation failed after ${elapsed}ms:`, error);
+      const elapsed = Math.round(performance.now() - startTime);
+      console.error(`❌ Turnstile token generation failed after ${elapsed}ms:`, error);
       throw error;
     }
   }
@@ -1177,7 +1203,18 @@
           try {
             const payload = JSON.parse(args[1].body);
             if (payload.t) {
-              console.log('✅ Turnstile Token Captured:', payload.t);
+              // 📊 Debug log
+              console.log(
+                `🔍✅ Turnstile Token Captured - Type: ${typeof payload.t}, Value: ${
+                  payload.t
+                    ? typeof payload.t === 'string'
+                      ? payload.t.length > 50
+                        ? payload.t.substring(0, 50) + '...'
+                        : payload.t
+                      : JSON.stringify(payload.t)
+                    : 'null/undefined'
+                }, Length: ${payload.t?.length || 0}`
+              );
               window.postMessage({ source: 'turnstile-capture', token: payload.t }, '*');
             }
           } catch (_) {
@@ -1278,8 +1315,7 @@
       if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
       if (minutes > 0) return `${minutes}m ${seconds}s`;
       return `${seconds}s`;
-    },
-    // Turnstile Generator Integration - Optimized with widget reuse and proper cleanup
+    }, // Turnstile Generator Integration - Optimized with widget reuse and proper cleanup
     turnstileLoaded: false,
     _turnstileContainer: null,
     _turnstileOverlay: null,
@@ -1578,10 +1614,6 @@
       });
     },
 
-    async generatePaintToken(sitekey) {
-      return this.executeTurnstile(sitekey, 'paint');
-    },
-
     // Cleanup method for when the script is disabled/reloaded
     cleanupTurnstile() {
       if (this._turnstileWidgetId && window.turnstile?.remove) {
@@ -1606,11 +1638,17 @@
       this._lastSitekey = null;
     },
 
-    detectSitekey(fallback = '0x4AAAAAABpqJe8FO0N84q0F') {
+    async obtainSitekeyAndToken(fallback = '0x4AAAAAABpqJe8FO0N84q0F') {
       // Cache sitekey to avoid repeated DOM queries
       if (this._cachedSitekey) {
         console.log('🔍 Using cached sitekey:', this._cachedSitekey);
-        return this._cachedSitekey;
+
+        return isTokenValid()
+          ? {
+              sitekey: this._cachedSitekey,
+              token: turnstileToken,
+            }
+          : { sitekey: this._cachedSitekey, token: null };
       }
 
       // List of potential sitekeys to try
@@ -1619,77 +1657,101 @@
         '0x4AAAAAAAJ7xjKAp6Mt_7zw', // Alternative WPlace sitekey
         '0x4AAAAAADm5QWx6Ov2LNF2g', // Another common sitekey
       ];
+      const trySitekey = async (sitekey, source) => {
+        if (!sitekey || sitekey.length < 10) return null;
+
+        console.log(`🔍 Testing sitekey from ${source}:`, sitekey);
+        const token = await this.executeTurnstile(sitekey);
+
+        if (token && token.length >= 20) {
+          console.log(`✅ Valid token generated from ${source} sitekey`);
+          setTurnstileToken(token);
+          this._cachedSitekey = sitekey;
+          return { sitekey, token };
+        } else {
+          console.log(`❌ Failed to get token from ${source} sitekey`);
+          return null;
+        }
+      };
 
       try {
-        // Try to find sitekey in data attributes
+        // 1️⃣ data-sitekey attribute
         const sitekeySel = document.querySelector('[data-sitekey]');
         if (sitekeySel) {
           const sitekey = sitekeySel.getAttribute('data-sitekey');
-          if (sitekey && sitekey.length > 10) {
-            this._cachedSitekey = sitekey;
-            console.log('🔍 Sitekey detected from data attribute:', sitekey);
-            return sitekey;
+          const result = await trySitekey(sitekey, 'data attribute');
+          if (result) {
+            return result;
           }
         }
 
-        // Try turnstile element
+        // 2️⃣ Turnstile element
         const turnstileEl = document.querySelector('.cf-turnstile');
-        if (turnstileEl?.dataset?.sitekey && turnstileEl.dataset.sitekey.length > 10) {
-          this._cachedSitekey = turnstileEl.dataset.sitekey;
-          console.log('🔍 Sitekey detected from turnstile element:', this._cachedSitekey);
-          return this._cachedSitekey;
+        if (turnstileEl?.dataset?.sitekey) {
+          const sitekey = turnstileEl.dataset.sitekey;
+          const result = await trySitekey(sitekey, 'turnstile element');
+          if (result) {
+            return result;
+          }
         }
 
-        // Try to find sitekey in meta tags
+        // 3️⃣ Meta tags
         const metaTags = document.querySelectorAll(
           'meta[name*="turnstile"], meta[property*="turnstile"]'
         );
         for (const meta of metaTags) {
           const content = meta.getAttribute('content');
-          if (content && content.length > 10) {
-            this._cachedSitekey = content;
-            console.log('🔍 Sitekey detected from meta tag:', this._cachedSitekey);
-            return this._cachedSitekey;
+          const result = await trySitekey(content, 'meta tag');
+          if (result) {
+            return result;
           }
         }
 
-        // Try global variable
-        if (
-          typeof window !== 'undefined' &&
-          window.__TURNSTILE_SITEKEY &&
-          window.__TURNSTILE_SITEKEY.length > 10
-        ) {
-          this._cachedSitekey = window.__TURNSTILE_SITEKEY;
-          console.log('🔍 Sitekey detected from global variable:', this._cachedSitekey);
-          return this._cachedSitekey;
+        // 4️⃣ Global variable
+        if (window.__TURNSTILE_SITEKEY) {
+          const result = await trySitekey(window.__TURNSTILE_SITEKEY, 'global variable');
+          if (result) {
+            return result;
+          }
         }
 
-        // Try script tags for inline sitekey
+        // 5️⃣ Script tags
         const scripts = document.querySelectorAll('script');
         for (const script of scripts) {
           const content = script.textContent || script.innerHTML;
-          const sitekeyMatch = content.match(/sitekey['":\s]+(['"0-9a-zA-X_-]{20,})/i);
-          if (sitekeyMatch && sitekeyMatch[1] && sitekeyMatch[1].length > 10) {
-            this._cachedSitekey = sitekeyMatch[1].replace(/['"]/g, '');
-            console.log('🔍 Sitekey detected from script content:', this._cachedSitekey);
-            return this._cachedSitekey;
+          const match = content.match(
+            /(?:sitekey|data-sitekey)['"\s\[\]:\=\(]*['"]?([0-9a-zA-Z_-]{20,})['"]?/i
+          );
+          if (match && match[1]) {
+            const extracted = match[1].replace(/['"]/g, '');
+            const result = await trySitekey(extracted, 'script content');
+            if (result) {
+              return result;
+            }
           }
         }
 
-        // If no sitekey found through detection, try the known working sitekeys
-        console.log('🔍 No sitekey detected, trying known working sitekeys...');
+        // 6️⃣ Known potential sitekeys
+        console.log('🔍 Testing known potential sitekeys...');
         for (const testSitekey of potentialSitekeys) {
-          console.log('🔍 Trying sitekey:', testSitekey);
-          this._cachedSitekey = testSitekey;
-          return testSitekey;
+          const result = await trySitekey(testSitekey, 'known list');
+          if (result) {
+            return result;
+          }
         }
       } catch (error) {
-        console.warn('Error detecting sitekey:', error);
+        console.warn('⚠️ Error during sitekey detection:', error);
       }
 
-      console.log('🔍 Using fallback sitekey:', fallback);
-      this._cachedSitekey = fallback;
-      return fallback;
+      // 7️⃣ Fallback
+      console.log('🔧 Trying fallback sitekey:', fallback);
+      const fallbackResult = await trySitekey(fallback, 'fallback');
+      if (fallbackResult) {
+        return fallbackResult;
+      }
+
+      console.error('❌ No working sitekey or token found.');
+      return { sitekey: null, token: null };
     },
 
     createElement: (tag, props = {}, children = []) => {
@@ -1891,11 +1953,15 @@
     },
 
     resolveColor(targetRgb, availableColors, exactMatch = false) {
-      if (!availableColors || availableColors.length === 0) return { id: null, rgb: targetRgb };
+      if (!availableColors || availableColors.length === 0)
+        return {
+          id: null,
+          rgb: targetRgb,
+        };
 
-      const cacheKey = `${targetRgb[0]},${targetRgb[1]},${targetRgb[2]}|${
-        state.colorMatchingAlgorithm
-      }|${state.enableChromaPenalty ? 'c' : 'nc'}|${state.chromaPenaltyWeight}|${exactMatch ? 'exact' : 'closest'}`;
+      const cacheKey = `${targetRgb[0]},${targetRgb[1]},${targetRgb[2]}|${state.colorMatchingAlgorithm}|${
+        state.enableChromaPenalty ? 'c' : 'nc'
+      }|${state.chromaPenaltyWeight}|${exactMatch ? 'exact' : 'closest'}`;
 
       if (colorCache.has(cacheKey)) return colorCache.get(cacheKey);
 
@@ -2048,7 +2114,10 @@
 
     extractAvailableColors: () => {
       const colorElements = document.querySelectorAll('.tooltip button[id^="color-"]');
-
+      if (colorElements.length === 0) {
+        console.log('❌ No color elements found on page');
+        return null;
+      }
       // Separate available and unavailable colors
       const availableColors = [];
       const unavailableColors = [];
@@ -2088,7 +2157,9 @@
         console.log('\n--- AVAILABLE COLORS ---');
         availableColors.forEach((color, index) => {
           console.log(
-            `${index + 1}. ID: ${color.id}, Name: "${color.name}", RGB: (${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`
+            `${
+              index + 1
+            }. ID: ${color.id}, Name: "${color.name}", RGB: (${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`
           );
         });
       }
@@ -2097,7 +2168,9 @@
         console.log('\n--- UNAVAILABLE COLORS ---');
         unavailableColors.forEach((color, index) => {
           console.log(
-            `${index + 1}. ID: ${color.id}, Name: "${color.name}", RGB: (${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]}) [LOCKED]`
+            `${
+              index + 1
+            }. ID: ${color.id}, Name: "${color.name}", RGB: (${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]}) [LOCKED]`
           );
         });
       }
@@ -2992,6 +3065,7 @@
       .querySelector('#unselectPaidBtn')
       ?.addEventListener('click', () => unselectAllPaidColors());
   }
+
   async function handleCaptcha() {
     const startTime = performance.now();
 
@@ -3004,7 +3078,12 @@
     // Generator mode (pure) or Hybrid mode - try generator first
     try {
       // Use optimized token generation with automatic sitekey detection
-      const sitekey = Utils.detectSitekey();
+      const { sitekey, token: preGeneratedToken } = await Utils.obtainSitekeyAndToken();
+
+      if (!sitekey) {
+        throw new Error('No valid sitekey found');
+      }
+
       console.log('🔑 Generating Turnstile token for sitekey:', sitekey);
       console.log(
         '🧭 UA:',
@@ -3018,8 +3097,32 @@
         await Utils.loadTurnstile();
       }
 
-      const token = await Utils.generatePaintToken(sitekey);
+      let token = null;
 
+      // ✅ Reuse pre-generated token if available and valid
+      if (
+        preGeneratedToken &&
+        typeof preGeneratedToken === 'string' &&
+        preGeneratedToken.length > 20
+      ) {
+        console.log('♻️ Reusing pre-generated token from sitekey detection phase');
+        token = preGeneratedToken;
+      }
+      // ✅ Or use globally cached token if still valid
+      else if (isTokenValid()) {
+        console.log('♻️ Using existing cached token (from previous operation)');
+        token = turnstileToken;
+      }
+      // ✅ Otherwise generate a new one
+      else {
+        console.log('🔐 No valid pre-generated or cached token, creating new one...');
+        token = await Utils.executeTurnstile(sitekey, 'paint');
+        if (token) {
+          setTurnstileToken(token);
+        }
+      }
+
+      // 📊 Debug log
       console.log(
         `🔍 Token received - Type: ${typeof token}, Value: ${
           token
@@ -3032,6 +3135,7 @@
         }, Length: ${token?.length || 0}`
       );
 
+      // ✅ Final validation
       if (typeof token === 'string' && token.length > 20) {
         const duration = Math.round(performance.now() - startTime);
         console.log(`✅ Turnstile token generated successfully in ${duration}ms`);
@@ -3370,7 +3474,9 @@
       z-index: 99999;
       color: ${theme.text || 'white'};
       font-family: ${theme.fontFamily || "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"};
-      box-shadow: ${theme.boxShadow || '0 20px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1)'};
+      box-shadow: ${
+        theme.boxShadow || '0 20px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1)'
+      };
       backdrop-filter: ${theme.backdropFilter || 'blur(10px)'};
       overflow: hidden;
       animation: settingsSlideIn 0.4s ease-out;
@@ -3406,9 +3512,15 @@
           </label>
           <div class="wplace-settings-section-wrapper">
             <select id="tokenSourceSelect" class="wplace-settings-select">
-              <option value="generator" ${state.tokenSource === 'generator' ? 'selected' : ''} class="wplace-settings-option">🤖 Automatic Token Generator (Recommended)</option>
-              <option value="hybrid" ${state.tokenSource === 'hybrid' ? 'selected' : ''} class="wplace-settings-option">🔄 Generator + Auto Fallback</option>
-              <option value="manual" ${state.tokenSource === 'manual' ? 'selected' : ''} class="wplace-settings-option">🎯 Manual Pixel Placement</option>
+              <option value="generator" ${
+                state.tokenSource === 'generator' ? 'selected' : ''
+              } class="wplace-settings-option">🤖 Automatic Token Generator (Recommended)</option>
+              <option value="hybrid" ${
+                state.tokenSource === 'hybrid' ? 'selected' : ''
+              } class="wplace-settings-option">🔄 Generator + Auto Fallback</option>
+              <option value="manual" ${
+                state.tokenSource === 'manual' ? 'selected' : ''
+              } class="wplace-settings-option">🎯 Manual Pixel Placement</option>
             </select>
             <p class="wplace-settings-description">
               Generator mode creates tokens automatically. Hybrid mode falls back to manual when generator fails. Manual mode only uses pixel placement.
@@ -3428,7 +3540,9 @@
         <!-- Overlay Settings Section -->
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label" style="color: ${theme.text || 'white'};">
-            <i class="fas fa-eye wplace-icon-eye" style="color: ${theme.highlight || '#48dbfb'};"></i>
+            <i class="fas fa-eye wplace-icon-eye" style="color: ${
+              theme.highlight || '#48dbfb'
+            };"></i>
             Overlay Settings
           </label>
           <div class="wplace-settings-section-wrapper wplace-overlay-wrapper" style="
@@ -3447,7 +3561,9 @@
               <!-- Opacity Slider -->
               <div class="wplace-overlay-opacity-control">
                 <div class="wplace-overlay-opacity-header">
-                   <span class="wplace-overlay-opacity-label" style="color: ${theme.text || 'white'};">Overlay Opacity</span>
+                   <span class="wplace-overlay-opacity-label" style="color: ${
+                     theme.text || 'white'
+                   };">Overlay Opacity</span>
                    <div id="overlayOpacityValue" class="wplace-overlay-opacity-value" style="
                      background: ${theme.secondary || 'rgba(0,0,0,0.2)'}; 
                      color: ${theme.text || 'white'};
@@ -3458,17 +3574,25 @@
                    ">${Math.round(state.overlayOpacity * 100)}%</div>
                 </div>
                 <input type="range" id="overlayOpacitySlider" min="0.1" max="1" step="0.05" value="${state.overlayOpacity}" class="wplace-overlay-opacity-slider" style="
-                  background: linear-gradient(to right, ${theme.highlight || '#48dbfb'} 0%, ${theme.purple || theme.neon || '#d3a4ff'} 100%); 
+                  background: linear-gradient(to right, ${
+                    theme.highlight || '#48dbfb'
+                  } 0%, ${theme.purple || theme.neon || '#d3a4ff'} 100%); 
                   border-radius: ${theme.borderRadius === '0' ? '0' : '4px'}; 
                 ">
               </div>
               <!-- Blue Marble Toggle -->
               <label for="enableBlueMarbleToggle" class="wplace-blue-marble-toggle">
                   <div>
-                      <span class="wplace-blue-marble-title" style="color: ${theme.text || 'white'};">Blue Marble Effect</span>
-                      <p class="wplace-blue-marble-description" style="color: ${theme.text ? `${theme.text}BB` : 'rgba(255,255,255,0.7)'};">Renders a dithered "shredded" overlay.</p>
+                      <span class="wplace-blue-marble-title" style="color: ${
+                        theme.text || 'white'
+                      };">Blue Marble Effect</span>
+                      <p class="wplace-blue-marble-description" style="color: ${
+                        theme.text ? `${theme.text}BB` : 'rgba(255,255,255,0.7)'
+                      };">Renders a dithered "shredded" overlay.</p>
                   </div>
-                  <input type="checkbox" id="enableBlueMarbleToggle" ${state.blueMarbleEnabled ? 'checked' : ''} class="wplace-blue-marble-checkbox" style="
+                  <input type="checkbox" id="enableBlueMarbleToggle" ${
+                    state.blueMarbleEnabled ? 'checked' : ''
+                  } class="wplace-blue-marble-checkbox" style="
                     accent-color: ${theme.highlight || '#48dbfb'};
                   "/>
               </label>
@@ -3693,7 +3817,9 @@
               ${Object.keys(CONFIG.THEMES)
                 .map(
                   (themeName) =>
-                    `<option value="${themeName}" ${CONFIG.currentTheme === themeName ? 'selected' : ''} class="wplace-settings-option">${themeName}</option>`
+                    `<option value="${themeName}" ${
+                      CONFIG.currentTheme === themeName ? 'selected' : ''
+                    } class="wplace-settings-option">${themeName}</option>`
                 )
                 .join('')}
             </select>
@@ -3717,7 +3843,9 @@
               <option value="fr" ${state.language === 'fr' ? 'selected' : ''} class="wplace-settings-option">🇫🇷 Français</option>
               <option value="tr" ${state.language === 'tr' ? 'selected' : ''} class="wplace-settings-option">🇹🇷 Türkçe</option>
               <option value="zh" ${state.language === 'zh' ? 'selected' : ''} class="wplace-settings-option">🇨🇳 简体中文</option>
-              <option value="zh-tw" ${state.language === 'zh-tw' ? 'selected' : ''} class="wplace-settings-option">🇹🇼 繁體中文</option>
+              <option value="zh-tw" ${
+                state.language === 'zh-tw' ? 'selected' : ''
+              } class="wplace-settings-option">🇹🇼 繁體中文</option>
               <option value="ja" ${state.language === 'ja' ? 'selected' : ''} class="wplace-settings-option">🇯🇵 日本語</option>
               <option value="ko" ${state.language === 'ko' ? 'selected' : ''} class="wplace-settings-option">🇰🇷 한국어</option>
               </select>
@@ -3930,8 +4058,12 @@
           <label class="resize-advanced-label">
             <span class="resize-advanced-label-text">Algorithm</span>
             <select id="colorAlgorithmSelect" class="resize-advanced-select">
-              <option value="lab" ${state.colorMatchingAlgorithm === 'lab' ? 'selected' : ''}>Perceptual (Lab)</option>
-            <option value="legacy" ${state.colorMatchingAlgorithm === 'legacy' ? 'selected' : ''}>Legacy (RGB)</option>
+              <option value="lab" ${
+                state.colorMatchingAlgorithm === 'lab' ? 'selected' : ''
+              }>Perceptual (Lab)</option>
+            <option value="legacy" ${
+              state.colorMatchingAlgorithm === 'legacy' ? 'selected' : ''
+            }>Legacy (RGB)</option>
             </select>
           </label>
           <label class="resize-advanced-toggle">
@@ -3939,7 +4071,9 @@
               <span class="resize-advanced-label-text">Chroma Penalty</span>
               <div class="resize-advanced-description">Preserve vivid colors (Lab only)</div>
             </div>
-            <input type="checkbox" id="enableChromaPenaltyToggle" ${state.enableChromaPenalty ? 'checked' : ''} class="resize-advanced-checkbox" />
+            <input type="checkbox" id="enableChromaPenaltyToggle" ${
+              state.enableChromaPenalty ? 'checked' : ''
+            } class="resize-advanced-checkbox" />
           </label>
           <div class="resize-chroma-weight-control">
             <div class="resize-chroma-weight-header">
@@ -3953,7 +4087,9 @@
               <span class="resize-advanced-label-text">Enable Dithering</span>
               <div class="resize-advanced-description">Floyd–Steinberg error diffusion in preview and applied output</div>
             </div>
-            <input type="checkbox" id="enableDitheringToggle" ${state.ditheringEnabled ? 'checked' : ''} class="resize-advanced-checkbox" />
+            <input type="checkbox" id="enableDitheringToggle" ${
+              state.ditheringEnabled ? 'checked' : ''
+            } class="resize-advanced-checkbox" />
           </label>
           <div class="resize-threshold-controls">
             <label class="resize-threshold-label">
@@ -4751,8 +4887,10 @@
       state.currentCharges = Math.floor(currentCharges);
       const chargesEl = document.getElementById('wplace-stat-charges-value');
       const secondsInMinute = Math.ceil(remainingMs / 1000) % 60;
-      if (chargesEl && (secondsInMinute == 0 || secondsInMinute == 30)) {
-        chargesEl.innerHTML = `<span">${Math.floor(state.currentCharges)} / ${state.maxCharges}</span>`;
+      if (chargesEl && (secondsInMinute === 0 || secondsInMinute === 30)) {
+        chargesEl.innerHTML = `<span">${Math.floor(
+          state.currentCharges
+        )} / ${state.maxCharges}</span>`;
       }
       if (currentCharges >= max) {
         fullChargeEl.innerHTML = `<span style="color:#10b981;">FULL</span>`;
@@ -4821,21 +4959,21 @@
       }
 
       let colorSwatchesHTML = '';
-      const availableColors = Utils.extractAvailableColors();
-      if (availableColors.length < 10 && isManualRefresh) {
-        Utils.showAlert(Utils.t('noColorsFound'), 'warning');
-      }
       state.availableColors = state.availableColors.filter(
         (c) => c.name !== 'Unknown CoIor NaN' && c.id !== null
       );
 
-      if (state.availableColors.length < availableColors.length) {
+      const availableColors = Utils.extractAvailableColors();
+      const newCount = Array.isArray(availableColors) ? availableColors.length : 0;
+
+      if (newCount === 0 && isManualRefresh) {
+        Utils.showAlert(Utils.t('noColorsFound'), 'warning');
+      } else if (newCount > 0 && state.availableColors.length < newCount) {
         const oldCount = state.availableColors.length;
-        const newCount = availableColors.length;
 
         Utils.showAlert(
           Utils.t('colorsUpdated', {
-            oldCount: oldCount,
+            oldCount,
             newCount: newCount,
             diffCount: newCount - oldCount,
           }),
@@ -5997,7 +6135,7 @@
     if (uploadBtn) {
       uploadBtn.addEventListener('click', async () => {
         const availableColors = Utils.extractAvailableColors();
-        if (availableColors.length < 10) {
+        if (availableColors === null || availableColors.length < 10) {
           updateUI('noColorsFound', 'error');
           Utils.showAlert(Utils.t('noColorsFound'), 'error');
           return;
@@ -6538,7 +6676,12 @@
     }
 
     let pixelBatch = null;
-    let skippedPixels = { transparent: 0, white: 0, alreadyPainted: 0, colorUnavailable: 0 };
+    let skippedPixels = {
+      transparent: 0,
+      white: 0,
+      alreadyPainted: 0,
+      colorUnavailable: 0,
+    };
 
     const transparencyThreshold =
       state.customTransparencyThreshold || CONFIG.TRANSPARENCY_THRESHOLD;
@@ -6551,9 +6694,16 @@
         b = pixels[idx + 2],
         a = pixels[idx + 3];
 
-      if (a < transparencyThreshold) return { eligible: false, reason: 'transparent' };
+      if (a < transparencyThreshold)
+        return {
+          eligible: false,
+          reason: 'transparent',
+        };
       if (!state.paintWhitePixels && Utils.isWhitePixel(r, g, b))
-        return { eligible: false, reason: 'white' };
+        return {
+          eligible: false,
+          reason: 'white',
+        };
 
       let targetRgb = Utils.isWhitePixel(r, g, b)
         ? [255, 255, 255]
@@ -6565,7 +6715,15 @@
       );
 
       if (strictSkipUnavailable && !colorCheck.id)
-        return { eligible: false, reason: 'colorUnavailable', r, g, b, a, colorId: colorCheck.id };
+        return {
+          eligible: false,
+          reason: 'colorUnavailable',
+          r,
+          g,
+          b,
+          a,
+          colorId: colorCheck.id,
+        };
 
       return { eligible: true, r, g, b, a, colorId: colorCheck.id };
     }
@@ -6635,9 +6793,9 @@
         ) {
           if (pixelBatch && pixelBatch.pixels.length > 0) {
             console.log(
-              `🌍 Sending region-change batch with ${
-                pixelBatch.pixels.length
-              } pixels (switching to region ${regionX + adderX},${regionY + adderY})`
+              `🌍 Sending region-change batch with ${pixelBatch.pixels.length} pixels (switching to region ${
+                regionX + adderX
+              },${regionY + adderY})`
             );
             const success = await flushPixelBatch(pixelBatch);
 
@@ -6681,13 +6839,6 @@
             const [er, eg, eb] = existingColorRGBA;
             const existingColor = Utils.resolveColor([er, eg, eb], state.availableColors);
             const isMatch = existingColor.id === targetColorId;
-            console.debug(
-              `[COMPARE] Pixel at (${pixelX}, ${pixelY})\n` +
-                `  ├── Current color: rgb(${er}, ${eg}, ${eb}) (id: ${existingColor.id})\n` +
-                `  ├── Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}) (id: ${targetColorId})\n` +
-                `  └── Status: ${isMatch ? '✅ Already painted → SKIP' : '🔴 Needs paint → PAINT'}\n` +
-                `  📍 Absolute position: (${startX + x}, ${startY + y}) in region (${regionX + adderX}, ${regionY + adderY})`
-            );
             if (isMatch) {
               skipPixel(
                 'alreadyPainted',
@@ -6698,6 +6849,12 @@
               );
               continue;
             }
+            console.debug(
+              `[COMPARE] Pixel at 📍 (${pixelX}, ${pixelY}) in region (${regionX + adderX}, ${regionY + adderY})\n` +
+                `  ├── Current color: rgb(${er}, ${eg}, ${eb}) (id: ${existingColor.id})\n` +
+                `  ├── Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}) (id: ${targetColorId})\n` +
+                `  └── Status: ${isMatch ? '✅ Already painted → SKIP' : '🔴 Needs paint → PAINT'}\n`
+            );
           }
         } catch (e) {
           console.error(`[DEBUG] Error checking existing pixel at (${pixelX}, ${pixelY}):`, e);
@@ -6993,8 +7150,7 @@
         coordinateDirection: state.coordinateDirection,
         coordinateSnake: state.coordinateSnake,
         blockWidth: state.blockWidth,
-        blockHeight: state.blockHeight,
-        // Save ignore mask (as base64) with its dimensions
+        blockHeight: state.blockHeight, // Save ignore mask (as base64) with its dimensions
         resizeIgnoreMask:
           state.resizeIgnoreMask &&
           state.resizeSettings &&
@@ -7004,8 +7160,7 @@
                 h: state.resizeSettings.height,
                 data: btoa(String.fromCharCode(...state.resizeIgnoreMask)),
               }
-            : null,
-        // Notifications
+            : null, // Notifications
         notificationsEnabled: state.notificationsEnabled,
         notifyOnChargesReached: state.notifyOnChargesReached,
         notifyOnlyWhenUnfocused: state.notifyOnlyWhenUnfocused,
