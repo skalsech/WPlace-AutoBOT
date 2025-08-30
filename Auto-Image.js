@@ -1424,8 +1424,7 @@
 
       const title = document.createElement('div');
       title.textContent = Utils.t('turnstileInstructions');
-      title.style.cssText =
-        'font: 600 12px/1.3 "Segoe UI",sans-serif; margin-bottom: 8px; opacity: 0.9;';
+      title.className = 'wplace-turnstile-title';
 
       const host = document.createElement('div');
       host.id = 'turnstile-overlay-host';
@@ -3993,6 +3992,9 @@
               <button id="maskModeToggle" class="wplace-btn wplace-btn-primary resize-mode-btn">Toggle</button>
             </div>
           </div>
+          <button id="clearIgnoredBtn" class="wplace-btn resize-clear-btn" title="Clear all ignored pixels">Clear</button>
+          <button id="invertMaskBtn" class="wplace-btn resize-invert-btn" title="Invert mask">Invert</button>
+          <span class="resize-shortcut-help">Shift = Row • Alt = Column</span>
         </div>
       </div>
 
