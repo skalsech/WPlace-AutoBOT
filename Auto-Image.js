@@ -6431,7 +6431,7 @@
       'warning',
       {
         threshold,
-        current,
+        current: Math.floor(current),
         time: timeText,
       },
       true
