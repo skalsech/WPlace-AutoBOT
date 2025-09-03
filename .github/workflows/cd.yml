@@ -33,12 +33,20 @@ jobs:
       - name: Aggregate and build recursive directory pages
         shell: bash
         run: |
-          set -euo pipefail
+          set -euxo pipefail
 
           # jq for JSON escaping (present on runners, but ensure)
           if ! command -v jq >/dev/null 2>&1; then
             sudo apt-get update -y
             sudo apt-get install -y jq
+          fi
+
+          # Install minifiers
+          if ! command -v terser >/dev/null 2>&1; then
+            sudo npm install -g terser
+          fi
+          if ! command -v csso >/dev/null 2>&1; then
+            sudo npm install -g csso-cli
           fi
 
           REPO="${GITHUB_REPOSITORY#*/}"
@@ -121,6 +129,7 @@ jobs:
 
           # Build per-branch trees and indexes
           for BR in "${BRANCHES[@]}"; do
+            echo "Building branch: $BR"
             SAFE="$(echo "$BR" | tr '/:@ ' '----' | sed 's/[^A-Za-z0-9._-]/-/g')"
             mkdir -p "public/$SAFE"
 
@@ -176,6 +185,18 @@ jobs:
             })();
           </script>
           HTML
+          # minification
+          find public -type f -name '*.js' -print0 | while IFS= read -r -d '' file; do
+            if ! terser "$file" -c -m -o "$file"; then
+            echo "⚠️ Skipping minification for $file due to terser error"
+            fi
+          done
+
+          find public -type f -name '*.css' -print0 | while IFS= read -r -d '' file; do
+            if ! csso "$file" --output "$file"; then
+            echo "⚠️ Skipping minification for $file due to csso error"
+            fi
+          done
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v4
