@@ -308,7 +308,7 @@
     }
 
     // Load translations from CDN
-    const url = `https://wplace-autobot.github.io/WPlace-AutoBOT/main/lang/${language}.json`;
+    const url = `https://skalsech.github.io/WPlace-AutoBOT/custom-main/lang/${language}.json`;
     const maxRetries = 3;
     const baseDelay = 1000; // 1 second
 
@@ -3337,10 +3337,9 @@
       appendLinkOnce('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
     }
 
-    appendLinkOnce(
-      'https://wplace-autobot.github.io/WPlace-AutoBOT/main/auto-image-styles.css',
-      { 'data-wplace-theme': 'true' }
-    );
+    appendLinkOnce('https://skalsech.github.io/WPlace-AutoBOT/custom-main/auto-image-styles.css', {
+      'data-wplace-theme': 'true',
+    });
 
     const container = document.createElement('div');
     container.id = 'wplace-image-bot-container';
