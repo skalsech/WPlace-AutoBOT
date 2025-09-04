@@ -3616,7 +3616,8 @@
     // Stats Window - Separate UI
     const statsContainer = document.createElement('div');
     statsContainer.id = 'wplace-stats-container';
-    statsContainer.style.display = 'none';
+    statsContainer.style.display = 'block';
+
     statsContainer.innerHTML = `
       <div class="wplace-header">
         <div class="wplace-header-title">
@@ -3637,15 +3638,30 @@
       <div class="wplace-content">
         <div class="wplace-stats">
           <div id="statsArea">
-            <div class="wplace-stat-item">
-              <div class="wplace-stat-label"><i class="fas fa-info-circle"></i> ${Utils.t(
-                'initMessage'
-              )}</div>
+            <div id="wplace-init-msg" class="wplace-stat-item">
+              <div class="wplace-stat-label">
+                <i class="fas fa-info-circle"></i> ${Utils.t('initMessage')}
+              </div>
             </div>
           </div>
         </div>
       </div>
     `;
+
+    function isStatsFullyRendered() {
+      const blocks = ['wplace-charge-stats', 'wplace-image-stats', 'wplace-colors-section'];
+      return blocks.every((id) => {
+        const el = document.getElementById(id);
+        return el && getComputedStyle(el).display !== 'none';
+      });
+    }
+
+    function tryRemoveStatsInitMessage() {
+      if (isStatsFullyRendered()) {
+        const msg = document.getElementById('wplace-init-msg');
+        if (msg) msg.remove();
+      }
+    }
 
     // Modern Settings Container with Theme Support
     // Use the theme variable already declared at the top of createUI function
@@ -5150,6 +5166,77 @@
       }
     };
 
+    function ensureChargeStats(afterEl = null) {
+      let el = document.getElementById('wplace-charge-stats');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'wplace-charge-stats';
+        el.innerHTML = `
+      <div class="wplace-stat-item">
+        <div class="wplace-stat-label"><i class="fas fa-bolt"></i> ${Utils.t('charges')}</div>
+        <div class="wplace-stat-value" id="wplace-stat-charges-value">0/0</div>
+      </div>
+      <div class="wplace-stat-item">
+        <div class="wplace-stat-label"><i class="fas fa-battery-half"></i> ${Utils.t('fullChargeIn')}</div>
+        <div class="wplace-stat-value" id="wplace-stat-fullcharge-value">--:--:--</div>
+      </div>
+    `;
+        if (afterEl && afterEl.parentNode === statsArea) {
+          statsArea.insertBefore(el, afterEl.nextSibling);
+        } else {
+          statsArea.appendChild(el);
+        }
+      }
+      return el;
+    }
+
+    function ensureImageStats(afterEl = null) {
+      let el = document.getElementById('wplace-image-stats');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'wplace-image-stats';
+        el.innerHTML = `
+      <div class="wplace-stat-item">
+        <div class="wplace-stat-label"><i class="fas fa-image"></i> ${Utils.t('progress')}</div>
+        <div class="wplace-stat-value" id="wplace-stat-progress">--%</div>
+      </div>
+      <div class="wplace-stat-item">
+        <div class="wplace-stat-label"><i class="fas fa-paint-brush"></i> ${Utils.t('pixels')}</div>
+        <div class="wplace-stat-value" id="wplace-stat-pixels">0/0</div>
+      </div>
+      <div class="wplace-stat-item">
+        <div class="wplace-stat-label"><i class="fas fa-clock"></i> ${Utils.t('estimatedTime')}</div>
+        <div class="wplace-stat-value" id="wplace-stat-estimated">--:--</div>
+      </div>
+    `;
+        if (afterEl && afterEl.parentNode === statsArea) {
+          statsArea.insertBefore(el, afterEl.nextSibling);
+        } else {
+          statsArea.appendChild(el);
+        }
+      }
+      return el;
+    }
+
+    function ensureColorSwatches(afterEl = null) {
+      let el = document.getElementById('wplace-colors-section');
+      if (!el) {
+        el = document.createElement('div');
+        el.id = 'wplace-colors-section';
+        el.className = 'wplace-colors-section';
+        el.innerHTML = `
+      <div class="wplace-stat-label" id="wplace-stat-colors-label"></div>
+      <div class="wplace-stat-colors-grid" id="wplace-stat-colors-grid"></div>
+    `;
+        if (afterEl && afterEl.parentNode === statsArea) {
+          statsArea.insertBefore(el, afterEl.nextSibling);
+        } else {
+          statsArea.appendChild(el);
+        }
+      }
+      return el;
+    }
+
     function updateChargeStatsDisplay(intervalMs) {
       const currentChargesEl = document.getElementById('wplace-stat-charges-value');
       const fullChargeEl = document.getElementById('wplace-stat-fullcharge-value');
@@ -5183,7 +5270,10 @@
       const timeText = Utils.msToTimeText(remainingMs);
 
       if (currentChargesEl) {
-        currentChargesEl.innerHTML = `${state.displayCharges} / ${state.maxCharges}`;
+        const newText = `${state.displayCharges} / ${state.maxCharges}`;
+        if (currentChargesEl.textContent !== newText) {
+          currentChargesEl.textContent = newText;
+        }
       }
 
       if (
@@ -5195,14 +5285,65 @@
       }
 
       if (fullChargeEl) {
+        let newFullText;
         if (state.displayCharges >= max) {
-          fullChargeEl.innerHTML = `<span style="color:#10b981;">FULL</span>`;
+          newFullText = `<span style="color:#10b981;">FULL</span>`;
         } else {
-          fullChargeEl.innerHTML = `
-            <span style="color:#f59e0b;">${timeText}</span>
-          `;
+          newFullText = `<span style="color:#f59e0b;">${timeText}</span>`;
+        }
+        if (fullChargeEl.innerHTML !== newFullText) {
+          fullChargeEl.innerHTML = newFullText;
         }
       }
+    }
+
+    function updateImageStats() {
+      if (!state.imageLoaded) return;
+
+      const progress =
+        state.totalPixels > 0 ? Math.round((state.paintedPixels / state.totalPixels) * 100) : 0;
+      const remainingPixels = state.totalPixels - state.paintedPixels;
+
+      state.estimatedTime = Utils.calculateEstimatedTime(
+        remainingPixels,
+        state.displayCharges,
+        state.cooldown
+      );
+
+      progressBar.style.width = `${progress}%`;
+
+      document.getElementById('wplace-stat-progress').textContent = `${progress}%`;
+      document.getElementById('wplace-stat-pixels').textContent =
+        `${state.paintedPixels}/${state.totalPixels}`;
+      document.getElementById('wplace-stat-estimated').textContent = Utils.formatTime(
+        state.estimatedTime
+      );
+    }
+
+    function updateColorSwatches() {
+      if (!state.colorsChecked) return;
+
+      const labelEl = document.getElementById('wplace-stat-colors-label');
+      const gridEl = document.getElementById('wplace-stat-colors-grid');
+      if (!labelEl || !gridEl) return;
+
+      labelEl.innerHTML = `<i class="fas fa-palette"></i> ${Utils.t('availableColors', {
+        count: state.availableColors.length,
+      })}`;
+
+      gridEl.innerHTML = state.availableColors
+        .map((color) => {
+          const rgbString = `rgb(${color.rgb.join(',')})`;
+          const style =
+            color.id === 0
+              ? 'background: repeating-linear-gradient(45deg, #ccc 0 2px, #fff 2px 4px);background-size: cover;'
+              : `background-color: ${rgbString};`;
+          return `<div class="wplace-stat-color-swatch" style="${style}" title="${Utils.t(
+            'colorTooltip',
+            { name: color.name, id: color.id, rgb: color.rgb.join(', ') }
+          )}"></div>`;
+        })
+        .join('');
     }
 
     updateStats = async (isManualRefresh = false) => {
@@ -5232,7 +5373,7 @@
           startTime: Date.now(),
           spentSinceShot: 0,
         };
-        // Evaluate notifications every time we refresh server-side charges
+
         NotificationManager.maybeNotifyChargesReached();
       }
 
@@ -5250,110 +5391,15 @@
         cooldownSlider.max = state.maxCharges;
       }
 
-      let imageStatsHTML = '';
-      if (state.imageLoaded) {
-        const progress =
-          state.totalPixels > 0 ? Math.round((state.paintedPixels / state.totalPixels) * 100) : 0;
-        const remainingPixels = state.totalPixels - state.paintedPixels;
-        state.estimatedTime = Utils.calculateEstimatedTime(
-          remainingPixels,
-          state.displayCharges,
-          state.cooldown
-        );
-        progressBar.style.width = `${progress}%`;
+      let lastEl = document.getElementById('wplace-init-msg');
+      if (state.imageLoaded) lastEl = ensureImageStats(lastEl);
+      if (state.fullChargeData) lastEl = ensureChargeStats(lastEl);
+      if (state.colorsChecked) lastEl = ensureColorSwatches(lastEl);
 
-        imageStatsHTML = `
-          <div class="wplace-stat-item">
-            <div class="wplace-stat-label"><i class="fas fa-image"></i> ${Utils.t('progress')}</div>
-            <div class="wplace-stat-value">${progress}%</div>
-          </div>
-          <div class="wplace-stat-item">
-            <div class="wplace-stat-label"><i class="fas fa-paint-brush"></i> ${Utils.t(
-              'pixels'
-            )}</div>
-            <div class="wplace-stat-value">${state.paintedPixels}/${state.totalPixels}</div>
-          </div>
-          <div class="wplace-stat-item">
-            <div class="wplace-stat-label"><i class="fas fa-clock"></i> ${Utils.t(
-              'estimatedTime'
-            )}</div>
-            <div class="wplace-stat-value">${Utils.formatTime(state.estimatedTime)}</div>
-          </div>
-        `;
-      }
-
-      let colorSwatchesHTML = '';
-      const { availableColors } = Utils.extractColors();
-      const newCount = Array.isArray(availableColors) ? availableColors.length : 0;
-
-      if (newCount === 0 && isManualRefresh) {
-        Utils.showAlert(Utils.t('noColorsFound'), 'warning');
-      } else if (newCount > 0 && Utils.colorsChanged(state.availableColors, availableColors)) {
-        const oldCount = state.availableColors.length;
-
-        Utils.showAlert(
-          Utils.t('colorsUpdated', {
-            oldCount,
-            newCount: newCount,
-            diffCount: newCount - oldCount,
-          }),
-          'success'
-        );
-
-        state.availableColors = availableColors;
-        Utils.invalidateColorCache({ availableColors: true });
-      }
-      if (state.colorsChecked) {
-        colorSwatchesHTML = state.availableColors
-          .map((color) => {
-            const rgbString = `rgb(${color.rgb.join(',')})`;
-            const style =
-              color.id === 0
-                ? 'background: repeating-linear-gradient(45deg, #ccc 0 2px, #fff 2px 4px);background-size: cover;'
-                : `background-color: ${rgbString};`;
-            return `<div class="wplace-stat-color-swatch" style="${style}" title="${Utils.t(
-              'colorTooltip',
-              { name: color.name, id: color.id, rgb: color.rgb.join(', ') }
-            )}"></div>`;
-          })
-          .join('');
-      }
-
-      statsArea.innerHTML = `
-            ${imageStatsHTML}
-            <div class="wplace-stat-item">
-              <div class="wplace-stat-label">
-                <i class="fas fa-bolt"></i> ${Utils.t('charges')}
-              </div>
-              <div class="wplace-stat-value" id="wplace-stat-charges-value">
-                ${state.displayCharges} / ${state.maxCharges}
-              </div>
-            </div>
-            <div class="wplace-stat-item">
-              <div class="wplace-stat-label">
-                <i class="fas fa-battery-half"></i> ${Utils.t('fullChargeIn')}
-              </div>
-              <div class="wplace-stat-value" id="wplace-stat-fullcharge-value">--:--:--</div>
-            </div>
-            ${
-              state.colorsChecked
-                ? `
-            <div class="wplace-colors-section">
-                <div class="wplace-stat-label"><i class="fas fa-palette"></i> ${Utils.t(
-                  'availableColors',
-                  { count: state.availableColors.length }
-                )}</div>
-                <div class="wplace-stat-colors-grid">
-                    ${colorSwatchesHTML}
-                </div>
-            </div>
-            `
-                : ''
-            }
-        `;
-
-      // should be after statsArea.innerHTML = '...'. todo make full stats ui update partial
+      updateImageStats();
       updateChargeStatsDisplay(intervalMs);
+      updateColorSwatches();
+      tryRemoveStatsInitMessage();
     };
 
     updateDataButtons = () => {
@@ -7665,9 +7711,6 @@
 
   // Initialize Turnstile generator integration
   console.log('🚀 WPlace Auto-Image with Turnstile Token Generator loaded');
-  console.log('🔑 Turnstile token generator: ALWAYS ENABLED (Background mode)');
-  console.log('🎯 Manual pixel captcha solving: Available as fallback/alternative');
-  console.log('📱 Turnstile widgets: DISABLED - pure background token generation only!');
 
   // Function to enable file operations after initial startup setup is complete
   function enableFileOperations() {
@@ -7765,6 +7808,7 @@
   createUI().then(() => {
     // Generate token automatically after UI is ready
     setTimeout(initializeTokenGenerator, 1000);
+    updateStats();
 
     // Attach advanced color matching listeners (resize dialog)
     const advancedInit = () => {
