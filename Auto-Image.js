@@ -34,27 +34,27 @@
     }, // --- START: Color data from colour-converter.js ---
     // New color structure with proper ID mapping
     COLOR_MAP: {
-      0: { id: 1, name: 'Black', rgb: { r: 0, g: 0, b: 0 } },
-      1: { id: 2, name: 'Dark Gray', rgb: { r: 60, g: 60, b: 60 } },
-      2: { id: 3, name: 'Gray', rgb: { r: 120, g: 120, b: 120 } },
-      3: { id: 4, name: 'Light Gray', rgb: { r: 210, g: 210, b: 210 } },
-      4: { id: 5, name: 'White', rgb: { r: 255, g: 255, b: 255 } },
-      5: { id: 6, name: 'Deep Red', rgb: { r: 96, g: 0, b: 24 } },
-      6: { id: 7, name: 'Red', rgb: { r: 237, g: 28, b: 36 } },
-      7: { id: 8, name: 'Orange', rgb: { r: 255, g: 127, b: 39 } },
-      8: { id: 9, name: 'Gold', rgb: { r: 246, g: 170, b: 9 } },
-      9: { id: 10, name: 'Yellow', rgb: { r: 249, g: 221, b: 59 } },
-      10: { id: 11, name: 'Light Yellow', rgb: { r: 255, g: 250, b: 188 } },
-      11: { id: 12, name: 'Dark Green', rgb: { r: 14, g: 185, b: 104 } },
-      12: { id: 13, name: 'Green', rgb: { r: 19, g: 230, b: 123 } },
-      13: { id: 14, name: 'Light Green', rgb: { r: 135, g: 255, b: 94 } },
-      14: { id: 15, name: 'Dark Teal', rgb: { r: 12, g: 129, b: 110 } },
-      15: { id: 16, name: 'Teal', rgb: { r: 16, g: 174, b: 166 } },
-      16: { id: 17, name: 'Light Teal', rgb: { r: 19, g: 225, b: 190 } },
-      17: { id: 20, name: 'Cyan', rgb: { r: 96, g: 247, b: 242 } },
-      18: { id: 44, name: 'Light Cyan', rgb: { r: 187, g: 250, b: 242 } },
-      19: { id: 18, name: 'Dark Blue', rgb: { r: 40, g: 80, b: 158 } },
-      20: { id: 19, name: 'Blue', rgb: { r: 64, g: 147, b: 228 } },
+      0: { id: 0, name: 'Transparent', rgb: { r: 222, g: 250, b: 206 } }, //deface
+      1: { id: 1, name: 'Black', rgb: { r: 0, g: 0, b: 0 } },
+      2: { id: 2, name: 'Dark Gray', rgb: { r: 60, g: 60, b: 60 } },
+      3: { id: 3, name: 'Gray', rgb: { r: 120, g: 120, b: 120 } },
+      4: { id: 4, name: 'Light Gray', rgb: { r: 210, g: 210, b: 210 } },
+      5: { id: 5, name: 'White', rgb: { r: 255, g: 255, b: 255 } },
+      6: { id: 6, name: 'Deep Red', rgb: { r: 96, g: 0, b: 24 } },
+      7: { id: 7, name: 'Red', rgb: { r: 237, g: 28, b: 36 } },
+      8: { id: 8, name: 'Orange', rgb: { r: 255, g: 127, b: 39 } },
+      9: { id: 9, name: 'Gold', rgb: { r: 246, g: 170, b: 9 } },
+      10: { id: 10, name: 'Yellow', rgb: { r: 249, g: 221, b: 59 } },
+      11: { id: 11, name: 'Light Yellow', rgb: { r: 255, g: 250, b: 188 } },
+      12: { id: 12, name: 'Dark Green', rgb: { r: 14, g: 185, b: 104 } },
+      13: { id: 13, name: 'Green', rgb: { r: 19, g: 230, b: 123 } },
+      14: { id: 14, name: 'Light Green', rgb: { r: 135, g: 255, b: 94 } },
+      15: { id: 15, name: 'Dark Teal', rgb: { r: 12, g: 129, b: 110 } },
+      16: { id: 16, name: 'Teal', rgb: { r: 16, g: 174, b: 166 } },
+      17: { id: 17, name: 'Light Teal', rgb: { r: 19, g: 225, b: 190 } },
+      18: { id: 18, name: 'Dark Blue', rgb: { r: 40, g: 80, b: 158 } },
+      19: { id: 19, name: 'Blue', rgb: { r: 64, g: 147, b: 228 } },
+      20: { id: 20, name: 'Cyan', rgb: { r: 96, g: 247, b: 242 } },
       21: { id: 21, name: 'Indigo', rgb: { r: 107, g: 80, b: 246 } },
       22: { id: 22, name: 'Light Indigo', rgb: { r: 153, g: 177, b: 251 } },
       23: { id: 23, name: 'Dark Purple', rgb: { r: 120, g: 12, b: 153 } },
@@ -66,11 +66,11 @@
       29: { id: 29, name: 'Dark Brown', rgb: { r: 104, g: 70, b: 52 } },
       30: { id: 30, name: 'Brown', rgb: { r: 149, g: 104, b: 42 } },
       31: { id: 31, name: 'Beige', rgb: { r: 248, g: 178, b: 119 } },
-      32: { id: 52, name: 'Light Beige', rgb: { r: 255, g: 197, b: 165 } },
-      33: { id: 32, name: 'Medium Gray', rgb: { r: 170, g: 170, b: 170 } },
-      34: { id: 33, name: 'Dark Red', rgb: { r: 165, g: 14, b: 30 } },
-      35: { id: 34, name: 'Light Red', rgb: { r: 250, g: 128, b: 114 } },
-      36: { id: 35, name: 'Dark Orange', rgb: { r: 228, g: 92, b: 26 } },
+      32: { id: 32, name: 'Medium Gray', rgb: { r: 170, g: 170, b: 170 } },
+      33: { id: 33, name: 'Dark Red', rgb: { r: 165, g: 14, b: 30 } },
+      34: { id: 34, name: 'Light Red', rgb: { r: 250, g: 128, b: 114 } },
+      35: { id: 35, name: 'Dark Orange', rgb: { r: 228, g: 92, b: 26 } },
+      36: { id: 36, name: 'Light Tan', rgb: { r: 214, g: 181, b: 148 } },
       37: { id: 37, name: 'Dark Goldenrod', rgb: { r: 156, g: 132, b: 49 } },
       38: { id: 38, name: 'Goldenrod', rgb: { r: 197, g: 173, b: 49 } },
       39: { id: 39, name: 'Light Goldenrod', rgb: { r: 232, g: 212, b: 95 } },
@@ -78,51 +78,27 @@
       41: { id: 41, name: 'Olive', rgb: { r: 90, g: 148, b: 74 } },
       42: { id: 42, name: 'Light Olive', rgb: { r: 132, g: 197, b: 115 } },
       43: { id: 43, name: 'Dark Cyan', rgb: { r: 15, g: 121, b: 159 } },
-      44: { id: 45, name: 'Light Blue', rgb: { r: 125, g: 199, b: 255 } },
-      45: { id: 46, name: 'Dark Indigo', rgb: { r: 77, g: 49, b: 184 } },
-      46: { id: 47, name: 'Dark Slate Blue', rgb: { r: 74, g: 66, b: 132 } },
-      47: { id: 48, name: 'Slate Blue', rgb: { r: 122, g: 113, b: 196 } },
-      48: { id: 49, name: 'Light Slate Blue', rgb: { r: 181, g: 174, b: 241 } },
-      49: { id: 53, name: 'Dark Peach', rgb: { r: 155, g: 82, b: 73 } },
-      50: { id: 54, name: 'Peach', rgb: { r: 209, g: 128, b: 120 } },
-      51: { id: 55, name: 'Light Peach', rgb: { r: 250, g: 182, b: 164 } },
-      52: { id: 50, name: 'Light Brown', rgb: { r: 219, g: 164, b: 99 } },
-      53: { id: 56, name: 'Dark Tan', rgb: { r: 123, g: 99, b: 82 } },
-      54: { id: 57, name: 'Tan', rgb: { r: 156, g: 132, b: 107 } },
-      55: { id: 36, name: 'Light Tan', rgb: { r: 214, g: 181, b: 148 } },
-      56: { id: 51, name: 'Dark Beige', rgb: { r: 209, g: 128, b: 81 } },
-      57: { id: 61, name: 'Dark Stone', rgb: { r: 109, g: 100, b: 63 } },
-      58: { id: 62, name: 'Stone', rgb: { r: 148, g: 140, b: 107 } },
-      59: { id: 63, name: 'Light Stone', rgb: { r: 205, g: 197, b: 158 } },
-      60: { id: 58, name: 'Dark Slate', rgb: { r: 51, g: 57, b: 65 } },
-      61: { id: 59, name: 'Slate', rgb: { r: 109, g: 117, b: 141 } },
-      62: { id: 60, name: 'Light Slate', rgb: { r: 179, g: 185, b: 209 } },
-      63: { id: 0, name: 'Transparent', rgb: null },
+      44: { id: 44, name: 'Light Cyan', rgb: { r: 187, g: 250, b: 242 } },
+      45: { id: 45, name: 'Light Blue', rgb: { r: 125, g: 199, b: 255 } },
+      46: { id: 46, name: 'Dark Indigo', rgb: { r: 77, g: 49, b: 184 } },
+      47: { id: 47, name: 'Dark Slate Blue', rgb: { r: 74, g: 66, b: 132 } },
+      48: { id: 48, name: 'Slate Blue', rgb: { r: 122, g: 113, b: 196 } },
+      49: { id: 49, name: 'Light Slate Blue', rgb: { r: 181, g: 174, b: 241 } },
+      50: { id: 50, name: 'Light Brown', rgb: { r: 219, g: 164, b: 99 } },
+      51: { id: 51, name: 'Dark Beige', rgb: { r: 209, g: 128, b: 81 } },
+      52: { id: 52, name: 'Light Beige', rgb: { r: 255, g: 197, b: 165 } },
+      53: { id: 53, name: 'Dark Peach', rgb: { r: 155, g: 82, b: 73 } },
+      54: { id: 54, name: 'Peach', rgb: { r: 209, g: 128, b: 120 } },
+      55: { id: 55, name: 'Light Peach', rgb: { r: 250, g: 182, b: 164 } },
+      56: { id: 56, name: 'Dark Tan', rgb: { r: 123, g: 99, b: 82 } },
+      57: { id: 57, name: 'Tan', rgb: { r: 156, g: 132, b: 107 } },
+      58: { id: 58, name: 'Dark Slate', rgb: { r: 51, g: 57, b: 65 } },
+      59: { id: 59, name: 'Slate', rgb: { r: 109, g: 117, b: 141 } },
+      60: { id: 60, name: 'Light Slate', rgb: { r: 179, g: 185, b: 209 } },
+      61: { id: 61, name: 'Dark Stone', rgb: { r: 109, g: 100, b: 63 } },
+      62: { id: 62, name: 'Stone', rgb: { r: 148, g: 140, b: 107 } },
+      63: { id: 63, name: 'Light Stone', rgb: { r: 205, g: 197, b: 158 } },
     }, // --- END: Color data ---
-    // Optimized CSS Classes for reuse
-    CSS_CLASSES: {
-      BUTTON_PRIMARY: `
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        color: white; border: none; border-radius: 8px; padding: 10px 16px;
-        cursor: pointer; font-weight: 500; transition: all 0.3s ease;
-        display: flex; align-items: center; gap: 8px;
-      `,
-      BUTTON_SECONDARY: `
-        background: rgba(255,255,255,0.1); color: white;
-        border: 1px solid rgba(255,255,255,0.2); border-radius: 8px;
-        padding: 8px 12px; cursor: pointer; transition: all 0.3s ease;
-      `,
-      MODERN_CARD: `
-        background: rgba(255,255,255,0.1); border-radius: 12px;
-        padding: 18px; border: 1px solid rgba(255,255,255,0.1);
-        backdrop-filter: blur(5px);
-      `,
-      GRADIENT_TEXT: `
-        background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent;
-        background-clip: text; font-weight: bold;
-      `,
-    },
     THEMES: {
       'Classic Autobot': {
         primary: '#000000',
@@ -536,12 +512,10 @@
     cooldown: CONFIG.COOLDOWN_DEFAULT,
     imageData: null,
     stopFlag: false,
-    colorsChecked: false,
     startPosition: null,
     selectingPosition: false,
     region: null,
     minimized: false,
-    lastPosition: { x: 0, y: 0 },
     estimatedTime: 0,
     language: 'en',
     paintingSpeed: CONFIG.PAINTING_SPEED.DEFAULT, // pixels batch size
@@ -581,7 +555,14 @@
     _lastSavePixelCount: 0,
     _lastSaveTime: 0,
     _saveInProgress: false,
+    /**
+     * @deprecated Painted map is account-specific and should not be saved.
+     */
     paintedMap: null,
+
+    get colorsChecked() {
+      return this.availableColors.length !== 0;
+    },
   };
 
   let _updateResizePreview = () => {};
@@ -591,15 +572,22 @@
   class OverlayManager {
     constructor() {
       this.isEnabled = false;
-      this.startCoords = null; // { region: {x, y}, pixel: {x, y} }
+      // { region: {x, y}, pixel: {x, y} }
+      this.startCoords = null;
       this.imageBitmap = null;
-      this.chunkedTiles = new Map(); // Map<"tileX,tileY", ImageBitmap>
-      this.originalTiles = new Map(); // Map<"tileX,tileY", ImageBitmap> store latest original tile bitmaps
-      this.originalTilesData = new Map(); // Map<"tileX,tileY", {w,h,data:Uint8ClampedArray}> cache full ImageData for fast pixel reads
+      // Map<"tileX,tileY", ImageBitmap>
+      this.chunkedTiles = new Map();
+      // Map<"tileX,tileY", ImageBitmap> store latest original tile bitmaps
+      this.originalTiles = new Map();
+      // Map<"tileX,tileY", {w,h,data:Uint8ClampedArray}> cache full ImageData for fast pixel reads
+      this.originalTilesData = new Map();
       this.tileSize = 1000;
-      this.processPromise = null; // Track ongoing processing
-      this.lastProcessedHash = null; // Cache invalidation
-      this.workerPool = null; // Web worker pool for heavy processing
+      // Track ongoing processing
+      this.processPromise = null;
+      // Cache invalidation
+      this.lastProcessedHash = null;
+      // Web worker pool for heavy processing
+      this.workerPool = null;
     }
 
     toggle() {
@@ -880,7 +868,6 @@
     // Returns [r,g,b,a] for a pixel inside a region tile (tileX, tileY are region coords)
     async getTilePixelColor(tileX, tileY, pixelX, pixelY) {
       const tileKey = `${tileX},${tileY}`;
-      const alphaThresh = state.customTransparencyThreshold || CONFIG.TRANSPARENCY_THRESHOLD;
 
       // 1. Prefer cached ImageData if available
       const cached = this.originalTilesData.get(tileKey);
@@ -888,17 +875,13 @@
         const x = Math.max(0, Math.min(cached.w - 1, pixelX));
         const y = Math.max(0, Math.min(cached.h - 1, pixelY));
         const idx = (y * cached.w + x) * 4;
-        const d = cached.data;
-        const a = d[idx + 3];
+        const pixelData = cached.data;
+        const r = pixelData[idx];
+        const g = pixelData[idx + 1];
+        const b = pixelData[idx + 2];
+        const a = pixelData[idx + 3];
 
-        if (!state.paintTransparentPixels && a < alphaThresh) {
-          // Treat as transparent / unavailable
-          // Lightweight debug: show when transparency causes skip (only if verbose enabled)
-          if (window._overlayDebug)
-            console.debug('OverlayManager: pixel transparent (cached), skipping', tileKey, x, y, a);
-          return null;
-        }
-        return [d[idx], d[idx + 1], d[idx + 2], a];
+        return [r, g, b, a];
       }
 
       // 2. Fallback: use bitmap, with retry
@@ -933,7 +916,7 @@
           const data = ctx.getImageData(x, y, 1, 1).data;
           const a = data[3];
 
-          if (!state.paintTransparentPixels && a < alphaThresh) {
+          if (!state.paintTransparentPixels && Utils.isTransparentPixel(a)) {
             if (window._overlayDebug)
               console.debug('OverlayManager: pixel transparent (fallback)', tileKey, x, y, a);
             return null;
@@ -1359,7 +1342,9 @@
         endTileX: startRegionX + Math.floor((endPixelX - 1) / tileSize),
         endTileY: startRegionY + Math.floor((endPixelY - 1) / tileSize),
       };
-    }, // Turnstile Generator Integration - Optimized with widget reuse and proper cleanup
+    },
+
+    // Turnstile Generator Integration - Optimized with widget reuse and proper cleanup
     turnstileLoaded: false,
     _turnstileContainer: null,
     _turnstileOverlay: null,
@@ -1796,16 +1781,6 @@
       return element;
     },
 
-    createButton: (id, text, icon, onClick, style = CONFIG.CSS_CLASSES.BUTTON_PRIMARY) => {
-      const button = Utils.createElement('button', {
-        id: id,
-        style: style,
-        innerHTML: `${icon ? `<i class="${icon}"></i>` : ''}<span>${text}</span>`,
-      });
-      if (onClick) button.addEventListener('click', onClick);
-      return button;
-    },
-
     // Synchronous translation function for UI rendering
     t: (key, params = {}) => {
       // Try to get from cache first
@@ -1964,14 +1939,68 @@
       return r >= wt && g >= wt && b >= wt;
     },
 
-    resolveColor(targetRgb, availableColors, exactMatch = false) {
-      if (!availableColors || availableColors.length === 0) {
-        return {
-          id: null,
-          rgb: targetRgb,
-        };
+    isTransparentPixel: (a) => {
+      const transparencyThreshold =
+        state.customTransparencyThreshold || CONFIG.TRANSPARENCY_THRESHOLD;
+      return a < transparencyThreshold;
+    },
+
+    colorsChanged(oldColors, newColors) {
+      const oldSet = new Set(oldColors.map((c) => c.rgb.join(',')));
+      const newSet = new Set(newColors.map((c) => c.rgb.join(',')));
+
+      if (oldSet.size !== newSet.size) return true;
+
+      for (const rgb of oldSet) {
+        if (!newSet.has(rgb)) return true;
       }
 
+      return false;
+    },
+
+    invalidateColorCache(changedParams = {}) {
+      if (changedParams.availableColors) {
+        colorCache.clear();
+        return;
+      }
+
+      for (const key of colorCache.keys()) {
+        const [_, algo, chromaFlag, chromaWeight] = key.split('|');
+
+        if (changedParams.colorMatchingAlgorithm && algo !== changedParams.colorMatchingAlgorithm) {
+          colorCache.delete(key);
+          continue;
+        }
+
+        if (
+          changedParams.enableChromaPenalty !== undefined &&
+          chromaFlag !== (changedParams.enableChromaPenalty ? 'c' : 'nc')
+        ) {
+          colorCache.delete(key);
+          continue;
+        }
+
+        if (
+          changedParams.chromaPenaltyWeight !== undefined &&
+          Number(chromaWeight) !== changedParams.chromaPenaltyWeight
+        ) {
+          colorCache.delete(key);
+          continue;
+        }
+      }
+    },
+
+    resolveColor(targetRgba, availableColors, exactMatch = false) {
+      const targetRgb = targetRgba.slice(0, 3);
+      if (!availableColors || availableColors.length === 0) {
+        console.warn(
+          `Couldn't resolve color (${targetRgba.join(',')}) because availableColors is empty`
+        );
+        return { id: null, rgb: targetRgb };
+      }
+      if (Utils.isTransparentPixel(targetRgb[3])) {
+        return { id: CONFIG.COLOR_MAP['0'].id, rgb: CONFIG.COLOR_MAP['0'].rgb };
+      }
       const cacheKey = `${targetRgb[0]},${targetRgb[1]},${targetRgb[2]}|${state.colorMatchingAlgorithm}|${
         state.enableChromaPenalty ? 'c' : 'nc'
       }|${state.chromaPenaltyWeight}|${exactMatch ? 'exact' : 'closest'}`;
@@ -2128,40 +2157,52 @@
         input.click();
       }),
 
-    extractAvailableColors: () => {
-      const colorElements = document.querySelectorAll('.tooltip button[id^="color-"]');
-      if (colorElements.length === 0) {
-        console.log('❌ No color elements found on page');
-        return null;
-      }
-      // Separate available and unavailable colors
+    extractColors: () => {
       const availableColors = [];
       const unavailableColors = [];
 
-      Array.from(colorElements).forEach((el) => {
-        const id = Number.parseInt(el.id.replace('color-', ''));
-        if (id === 0) return; // Skip transparent color
+      const colorElements = document.querySelectorAll('.tooltip button[id^="color-"]');
+      if (colorElements.length === 0) {
+        console.log('❌ No color elements found on page');
+        return { availableColors, unavailableColors };
+      }
 
-        const rgbStr = el.style.backgroundColor.match(/\d+/g);
-        if (!rgbStr || rgbStr.length < 3) {
-          console.warn(`Skipping color element ${el.id} — cannot parse RGB`);
-          return;
+      function parseColorElement(el) {
+        const id = Number(el.id.replace('color-', ''));
+
+        const rgbMatch = el.style.backgroundColor.match(/\d+/g);
+        if (!rgbMatch || rgbMatch.length < 3) {
+          if (id !== 0) {
+            console.warn(`Skipping color element ${el.id} — cannot parse RGB`);
+            return null;
+          } else {
+            const configTransparent = CONFIG.COLOR_MAP[id];
+            if (!configTransparent) return null;
+            return {
+              id: configTransparent.id,
+              name: configTransparent.name,
+              rgb: Object.values(configTransparent.rgb),
+              isAvailable: true,
+            };
+          }
         }
-        const rgb = rgbStr.map(Number);
 
-        // Find color name from COLOR_MAP
-        const colorInfo = Object.values(CONFIG.COLOR_MAP).find((color) => color.id === id);
+        const rgb = rgbMatch.map(Number);
+        const colorInfo = CONFIG.COLOR_MAP[id];
         const name = colorInfo ? colorInfo.name : `Unknown Color ${id}`;
+        if (!colorInfo) console.warn(`Color id ${id} not found in known colors`);
 
-        const colorData = { id, name, rgb };
+        const isAvailable = !el.querySelector('svg');
+        return { id, name, rgb, isAvailable };
+      }
 
-        // Check if color is available (no SVG overlay means available)
-        if (!el.querySelector('svg')) {
-          availableColors.push(colorData);
-        } else {
-          unavailableColors.push(colorData);
-        }
-      });
+      for (const el of colorElements) {
+        const colorData = parseColorElement(el);
+        if (!colorData) continue;
+
+        if (colorData.isAvailable) availableColors.push(colorData);
+        else unavailableColors.push(colorData);
+      }
 
       // Console log detailed color information
       console.log('=== CAPTURED COLORS STATUS ===');
@@ -2193,7 +2234,7 @@
 
       console.log('=== END COLOR STATUS ===');
 
-      return availableColors;
+      return { availableColors, unavailableColors };
     },
 
     formatTime: (ms) => {
@@ -2224,6 +2265,25 @@
     },
 
     // --- Painted pixel tracking helpers ---
+    /**
+     * @deprecated The painted map / paintedMapPacked should **not be persisted or relied upon**.
+     *
+     * Reason:
+     * - Painted map is account-specific; restoring it from saved progress across different accounts
+     *   causes inconsistent or incorrect drawing results.
+     * - Storing it slows down rendering and provides no practical benefit.
+     * - Use live state from the current account/session instead.
+     *
+     * ⚠️ Recommendation:
+     * - Do not save paintedMap / paintedMapPacked in progress data.
+     * - Avoid using this field for inter-account operations.
+     *
+     * @example
+     * // Deprecated usage (avoid):
+     * const packed = buildPaintedMapPacked();
+     *
+     * @returns { { width: number, height: number, data: string } | null }
+     */
     initializePaintedMap: (width, height) => {
       if (!state.paintedMap || state.paintedMap.length !== height) {
         state.paintedMap = Array(height)
@@ -2233,6 +2293,25 @@
       }
     },
 
+    /**
+     * @deprecated The painted map / paintedMapPacked should **not be persisted or relied upon**.
+     *
+     * Reason:
+     * - Painted map is account-specific; restoring it from saved progress across different accounts
+     *   causes inconsistent or incorrect drawing results.
+     * - Storing it slows down rendering and provides no practical benefit.
+     * - Use live state from the current account/session instead.
+     *
+     * ⚠️ Recommendation:
+     * - Do not save paintedMap / paintedMapPacked in progress data.
+     * - Avoid using this field for inter-account operations.
+     *
+     * @example
+     * // Deprecated usage (avoid):
+     * const packed = buildPaintedMapPacked();
+     *
+     * @returns { { width: number, height: number, data: string } | null }
+     */
     markPixelPainted: (x, y, regionX = 0, regionY = 0) => {
       const actualX = x + regionX;
       const actualY = y + regionY;
@@ -2247,6 +2326,25 @@
       }
     },
 
+    /**
+     * @deprecated The painted map / paintedMapPacked should **not be persisted or relied upon**.
+     *
+     * Reason:
+     * - Painted map is account-specific; restoring it from saved progress across different accounts
+     *   causes inconsistent or incorrect drawing results.
+     * - Storing it slows down rendering and provides no practical benefit.
+     * - Use live state from the current account/session instead.
+     *
+     * ⚠️ Recommendation:
+     * - Do not save paintedMap / paintedMapPacked in progress data.
+     * - Avoid using this field for inter-account operations.
+     *
+     * @example
+     * // Deprecated usage (avoid):
+     * const packed = buildPaintedMapPacked();
+     *
+     * @returns { { width: number, height: number, data: string } | null }
+     */
     isPixelPainted: (x, y, regionX = 0, regionY = 0) => {
       const actualX = x + regionX;
       const actualY = y + regionY;
@@ -2294,6 +2392,25 @@
     // --- Data management helpers ---
 
     // Base64 compression helpers for efficient storage
+    /**
+     * @deprecated The painted map / paintedMapPacked should **not be persisted or relied upon**.
+     *
+     * Reason:
+     * - Painted map is account-specific; restoring it from saved progress across different accounts
+     *   causes inconsistent or incorrect drawing results.
+     * - Storing it slows down rendering and provides no practical benefit.
+     * - Use live state from the current account/session instead.
+     *
+     * ⚠️ Recommendation:
+     * - Do not save paintedMap / paintedMapPacked in progress data.
+     * - Avoid using this field for inter-account operations.
+     *
+     * @example
+     * // Deprecated usage (avoid):
+     * const packed = buildPaintedMapPacked();
+     *
+     * @returns { { width: number, height: number, data: string } | null }
+     */
     packPaintedMapToBase64: (paintedMap, width, height) => {
       if (!paintedMap || !width || !height) return null;
       const totalBits = width * height;
@@ -2321,6 +2438,25 @@
       return btoa(binary);
     },
 
+    /**
+     * @deprecated The painted map / paintedMapPacked should **not be persisted or relied upon**.
+     *
+     * Reason:
+     * - Painted map is account-specific; restoring it from saved progress across different accounts
+     *   causes inconsistent or incorrect drawing results.
+     * - Storing it slows down rendering and provides no practical benefit.
+     * - Use live state from the current account/session instead.
+     *
+     * ⚠️ Recommendation:
+     * - Do not save paintedMap / paintedMapPacked in progress data.
+     * - Avoid using this field for inter-account operations.
+     *
+     * @example
+     * // Deprecated usage (avoid):
+     * const packed = buildPaintedMapPacked();
+     *
+     * @returns { { width: number, height: number, data: string } | null }
+     */
     unpackPaintedMapFromBase64: (base64, width, height) => {
       if (!base64 || !width || !height) return null;
       const binary = atob(base64);
@@ -2427,6 +2563,45 @@
       }
     },
 
+    migrateProgressToV23: (data) => {
+      try {
+        const migrated = { ...data };
+        migrated.version = '2.3';
+
+        if (migrated.state) {
+          delete migrated.state.coordinateMode;
+          delete migrated.state.coordinateDirection;
+          delete migrated.state.coordinateSnake;
+          delete migrated.state.blockWidth;
+          delete migrated.state.blockHeight;
+          delete migrated.state.paintedMapPacked;
+          delete migrated.state.lastPosition;
+          delete migrated.state.colorsChecked;
+        }
+
+        return migrated;
+      } catch (e) {
+        console.warn('Migration to v2.3 failed, using original data:', e);
+        return data;
+      }
+    },
+
+    /**
+     * Builds a packed representation of the painted map as Base64.
+     *
+     * @returns { { width: number, height: number, data: string } | null }
+     *          Object containing width, height, and packed data, or null if no map/image.
+     *
+     * @note ⚠️ Saving this to progress is **not recommended**:
+     *
+     * - Painted map is account-specific. When drawing from different accounts,
+     *   each account has its own painted map, so restoring it from progress
+     *   gives inconsistent results.
+     *
+     * - Keeping it in progress **slows down drawing** unnecessarily, without any benefit.
+     *
+     * - Therefore, for performance and correctness, do not persist paintedMapPacked.
+     */
     buildPaintedMapPacked() {
       if (state.paintedMap && state.imageData) {
         const data = Utils.packPaintedMapToBase64(
@@ -2448,20 +2623,13 @@
     buildProgressData() {
       return {
         timestamp: Date.now(),
-        version: '2.2',
+        version: '2.3',
         state: {
           totalPixels: state.totalPixels,
           paintedPixels: state.paintedPixels,
-          lastPosition: state.lastPosition,
           startPosition: state.startPosition,
           region: state.region,
           imageLoaded: state.imageLoaded,
-          colorsChecked: state.colorsChecked,
-          coordinateMode: state.coordinateMode,
-          coordinateDirection: state.coordinateDirection,
-          coordinateSnake: state.coordinateSnake,
-          blockWidth: state.blockWidth,
-          blockHeight: state.blockHeight,
           availableColors: state.availableColors,
         },
         imageData: state.imageData
@@ -2472,7 +2640,6 @@
               totalPixels: state.imageData.totalPixels,
             }
           : null,
-        paintedMapPacked: Utils.buildPaintedMapPacked(),
       };
     },
 
@@ -2495,6 +2662,11 @@
       // If still older than v2.2 → migrate to 2.2
       if (data.version === '2.1') {
         data = Utils.migrateProgressToV22(data);
+      }
+
+      // If still older than v2.3 → migrate to 2.3
+      if (data.version === '2.2') {
+        data = Utils.migrateProgressToV23(data);
       }
 
       // Now data is guaranteed to be the latest version
@@ -2536,15 +2708,10 @@
       try {
         localStorage.removeItem('wplace-bot-progress');
         // Also clear painted map from memory
-        state.paintedMap = null;
+        //state.paintedMap = null;
         state._lastSavePixelCount = 0;
         state._lastSaveTime = 0;
-        // Reset coordinate generation settings to their default values
-        state.coordinateMode = CONFIG.COORDINATE_MODE;
-        state.coordinateDirection = CONFIG.COORDINATE_DIRECTION;
-        state.coordinateSnake = CONFIG.COORDINATE_SNAKE;
-        state.blockWidth = CONFIG.COORDINATE_BLOCK_WIDTH;
-        state.blockHeight = CONFIG.COORDINATE_BLOCK_HEIGHT;
+
         console.log('📋 Progress and painted map cleared');
         return true;
       } catch (error) {
@@ -2556,23 +2723,6 @@
     restoreProgress: (savedData) => {
       try {
         Object.assign(state, savedData.state);
-
-        // Restore coordinate generation settings
-        if (savedData.state.coordinateMode) {
-          state.coordinateMode = savedData.state.coordinateMode;
-        }
-        if (savedData.state.coordinateDirection) {
-          state.coordinateDirection = savedData.state.coordinateDirection;
-        }
-        if (savedData.state.coordinateSnake !== undefined) {
-          state.coordinateSnake = savedData.state.coordinateSnake;
-        }
-        if (savedData.state.blockWidth) {
-          state.blockWidth = savedData.state.blockWidth;
-        }
-        if (savedData.state.blockHeight) {
-          state.blockHeight = savedData.state.blockHeight;
-        }
 
         if (savedData.imageData) {
           state.imageData = {
@@ -2599,14 +2749,6 @@
           } catch (e) {
             console.warn('Could not rebuild processor from saved image data:', e);
           }
-        }
-
-        // Prefer packed form if available; fallback to legacy paintedMap array for backward compatibility
-        if (savedData.paintedMapPacked && savedData.paintedMapPacked.data) {
-          const { width, height, data } = savedData.paintedMapPacked;
-          state.paintedMap = Utils.unpackPaintedMapFromBase64(data, width, height);
-        } else if (savedData.paintedMap) {
-          state.paintedMap = savedData.paintedMap.map((row) => Array.from(row));
         }
 
         return true;
@@ -3006,8 +3148,7 @@
       let availableCount = 0;
       let totalCount = 0;
 
-      // Convert COLOR_MAP to array and filter out transparent
-      const allColors = Object.values(CONFIG.COLOR_MAP).filter((color) => color.rgb !== null);
+      const allColors = Object.values(CONFIG.COLOR_MAP);
 
       allColors.forEach((colorData) => {
         const { id, name, rgb } = colorData;
@@ -4451,13 +4592,20 @@
       applySettingsBtn.addEventListener('click', () => {
         // Sync advanced settings before save
         const colorAlgorithmSelect = document.getElementById('colorAlgorithmSelect');
-        if (colorAlgorithmSelect) state.colorMatchingAlgorithm = colorAlgorithmSelect.value;
+        if (colorAlgorithmSelect) {
+          state.colorMatchingAlgorithm = colorAlgorithmSelect.value;
+          Utils.invalidateColorCache({ colorMatchingAlgorithm: state.colorMatchingAlgorithm });
+        }
         const enableChromaPenaltyToggle = document.getElementById('enableChromaPenaltyToggle');
-        if (enableChromaPenaltyToggle)
+        if (enableChromaPenaltyToggle) {
           state.enableChromaPenalty = enableChromaPenaltyToggle.checked;
+          Utils.invalidateColorCache({ enableChromaPenalty: state.enableChromaPenalty });
+        }
         const chromaPenaltyWeightSlider = document.getElementById('chromaPenaltyWeightSlider');
-        if (chromaPenaltyWeightSlider)
+        if (chromaPenaltyWeightSlider) {
           state.chromaPenaltyWeight = parseFloat(chromaPenaltyWeightSlider.value) || 0.15;
+          Utils.invalidateColorCache({ chromaPenaltyWeight: state.chromaPenaltyWeight });
+        }
         const transparencyThresholdInput = document.getElementById('transparencyThresholdInput');
         if (transparencyThresholdInput) {
           const v = parseInt(transparencyThresholdInput.value, 10);
@@ -4898,7 +5046,8 @@
         );
 
         if (confirmLoad) {
-          const success = Utils.restoreProgress(savedData);
+          const migrated = Utils.migrateProgress(savedData);
+          const success = Utils.restoreProgress(migrated);
           if (success) {
             updateUI('dataLoaded', 'success');
             Utils.showAlert(Utils.t('dataLoaded'), 'success');
@@ -5130,16 +5279,12 @@
       }
 
       let colorSwatchesHTML = '';
-      state.availableColors = state.availableColors.filter(
-        (c) => c.name !== 'Unknown CoIor NaN' && c.id !== null
-      );
-
-      const availableColors = Utils.extractAvailableColors();
+      const { availableColors } = Utils.extractColors();
       const newCount = Array.isArray(availableColors) ? availableColors.length : 0;
 
       if (newCount === 0 && isManualRefresh) {
         Utils.showAlert(Utils.t('noColorsFound'), 'warning');
-      } else if (newCount > 0 && state.availableColors.length < newCount) {
+      } else if (newCount > 0 && Utils.colorsChanged(state.availableColors, availableColors)) {
         const oldCount = state.availableColors.length;
 
         Utils.showAlert(
@@ -5150,15 +5295,21 @@
           }),
           'success'
         );
+
         state.availableColors = availableColors;
+        Utils.invalidateColorCache({ availableColors: true });
       }
       if (state.colorsChecked) {
         colorSwatchesHTML = state.availableColors
           .map((color) => {
             const rgbString = `rgb(${color.rgb.join(',')})`;
-            return `<div class="wplace-stat-color-swatch" style="background-color: ${rgbString};" title="${Utils.t(
+            const style =
+              color.id === 0
+                ? 'background: repeating-linear-gradient(45deg, #ccc 0 2px, #fff 2px 4px);background-size: cover;'
+                : `background-color: ${rgbString};`;
+            return `<div class="wplace-stat-color-swatch" style="${style}" title="${Utils.t(
               'colorTooltip',
-              { id: color.id, rgb: color.rgb.join(', ') }
+              { name: color.name, id: color.id, rgb: color.rgb.join(', ') }
             )}"></div>`;
           })
           .join('');
@@ -5360,8 +5511,6 @@
         const imgData = baseCtx.getImageData(0, 0, newWidth, newHeight);
         const data = imgData.data;
 
-        const tThresh = state.customTransparencyThreshold || CONFIG.TRANSPARENCY_THRESHOLD;
-
         const applyFSDither = () => {
           const w = newWidth,
             h = newHeight;
@@ -5376,7 +5525,7 @@
                 b = data[i4 + 2],
                 a = data[i4 + 3];
               const isEligible =
-                (state.paintTransparentPixels || a >= tThresh) &&
+                (state.paintTransparentPixels || !Utils.isTransparentPixel(a)) &&
                 (state.paintWhitePixels || !Utils.isWhitePixel(r, g, b));
               eligible[idx] = isEligible ? 1 : 0;
               work[idx * 3] = r;
@@ -5440,7 +5589,7 @@
               b = data[i + 2],
               a = data[i + 3];
             if (
-              (!state.paintTransparentPixels && a < tThresh) ||
+              (!state.paintTransparentPixels && Utils.isTransparentPixel(a)) ||
               (!state.paintWhitePixels && Utils.isWhitePixel(r, g, b))
             ) {
               data[i + 3] = 0;
@@ -6094,7 +6243,7 @@
         tempCtx.drawImage(baseProcessor.img, 0, 0, newWidth, newHeight);
         const imgData = tempCtx.getImageData(0, 0, newWidth, newHeight);
         const data = imgData.data;
-        const tThresh2 = state.customTransparencyThreshold || CONFIG.TRANSPARENCY_THRESHOLD;
+
         let totalValidPixels = 0;
         const mask =
           state.resizeIgnoreMask && state.resizeIgnoreMask.length === newWidth * newHeight
@@ -6117,7 +6266,7 @@
               const masked = mask && mask[idx];
               const isEligible =
                 !masked &&
-                (state.paintTransparentPixels || a >= tThresh2) &&
+                (state.paintTransparentPixels || !Utils.isTransparentPixel(a)) &&
                 (state.paintWhitePixels || !Utils.isWhitePixel(r, g, b));
               eligible[idx] = isEligible ? 1 : 0;
               work[idx * 3] = r;
@@ -6185,7 +6334,8 @@
               b = data[i + 2],
               a = data[i + 3];
             const masked = mask && mask[i >> 2];
-            const isTransparent = (!state.paintTransparentPixels && a < tThresh2) || masked;
+            const isTransparent =
+              (!state.paintTransparentPixels && Utils.isTransparentPixel(a)) || masked;
             const isWhiteAndSkipped = !state.paintWhitePixels && Utils.isWhitePixel(r, g, b);
             if (isTransparent || isWhiteAndSkipped) {
               data[i + 3] = 0; // overlay transparency
@@ -6318,23 +6468,32 @@
 
     if (uploadBtn) {
       uploadBtn.addEventListener('click', async () => {
-        const availableColors = Utils.extractAvailableColors();
-        if (availableColors === null || availableColors.length < 10) {
-          updateUI('noColorsFound', 'error');
-          Utils.showAlert(Utils.t('noColorsFound'), 'error');
-          return;
-        }
+        const { availableColors } = Utils.extractColors();
+        const newCount = Array.isArray(availableColors) ? availableColors.length : 0;
 
-        if (!state.colorsChecked) {
+        if (newCount === 0) {
+          updateUI('noColorsKnown', 'error');
+          Utils.showAlert(Utils.t('noColorsKnown'), 'error');
+          return;
+        } else if (newCount > 0 && Utils.colorsChanged(state.availableColors, availableColors)) {
+          const oldCount = state.availableColors.length;
+
+          Utils.showAlert(
+            Utils.t('colorsUpdated', {
+              oldCount,
+              newCount: newCount,
+              diffCount: newCount - oldCount,
+            }),
+            'success'
+          );
           state.availableColors = availableColors;
-          state.colorsChecked = true;
-          updateUI('colorsFound', 'success', { count: availableColors.length });
-          updateStats();
-          selectPosBtn.disabled = false;
-          // Only enable resize button if image is also loaded
-          if (state.imageLoaded) {
-            resizeBtn.disabled = false;
-          }
+          Utils.invalidateColorCache({ availableColors: true });
+        }
+        updateStats();
+        selectPosBtn.disabled = false;
+        // Only enable resize button if image is also loaded
+        if (state.imageLoaded) {
+          resizeBtn.disabled = false;
         }
 
         try {
@@ -6356,8 +6515,7 @@
           let totalValidPixels = 0;
           for (let i = 0; i < pixels.length; i += 4) {
             const isTransparent =
-              !state.paintTransparentPixels &&
-              pixels[i + 3] < (state.customTransparencyThreshold || CONFIG.TRANSPARENCY_THRESHOLD);
+              !state.paintTransparentPixels && Utils.isTransparentPixel(pixels[i + 3]);
             const isWhiteAndSkipped =
               !state.paintWhitePixels &&
               Utils.isWhitePixel(pixels[i], pixels[i + 1], pixels[i + 2]);
@@ -6377,10 +6535,6 @@
           state.totalPixels = totalValidPixels;
           state.paintedPixels = 0;
           state.imageLoaded = true;
-          state.lastPosition = { x: 0, y: 0 };
-
-          // Initialize painted map for tracking
-          Utils.initializePaintedMap(width, height);
 
           // New image: clear previous resize settings
           state.resizeSettings = null;
@@ -6465,7 +6619,6 @@
                     x: payload.coords[0],
                     y: payload.coords[1],
                   };
-                  state.lastPosition = { x: 0, y: 0 };
 
                   await overlayManager.setPosition(state.startPosition, state.region);
 
@@ -6585,7 +6738,7 @@
       cooldownSlider.addEventListener('input', (e) => {
         const threshold = parseInt(e.target.value);
         state.cooldownChargeThreshold = threshold;
-        cooldownValue.textContent = threshold;
+        cooldownValue.textContent = threshold.toString();
         saveBotSettings();
         NotificationManager.resetEdgeTracking(); // prevent spurious notify after threshold change
       });
@@ -6767,22 +6920,17 @@
     return coords;
   }
 
-  async function flushPixelBatch(pixelBatch) {
-    if (!pixelBatch || pixelBatch.pixels.length === 0) return true;
+  async function flushPixelBatch(batch) {
+    if (!batch || batch.pixels.length === 0) return true;
 
-    const batchSize = pixelBatch.pixels.length;
+    const batchSize = batch.pixels.length;
     console.log(
-      `📦 Sending batch with ${batchSize} pixels (region: ${pixelBatch.regionX},${pixelBatch.regionY})`
+      `📦 Sending batch with ${batchSize} pixels (region: ${batch.regionX},${batch.regionY})`
     );
-    const success = await sendBatchWithRetry(
-      pixelBatch.pixels,
-      pixelBatch.regionX,
-      pixelBatch.regionY
-    );
+    const success = await sendBatchWithRetry(batch.pixels, batch.regionX, batch.regionY);
     if (success) {
-      pixelBatch.pixels.forEach((p) => {
+      batch.pixels.forEach((p) => {
         state.paintedPixels++;
-        Utils.markPixelPainted(p.x, p.y, pixelBatch.regionX, pixelBatch.regionY);
       });
       state.fullChargeData = {
         ...state.fullChargeData,
@@ -6801,12 +6949,15 @@
         await Utils.sleep(totalDelay);
       }
     } else {
-      console.error(`❌ Batch failed permanently after retries. Stopping painting.`);
+      console.error(
+        `❌ Batch for ${batch.regionX}, ${batch.regionY} with ${batch.pixels.length} pixels
+         failed permanently after retries. Stopping painting.`
+      );
       state.stopFlag = true;
       updateUI('paintingBatchFailed', 'error');
     }
 
-    pixelBatch.pixels = [];
+    batch.pixels = [];
     return success;
   }
 
@@ -6823,7 +6974,7 @@
       height,
       startX,
       startY,
-      10000 // timeout 10s
+      10000
     );
 
     if (!tilesReady) {
@@ -6832,16 +6983,15 @@
       return;
     }
 
-    let pixelBatch = null;
-    let skippedPixels = {
+    // key: `${regionX},${regionY}`, value: { regionX, regionY, pixels: [] }
+    const pixelBatches = new Map();
+
+    const skippedPixels = {
       transparent: 0,
       white: 0,
       alreadyPainted: 0,
       colorUnavailable: 0,
     };
-
-    const transparencyThreshold =
-      state.customTransparencyThreshold || CONFIG.TRANSPARENCY_THRESHOLD;
 
     function checkPixelEligibility(x, y) {
       const idx = (y * width + x) * 4;
@@ -6850,7 +7000,7 @@
         b = pixels[idx + 2],
         a = pixels[idx + 3];
 
-      if (!state.paintTransparentPixels && a < transparencyThreshold)
+      if (!state.paintTransparentPixels && Utils.isTransparentPixel(a))
         return {
           eligible: false,
           reason: 'transparent',
@@ -6861,43 +7011,49 @@
           reason: 'white',
         };
 
-      let targetRgb = Utils.isWhitePixel(r, g, b)
-        ? [255, 255, 255]
-        : Utils.findClosestPaletteColor(r, g, b, state.activeColorPalette);
-
-      // Template color ID, normalized/mapped to the nearest available color in our palette.
+      // Template color, normalized/mapped to the nearest available / exact color in our palette,
+      // depending on `state.paintUnavailablePixels`
       // Example: template requires "Slate", but we only have "Dark Gray" available
-      // → mappedTargetColorId = ID of Dark Gray.
       //
-      // If `state.paintUnavailablePixels` is enabled, the painting would stop earlier
-      // because "Slate" was not found (null returned).
+      // If `state.paintUnavailablePixels` is enabled, null will be returned
+      // because "Slate" was not found.
+      // → mappedTargetColor = null.
       //
       // Else, the template "Slate" is mapped to the closest available color (e.g., "Dark Gray"),
       // and we proceed with painting using that mapped color.
+      // → mappedTargetColor = Dark Gray.
       //
       // In this case, if the canvas pixel is already Slate (mapped to available Dark Gray),
       // we skip painting, since template and canvas both resolve to the same available color (Dark Gray).
-      const mappedTargetColorId = Utils.resolveColor(
-        targetRgb,
-        state.availableColors,
-        !state.paintUnavailablePixels
-      );
+      let mappedTargetColor;
+      if (Utils.isWhitePixel(r, g, b)) {
+        mappedTargetColor = CONFIG.COLOR_MAP['5'];
+      } else if (Utils.isTransparentPixel(a)) {
+        mappedTargetColor = CONFIG.COLOR_MAP['0'];
+      } else {
+        mappedTargetColor = Utils.resolveColor(
+          Utils.findClosestPaletteColor(r, g, b, state.activeColorPalette),
+          state.availableColors,
+          !state.paintUnavailablePixels
+        );
 
-      // Technically, checking only `!mappedTargetColorId.id` would be enough,
-      // but combined with `state.paintUnavailablePixels` it makes the logic explicit:
-      // we only skip when the template color cannot be mapped AND strict mode is on.
-      if (!state.paintUnavailablePixels && !mappedTargetColorId.id) {
-        return {
-          eligible: false,
-          reason: 'colorUnavailable',
-          r,
-          g,
-          b,
-          a,
-          mappedColorId: mappedTargetColorId.id,
-        };
+        // Technically, checking only `!mappedTargetColor.id` would be enough,
+        // but combined with `state.paintUnavailablePixels` it makes the logic explicit:
+        // we only skip when the template color cannot be mapped AND strict mode is on.
+        if (!state.paintUnavailablePixels && !mappedTargetColor.id) {
+          return {
+            eligible: false,
+            reason: 'colorUnavailable',
+            r,
+            g,
+            b,
+            a,
+            mappedColorId: mappedTargetColor.id,
+          };
+        }
       }
-      return { eligible: true, r, g, b, a, mappedColorId: mappedTargetColorId.id };
+
+      return { eligible: true, r, g, b, a, mappedColorId: mappedTargetColor.id };
     }
 
     function skipPixel(reason, id, rgb, x, y) {
@@ -6920,14 +7076,12 @@
 
       outerLoop: for (const [x, y] of coords) {
         if (state.stopFlag) {
-          if (pixelBatch && pixelBatch.pixels.length > 0) {
-            console.log(
-              `🎯 Sending last batch before stop with ${pixelBatch.pixels.length} pixels`
-            );
-            await flushPixelBatch(pixelBatch);
+          for (const [_, batch] of pixelBatches.entries()) {
+            if (batch.pixels.length > 0) {
+              console.log(`🎯 Sending last batch before user-stop`);
+              await flushPixelBatch(batch);
+            }
           }
-          state.lastPosition = { x, y };
-          updateUI('paintingPaused', 'warning', { x, y });
           // noinspection UnnecessaryLabelOnBreakStatementJS
           break outerLoop;
         }
@@ -6969,48 +7123,18 @@
         // console.log(`[DEBUG] Pixel at (${pixelX}, ${pixelY}) eligible: RGB=${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b},
         //  alpha=${targetPixelInfo.a}, mappedColorId=${targetMappedColorId}`);
 
-        if (
-          !pixelBatch ||
-          pixelBatch.regionX !== regionX + adderX ||
-          pixelBatch.regionY !== regionY + adderY
-        ) {
-          if (pixelBatch && pixelBatch.pixels.length > 0) {
-            console.log(
-              `🌍 Sending region-change batch with ${pixelBatch.pixels.length} pixels (switching to region ${
-                regionX + adderX
-              },${regionY + adderY})`
-            );
-            const success = await flushPixelBatch(pixelBatch);
-
-            if (success) {
-              if (
-                CONFIG.PAINTING_SPEED_ENABLED &&
-                state.paintingSpeed > 0 &&
-                pixelBatch.pixels.length > 0
-              ) {
-                const batchDelayFactor = Math.max(1, 100 / state.paintingSpeed);
-                const totalDelay = Math.max(100, batchDelayFactor * pixelBatch.pixels.length);
-                await Utils.sleep(totalDelay);
-              }
-              updateStats();
-            } else {
-              console.error(`❌ Batch failed permanently after retries. Stopping painting.`);
-              state.stopFlag = true;
-              updateUI('paintingBatchFailed', 'error');
-              // noinspection UnnecessaryLabelOnBreakStatementJS
-              break outerLoop;
-            }
-          }
-
-          pixelBatch = {
+        const key = `${regionX + adderX},${regionY + adderY}`;
+        if (!pixelBatches.has(key)) {
+          pixelBatches.set(key, {
             regionX: regionX + adderX,
             regionY: regionY + adderY,
             pixels: [],
-          };
+          });
         }
+        const batch = pixelBatches.get(key);
 
         try {
-          const tileKeyParts = [pixelBatch.regionX, pixelBatch.regionY];
+          const tileKeyParts = [batch.regionX, batch.regionY];
 
           const tilePixelRGBA = await overlayManager.getTilePixelColor(
             tileKeyParts[0],
@@ -7023,10 +7147,7 @@
             // Resolve the actual canvas pixel color to the closest available color.
             // (The raw canvas RGB [er, eg, eb] is mapped into state.availableColors)
             // so that comparison is consistent with targetMappedColorId.
-            const mappedCanvasColor = Utils.resolveColor(
-              tilePixelRGBA.slice(0, 3),
-              state.availableColors
-            );
+            const mappedCanvasColor = Utils.resolveColor(tilePixelRGBA, state.availableColors);
             const isMatch = mappedCanvasColor.id === targetMappedColorId;
             if (isMatch) {
               skipPixel(
@@ -7057,33 +7178,23 @@
           break outerLoop;
         }
 
-        pixelBatch.pixels.push({
+        batch.pixels.push({
           x: pixelX,
           y: pixelY,
           color: targetMappedColorId,
           localX: x,
           localY: y,
         });
-
+        if (targetMappedColorId === 0) debugger;
         const maxBatchSize = calculateBatchSize();
-        if (pixelBatch.pixels.length >= maxBatchSize) {
-          const modeText =
-            state.batchMode === 'random'
-              ? `random (${state.randomBatchMin}-${state.randomBatchMax})`
-              : 'normal';
-          console.log(
-            `📦 Sending batch with ${pixelBatch.pixels.length} pixels (mode: ${modeText}, target: ${maxBatchSize})`
-          );
-          const success = await flushPixelBatch(pixelBatch);
+        if (batch.pixels.length >= maxBatchSize) {
+          const success = await flushPixelBatch(batch);
           if (!success) {
-            console.error(`❌ Batch failed permanently after retries. Stopping painting.`);
-            state.stopFlag = true;
-            updateUI('paintingBatchFailed', 'error');
             // noinspection UnnecessaryLabelOnBreakStatementJS
             break outerLoop;
           }
 
-          pixelBatch.pixels = [];
+          batch.pixels = [];
         }
 
         if (state.displayCharges < state.cooldownChargeThreshold && !state.stopFlag) {
@@ -7107,13 +7218,13 @@
         }
       }
 
-      if (pixelBatch && pixelBatch.pixels.length > 0 && !state.stopFlag) {
-        console.log(`🏁 Sending final batch with ${pixelBatch.pixels.length} pixels`);
-        const success = await flushPixelBatch(pixelBatch);
-        if (!success) {
-          console.warn(
-            `⚠️ Final batch failed with ${pixelBatch.pixels.length} pixels after all retries.`
-          );
+      for (const [key, batch] of pixelBatches.entries()) {
+        if (batch.pixels.length > 0 && !state.stopFlag) {
+          console.log(`🏁 Sending final batch`);
+          const success = await flushPixelBatch(batch);
+          if (!success) {
+            console.warn(`⚠️ Final batch for ${key} failed with ${batch.pixels.length} pixels.`);
+          }
         }
       }
     } finally {
@@ -7126,10 +7237,8 @@
       Utils.saveProgress();
     } else {
       updateUI('paintingComplete', 'success', { count: state.paintedPixels });
-      state.lastPosition = { x: 0, y: 0 };
-      // Keep painted map until user starts new project
-      // state.paintedMap = null  // Commented out to preserve data
-      Utils.saveProgress(); // Save final complete state
+
+      Utils.saveProgress();
       overlayManager.clear();
       const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
       if (toggleOverlayBtn) {
@@ -7508,7 +7617,7 @@
       const cooldownSlider = document.getElementById('cooldownSlider');
       if (cooldownSlider) cooldownSlider.value = state.cooldownChargeThreshold;
       const cooldownValue = document.getElementById('cooldownValue');
-      if (cooldownValue) cooldownValue.textContent = state.cooldownChargeThreshold;
+      if (cooldownValue) cooldownValue.textContent = state.cooldownChargeThreshold.toString();
 
       const overlayOpacitySlider = document.getElementById('overlayOpacitySlider');
       if (overlayOpacitySlider) overlayOpacitySlider.value = state.overlayOpacity;
@@ -7713,6 +7822,11 @@
           state.colorMatchingAlgorithm = 'lab';
           state.enableChromaPenalty = true;
           state.chromaPenaltyWeight = 0.15;
+          Utils.invalidateColorCache({
+            colorMatchingAlgorithm: state.colorMatchingAlgorithm,
+            enableChromaPenalty: state.enableChromaPenalty,
+            chromaPenaltyWeight: state.chromaPenaltyWeight,
+          });
           state.customTransparencyThreshold = CONFIG.TRANSPARENCY_THRESHOLD = 100;
           state.customWhiteThreshold = CONFIG.WHITE_THRESHOLD = 250;
           saveBotSettings();
