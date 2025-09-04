@@ -1,7 +1,7 @@
 /* WPlace Auto-Image Bot - Classic Theme */
 /* Clean, modern UI with gradients and subtle effects */
 
-.wplace-theme-classic {
+:root.wplace-theme-classic {
   --wplace-primary: linear-gradient(135deg, #000 0%, #1a1a1a 100%);
   --wplace-secondary: linear-gradient(135deg, #111 0%, #2a2a2a 100%);
   --wplace-accent: #222;
@@ -88,7 +88,7 @@
 .wplace-theme-classic .wplace-status-section {
   border-radius: var(--wplace-radius);
   background: rgb(255 255 255 / 3%);
-  border: 1px solid rgb(255 255 255 / 10%);
+  border: 1px solid var(--wplace-border-ghost);
 }
 
 :root .wplace-section,
@@ -101,7 +101,7 @@
 .wplace-theme-classic .wplace-stats {
   border-radius: var(--wplace-radius);
   background: rgb(255 255 255 / 3%);
-  border: 1px solid rgb(255 255 255 / 10%);
+  border: 1px solid var(--wplace-border-ghost);
 }
 
 :root .wplace-status,
@@ -129,7 +129,7 @@
 :root .wplace-btn,
 .wplace-theme-classic .wplace-btn {
   background: linear-gradient(135deg, #222 0%, #4a4a4a 100%);
-  border: 1px solid rgb(255 255 255 / 10%);
+  border: 1px solid var(--wplace-border-ghost);
   color: var(--wplace-text);
   border-radius: var(--wplace-btn-radius);
   font-family: var(--wplace-font);
@@ -137,12 +137,12 @@
 
 :root .wplace-btn::before,
 .wplace-theme-classic .wplace-btn::before {
-  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 10%), transparent);
+  background: linear-gradient(90deg, transparent, var(--wplace-bg-subtle), transparent);
 }
 
 :root .wplace-btn:disabled,
 .wplace-theme-classic .wplace-btn:disabled {
-  box-shadow: none !important;
+  box-shadow: none;
 }
 
 :root .wplace-btn:hover:not(:disabled),
@@ -167,7 +167,7 @@
 .wplace-theme-classic .wplace-btn-upload {
   background: linear-gradient(135deg, #111 0%, #4a4a4a 100%);
   color: var(--wplace-text);
-  border: 1px dashed var(--wplace-highlight) !important;
+  border: 1px dashed var(--wplace-highlight);
 }
 
 :root .wplace-btn-start,
@@ -198,10 +198,9 @@
 :root .wplace-btn[aria-pressed="true"],
 .wplace-theme-classic .wplace-btn.active,
 .wplace-theme-classic .wplace-btn[aria-pressed="true"] {
-  background: var(--wplace-highlight) !important;
-  color: #000 !important;
-  border-color: var(--wplace-text) !important;
-  box-shadow: 0 0 8px rgb(0 0 0 / 25%) inset, 0 0 6px rgb(0 0 0 / 20%) !important;
+  background: var(--wplace-highlight);
+  border-color: var(--wplace-text);
+  box-shadow: 0 0 8px rgb(0 0 0 / 25%) inset, 0 0 6px rgb(0 0 0 / 20%);
 }
 
 :root .wplace-btn.active i,
@@ -224,7 +223,7 @@
 /* Status styling for classic theme */
 :root .status-default,
 .wplace-theme-classic .status-default {
-  background: rgb(255 255 255 / 10%);
+  background: var(--wplace-bg-subtle);
   border-color: var(--wplace-text);
   color: var(--wplace-text);
 }
@@ -256,7 +255,7 @@
 :root .wplace-status.status-default,
 .wplace-theme-classic .wplace-status.status-default {
   color: var(--wplace-text);
-  background: rgb(255 255 255 / 10%);
+  background: var(--wplace-bg-subtle);
   border-color: var(--wplace-text);
 }
 
@@ -289,7 +288,7 @@
 :root .wplace-progress,
 .wplace-theme-classic .wplace-progress {
   background: rgb(0 0 0 / 30%);
-  border: 1px solid rgb(255 255 255 / 10%);
+  border: 1px solid var(--wplace-border-ghost);
   border-radius: var(--wplace-radius);
 }
 
@@ -306,7 +305,7 @@
 /* Header and sections styling for classic theme */
 :root .wplace-header-btn,
 .wplace-theme-classic .wplace-header-btn {
-  background: rgb(255 255 255 / 10%);
+  background:  var(--wplace-bg-subtle);
   color: var(--wplace-highlight);
   border-radius: 4px;
   font-family: var(--wplace-font);
@@ -321,13 +320,13 @@
 /* Font and typography for classic theme */
 :root .wplace-turnstile-overlay,
 .wplace-theme-classic .wplace-turnstile-overlay {
-  background: rgb(0 0 0 / 90%) !important;
-  border-radius: var(--wplace-radius) !important;
-  box-shadow: 0 8px 32px rgb(0 0 0 / 40%) !important;
-  backdrop-filter: var(--wplace-backdrop) !important;
-  border: 1px solid rgb(255 255 255 / 20%) !important;
-  color: var(--wplace-text) !important;
-  font-family: var(--wplace-font) !important;
+  background: rgb(0 0 0 / 90%);
+  border-radius: var(--wplace-radius);
+  box-shadow: 0 8px 32px rgb(0 0 0 / 40%);
+  backdrop-filter: var(--wplace-backdrop);
+  border: 1px solid rgb(255 255 255 / 20%);
+  color: var(--wplace-text);
+  font-family: var(--wplace-font);
 }
 
 /* Auto light/dark support for classic theme */
@@ -366,7 +365,7 @@
 :root .wplace-stat-color-swatch,
 .wplace-theme-classic .wplace-stat-color-swatch {
   border-radius: 3px;
-  border: 1px solid rgb(255 255 255 / 10%);
+  border: 1px solid var(--wplace-border-ghost);
   box-shadow: inset 0 0 2px rgb(0 0 0 / 50%);
 }
 
@@ -485,19 +484,19 @@
 
 :root .wplace-turnstile-title,
 .wplace-theme-classic .wplace-turnstile-title {
-  color: var(--wplace-text) !important;
+  color: var(--wplace-text);
 }
 
 :root .wplace-turnstile-hide-btn,
 .wplace-theme-classic .wplace-turnstile-hide-btn {
-  color: var(--wplace-text) !important;
-  border: 1px solid rgb(255 255 255 / 20%) !important;
-  border-radius: 6px !important;
+  color: var(--wplace-text);
+  border: 1px solid rgb(255 255 255 / 20%);
+  border-radius: 6px;
 }
 
 :root .wplace-turnstile-hide-btn:hover,
 .wplace-theme-classic .wplace-turnstile-hide-btn:hover {
-  background: rgb(255 255 255 / 10%) !important;
+  background:  var(--wplace-bg-subtle);
 }
 
 :root .wplace-settings-select,
@@ -533,27 +532,27 @@
 
 :root .wplace-settings-error,
 .wplace-theme-classic .wplace-settings-error {
-  background: rgb(255 0 0 / 40%) !important;
+  background: rgb(255 0 0 / 40%);
 }
 
 /* Settings sections and batch controls for classic theme */
 :root .wplace-settings-section-wrapper,
 .wplace-theme-classic .wplace-settings-section-wrapper {
-  background: rgb(255 255 255 / 10%);
+  background:  var(--wplace-bg-subtle);
   border-radius: var(--wplace-radius);
-  border: 1px solid rgb(255 255 255 / 10%);
+  border: 1px solid var(--wplace-border-ghost);
 }
 
 :root .wplace-batch-controls,
 .wplace-theme-classic .wplace-batch-controls {
-  background: rgb(255 255 255 / 10%);
+  background:  var(--wplace-bg-subtle);
   border-radius: var(--wplace-radius);
-  border: 1px solid rgb(255 255 255 / 10%);
+  border: 1px solid var(--wplace-border-ghost);
 }
 
 :root .wplace-overlay-opacity-slider,
 .wplace-theme-classic .wplace-overlay-opacity-slider {
-  background: linear-gradient(to right, #4facfe 0%, #00f2fe 100%);
+  background: linear-gradient(to right, var(--wplace-highlight) 0%, var(--wplace-highlight-secondary) 100%);
   border-radius: 4px;
 }
 
@@ -569,18 +568,13 @@
 /* Additional elements for classic theme */
 :root .wplace-color-divider,
 .wplace-theme-classic .wplace-color-divider {
-  background: rgb(255 255 255 / 10%);
+  background:  var(--wplace-bg-subtle);
 }
 
 :root .wplace-settings-select option,
 .wplace-theme-classic .wplace-settings-select option {
   background: #2d3748;
   color: white;
-}
-
-:root .wplace-settings-description,
-.wplace-theme-classic .wplace-settings-description {
-  color: rgb(255 255 255 / 70%);
 }
 
 :root .wplace-settings-apply-btn,

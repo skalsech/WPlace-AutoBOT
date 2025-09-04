@@ -100,83 +100,26 @@
       63: { id: 63, name: 'Light Stone', rgb: { r: 205, g: 197, b: 158 } },
     }, // --- END: Color data ---
     THEMES: {
-      'Classic Autobot': {
-        primary: '#000000',
-        secondary: '#111111',
-        accent: '#222222',
-        text: '#ffffff',
-        highlight: '#775ce3',
-        success: '#00ff00',
-        error: '#ff0000',
-        warning: '#ffaa00',
-        fontFamily: "'Segoe UI', Roboto, sans-serif",
-        borderRadius: '12px',
-        borderStyle: 'solid',
-        borderWidth: '1px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.1)',
-        backdropFilter: 'blur(10px)',
-        animations: {
-          glow: false,
-          scanline: false,
-          'pixel-blink': false,
-        },
+      classic: {
+        name: 'Classic',
+        cssClass: 'wplace-theme-classic',
       },
-      'Classic Light': {
-        primary: '#ffffff',
-        secondary: '#f8f9fa',
-        accent: '#e9ecef',
-        text: '#212529',
-        highlight: '#6f42c1',
-        success: '#28a745',
-        error: '#dc3545',
-        warning: '#ffc107',
-        fontFamily: "'Segoe UI', Roboto, sans-serif",
-        borderRadius: '12px',
-        borderStyle: 'solid',
-        borderWidth: '1px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.15), 0 0 0 1px rgba(0,0,0,0.08)',
-        backdropFilter: 'blur(10px)',
-        animations: {
-          glow: false,
-          scanline: false,
-          'pixel-blink': false,
-        },
+      'classic-light': {
+        name: 'Classic Light',
+        cssClass: 'wplace-theme-classic-light',
       },
-      'Neon Retro': {
-        primary: '#1a1a2e',
-        secondary: '#16213e',
-        accent: '#0f3460',
-        text: '#00ff41',
-        highlight: '#ff6b35',
-        success: '#39ff14',
-        error: '#ff073a',
-        warning: '#ffff00',
-        neon: '#00ffff',
-        purple: '#bf00ff',
-        pink: '#ff1493',
-        fontFamily: "'Press Start 2P', monospace",
-        borderRadius: '0',
-        borderStyle: 'solid',
-        borderWidth: '3px',
-        boxShadow: '0 0 20px rgba(0, 255, 65, 0.3), inset 0 0 20px rgba(0, 255, 65, 0.1)',
-        backdropFilter: 'none',
-        animations: {
-          glow: true,
-          scanline: true,
-          'pixel-blink': true,
-        },
+      'neon-retro': {
+        name: 'Neon Retro',
+        cssClass: 'wplace-theme-neon',
       },
     },
-    currentTheme: 'Classic Autobot',
-    PAINT_UNAVAILABLE: true,
+    currentThemeKey: 'classic',
+    PAINT_UNAVAILABLE: false,
     COORDINATE_MODE: 'rows',
     COORDINATE_DIRECTION: 'bottom-left',
     COORDINATE_SNAKE: true,
     COORDINATE_BLOCK_WIDTH: 6,
     COORDINATE_BLOCK_HEIGHT: 2,
-    get currentThemeStyles() {
-      return this.THEMES[this.currentTheme];
-    },
   };
   const createStorageSaver = (options = {}) => {
     const { maxLength = 100, shouldLog = false, label = 'LocalStorage' } = options;
@@ -298,68 +241,45 @@
 
   const loadFromStorage = createStorageLoader();
 
-  const switchTheme = (themeName) => {
-    if (CONFIG.THEMES[themeName]) {
-      CONFIG.currentTheme = themeName;
-      saveToStorage('wplace_theme', CONFIG.currentTheme);
-
-      // Recreate UI (kept for now)
-      createUI();
-
-      // APPLY THEME VARS/CLASS (new)
-      applyTheme();
+  const switchTheme = (themeKey) => {
+    if (!CONFIG.THEMES[themeKey]) {
+      console.warn(`Theme not found: ${themeKey}`);
+      return;
     }
+
+    CONFIG.currentThemeKey = themeKey;
+    if (state.currentThemeKey === 'neon-retro') {
+      Utils.appendLinkOnce('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    }
+    saveToStorage('wplace_theme', themeKey);
+    applyTheme();
   };
 
-  // Add this helper (place it after CONFIG.currentThemeStyles/switchTheme definitions)
   function applyTheme() {
-    const theme = CONFIG.currentThemeStyles;
-    // Toggle theme class on documentElement so CSS vars cascade to our UI
-    document.documentElement.classList.remove(
-      'wplace-theme-classic',
-      'wplace-theme-classic-light',
-      'wplace-theme-neon'
-    );
+    const theme = CONFIG.THEMES[CONFIG.currentThemeKey];
 
-    let themeClass = 'wplace-theme-classic'; // default
-    if (CONFIG.currentTheme === 'Neon Retro') {
-      themeClass = 'wplace-theme-neon';
-    } else if (CONFIG.currentTheme === 'Classic Light') {
-      themeClass = 'wplace-theme-classic-light';
+    if (!theme) {
+      console.error(`Unknown theme: ${CONFIG.currentThemeKey}`);
+      return;
     }
 
-    document.documentElement.classList.add(themeClass);
-
-    // Also set CSS variables explicitly in case you want runtime overrides
     const root = document.documentElement;
-    const setVar = (k, v) => {
-      try {
-        root.style.setProperty(k, v);
-      } catch {}
-    };
+    Array.from(root.classList).forEach((cls) => {
+      if (cls.startsWith('wplace-theme-')) {
+        root.classList.remove(cls);
+      }
+    });
 
-    setVar('--wplace-primary', theme.primary);
-    setVar('--wplace-secondary', theme.secondary);
-    setVar('--wplace-accent', theme.accent);
-    setVar('--wplace-text', theme.text);
-    setVar('--wplace-highlight', theme.highlight);
-    setVar('--wplace-success', theme.success);
-    setVar('--wplace-error', theme.error);
-    setVar('--wplace-warning', theme.warning);
-
-    // Typography + look
-    setVar('--wplace-font', theme.fontFamily || "'Segoe UI', Roboto, sans-serif");
-    setVar('--wplace-radius', '' + (theme.borderRadius || '12px'));
-    setVar('--wplace-border-style', '' + (theme.borderStyle || 'solid'));
-    setVar('--wplace-border-width', '' + (theme.borderWidth || '1px'));
-    setVar('--wplace-backdrop', '' + (theme.backdropFilter || 'blur(10px)'));
-    setVar('--wplace-border-color', 'rgba(255,255,255,0.1)');
+    root.classList.add(theme.cssClass);
   }
 
   const loadThemePreference = () => {
     const saved = loadFromStorage('wplace_theme');
+
     if (saved && CONFIG.THEMES[saved]) {
-      CONFIG.currentTheme = saved;
+      CONFIG.currentThemeKey = saved;
+    } else {
+      CONFIG.currentThemeKey = 'classic';
     }
   };
 
@@ -442,7 +362,7 @@
       if (retryCount < maxRetries) {
         const delay = baseDelay * Math.pow(2, retryCount);
         console.log(`⏳ Retrying in ${delay}ms...`);
-        await new Promise((resolve) => setTimeout(resolve, delay));
+        await Utils.sleep(delay);
         return loadTranslations(language, retryCount + 1);
       }
     }
@@ -575,37 +495,9 @@
     },
   };
 
-  // Safe translation function with multiple fallback levels
-  const getText = (key, replacements = {}) => {
-    // Try current language first
-    let text = loadedTranslations[state.language]?.[key];
-
-    // Fallback to English translations
-    if (!text && state.language !== 'en') {
-      text = loadedTranslations['en']?.[key];
-    }
-
-    // Fallback to hardcoded English
-    if (!text) {
-      text = FALLBACK_TEXT['en']?.[key];
-    }
-
-    // Last resort - return the key itself
-    if (!text) {
-      console.warn(`⚠️ Missing translation for key: ${key}`);
-      return key;
-    }
-
-    // Handle string replacements like {count}, {time}, etc.
-    return Object.entries(replacements).reduce((result, [placeholder, value]) => {
-      return result.replace(new RegExp(`\\{${placeholder}\\}`, 'g'), value);
-    }, text);
-  };
-
   // GLOBAL STATE
   const state = {
     running: false,
-    imageLoaded: false,
     processing: false,
     artTotalPixels: 0,
     totalPaintedPixels: 0,
@@ -672,6 +564,9 @@
 
     get hasAvailableColors() {
       return !!this.availableColors.length;
+    },
+    get imageLoaded() {
+      return !!this.imageData;
     },
   };
 
@@ -839,7 +734,7 @@
 
         // Yield control to prevent blocking
         if (i + batchSize < tilesToProcess.length) {
-          await new Promise((resolve) => setTimeout(resolve, 0));
+          await Utils.sleep(0);
         }
       }
 
@@ -1377,18 +1272,6 @@
     }
   });
 
-  async function detectLanguage() {
-    try {
-      const response = await fetch('https://backend.wplace.live/me', {
-        credentials: 'include',
-      });
-      const data = await response.json();
-      state.language = data.language === 'pt' ? 'pt' : 'en';
-    } catch {
-      state.language = navigator.language.startsWith('pt') ? 'pt' : 'en';
-    }
-  }
-
   // UTILITY FUNCTIONS
   const Utils = {
     sleep: (ms) => new Promise((r) => setTimeout(r, ms)),
@@ -1400,6 +1283,24 @@
         await this.sleep(Math.min(interval, remaining));
         remaining = Math.max(0, await tickAndGetRemainingMs());
       }
+    },
+
+    appendLinkOnce(href, attributes = {}) {
+      const exists = Array.from(document.head.querySelectorAll('link')).some(
+        (link) => link.href === href
+      );
+      if (exists) return;
+
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+
+      // Add any additional attributes (e.g., data-* attributes)
+      for (const [key, value] of Object.entries(attributes)) {
+        link.setAttribute(key, value);
+      }
+
+      document.head.appendChild(link);
     },
 
     waitForSelector: async (selector, interval = 200, timeout = 5000) => {
@@ -1938,16 +1839,26 @@
     },
 
     showAlert: (message, type = 'info') => {
-      const alertDiv = document.createElement('div');
-      alertDiv.className = `wplace-alert-base wplace-alert-${type}`;
+      const validTypes = ['info', 'success', 'warning', 'error'];
+      const alertType = validTypes.includes(type) ? type : 'info';
 
+      const alertDiv = document.createElement('div');
+      alertDiv.className = `wplace-alert-base wplace-alert-${alertType}`;
       alertDiv.textContent = message;
+
+      alertDiv.addEventListener('click', () => {
+        alertDiv.classList.add('fade-out');
+        setTimeout(() => document.body.removeChild(alertDiv), 300);
+      });
+
       document.body.appendChild(alertDiv);
 
       setTimeout(() => {
-        alertDiv.style.animation = 'slide-down 0.3s ease-out reverse';
+        alertDiv.classList.add('fade-out');
         setTimeout(() => {
-          document.body.removeChild(alertDiv);
+          if (alertDiv.parentElement === document.body) {
+            document.body.removeChild(alertDiv);
+          }
         }, 300);
       }, 4000);
     },
@@ -2684,6 +2595,7 @@
           delete migrated.state.paintedMapPacked;
           delete migrated.state.lastPosition;
           delete migrated.state.colorsChecked;
+          delete migrated.state.imageLoaded;
 
           if (migrated.state.totalPixels != null) {
             migrated.state.artTotalPixels = migrated.state.totalPixels;
@@ -2745,7 +2657,6 @@
           userPaintedPixels: state.userPaintedPixels,
           startPosition: state.startPosition,
           region: state.region,
-          imageLoaded: state.imageLoaded,
           availableColors: state.availableColors,
         },
         imageData: state.imageData
@@ -3542,8 +3453,6 @@
   }
 
   async function createUI() {
-    await detectLanguage();
-
     const existingContainer = document.getElementById('wplace-image-bot-container');
     const existingStats = document.getElementById('wplace-stats-container');
     const existingSettings = document.getElementById('wplace-settings-container');
@@ -3556,42 +3465,18 @@
     if (existingResizeContainer) existingResizeContainer.remove();
     if (existingResizeOverlay) existingResizeOverlay.remove();
 
-    loadThemePreference();
     await initializeTranslations();
 
-    const theme = CONFIG.currentThemeStyles;
-    applyTheme(); // <- new: set CSS vars and theme class before building UI
+    Utils.appendLinkOnce(
+      'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
+    );
 
-    function appendLinkOnce(href, attributes = {}) {
-      // Check if a link with the same href already exists in the document head
-      const exists = Array.from(document.head.querySelectorAll('link')).some(
-        (link) => link.href === href
-      );
-      if (exists) return;
-
-      // Create a new link element
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = href;
-
-      // Add any additional attributes (e.g., data-* attributes)
-      for (const [key, value] of Object.entries(attributes)) {
-        link.setAttribute(key, value);
+    Utils.appendLinkOnce(
+      'https://skalsech.github.io/WPlace-AutoBOT/custom-main/auto-image-styles.css',
+      {
+        'data-wplace-theme': 'true',
       }
-
-      // Append the link element to the document head
-      document.head.appendChild(link);
-    }
-
-    appendLinkOnce('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
-
-    if (theme.fontFamily.includes('Press Start 2P')) {
-      appendLinkOnce('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-    }
-
-    appendLinkOnce('https://skalsech.github.io/WPlace-AutoBOT/custom-main/auto-image-styles.css', {
-      'data-wplace-theme': 'true',
-    });
+    );
 
     const container = document.createElement('div');
     container.id = 'wplace-image-bot-container';
@@ -3775,35 +3660,7 @@
     const settingsContainer = document.createElement('div');
     settingsContainer.id = 'wplace-settings-container';
 
-    // Apply theme-based styling
-    const themeBackground = theme.primary
-      ? `linear-gradient(135deg, ${theme.primary} 0%, ${theme.secondary || theme.primary} 100%)`
-      : `linear-gradient(135deg, #667eea 0%, #764ba2 100%)`;
-
     settingsContainer.className = 'wplace-settings-container-base';
-    // Apply theme-specific background
-    settingsContainer.style.background = themeBackground;
-    settingsContainer.style.cssText += `
-      min-width: 420px;
-      max-width: 480px;
-      z-index: 99999;
-      color: ${theme.text || 'white'};
-      font-family: ${theme.fontFamily || "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif"};
-      box-shadow: ${
-        theme.boxShadow || '0 20px 40px rgba(0,0,0,0.3), 0 0 0 1px rgba(255,255,255,0.1)'
-      };
-      backdrop-filter: ${theme.backdropFilter || 'blur(10px)'};
-      overflow: hidden;
-      animation: settings-slide-in 0.4s ease-out;
-      ${
-        theme.animations?.glow
-          ? `
-        box-shadow: ${theme.boxShadow || '0 20px 40px rgba(0,0,0,0.3)'}, 
-                   0 0 30px ${theme.highlight || theme.neon || '#00ffff'};
-      `
-          : ''
-      }
-    `;
 
     // noinspection CssInvalidFunction
     settingsContainer.innerHTML = `
@@ -3854,62 +3711,30 @@
 
         <!-- Overlay Settings Section -->
         <div class="wplace-settings-section">
-          <label class="wplace-settings-section-label" style="color: ${theme.text || 'white'};">
-            <i class="fas fa-eye wplace-icon-eye" style="color: ${
-              theme.highlight || '#48dbfb'
-            };"></i>
+          <label class="wplace-settings-section-label">
+            <i class="fas fa-eye wplace-icon-eye"></i>
             Overlay Settings
           </label>
-          <div class="wplace-settings-section-wrapper wplace-overlay-wrapper" style="
-            background: ${theme.accent ? `${theme.accent}20` : 'rgba(255,255,255,0.1)'}; 
-            border-radius: ${theme.borderRadius || '12px'}; 
-            padding: 18px; 
-            border: 1px solid ${theme.accent || 'rgba(255,255,255,0.1)'};
-            ${
-              theme.animations?.glow
-                ? `
-              box-shadow: 0 0 15px ${theme.accent || 'rgba(255,255,255,0.1)'}33;
-            `
-                : ''
-            }
-          ">
+          <div class="wplace-settings-section-wrapper wplace-overlay-wrapper">
               <!-- Opacity Slider -->
               <div class="wplace-overlay-opacity-control">
                 <div class="wplace-overlay-opacity-header">
-                   <span class="wplace-overlay-opacity-label" style="color: ${
-                     theme.text || 'white'
-                   };">Overlay Opacity</span>
-                   <div id="overlayOpacityValue" class="wplace-overlay-opacity-value" style="
-                     background: ${theme.secondary || 'rgba(0,0,0,0.2)'}; 
-                     color: ${theme.text || 'white'};
-                     padding: 4px 8px; 
-                     border-radius: ${theme.borderRadius === '0' ? '0' : '6px'}; 
-                     font-size: 12px;
-                     border: 1px solid ${theme.accent || 'transparent'};
-                   ">${Math.round(state.overlayOpacity * 100)}%</div>
+                   <span class="wplace-overlay-opacity-label">Overlay Opacity</span>
+                   <div id="overlayOpacityValue" class="wplace-overlay-opacity-value">
+                    ${Math.round(state.overlayOpacity * 100)}%
+                   </div>
                 </div>
-                <input type="range" id="overlayOpacitySlider" min="0.1" max="1" step="0.05" value="${state.overlayOpacity}" class="wplace-overlay-opacity-slider" style="
-                  background: linear-gradient(to right, ${
-                    theme.highlight || '#48dbfb'
-                  } 0%, ${theme.purple || theme.neon || '#d3a4ff'} 100%); 
-                  border-radius: ${theme.borderRadius === '0' ? '0' : '4px'}; 
-                ">
+                <input type="range" id="overlayOpacitySlider" min="0.1" max="1" step="0.05" value="${state.overlayOpacity}" class="wplace-overlay-opacity-slider">
               </div>
               <!-- Blue Marble Toggle -->
               <label for="enableBlueMarbleToggle" class="wplace-settings-toggle">
                   <div>
-                      <span class="wplace-settings-toggle-title" style="color: ${
-                        theme.text || 'white'
-                      };">Blue Marble Effect</span>
-                      <p class="wplace-settings-toggle-description" style="color: ${
-                        theme.text ? `${theme.text}BB` : 'rgba(255,255,255,0.7)'
-                      };">Renders a dithered "shredded" overlay.</p>
+                      <span class="wplace-settings-toggle-title">Blue Marble Effect</span>
+                      <p class="wplace-settings-toggle-description">Renders a dithered "shredded" overlay.</p>
                   </div>
                   <input type="checkbox" id="enableBlueMarbleToggle" ${
                     state.blueMarbleEnabled ? 'checked' : ''
-                  } class="wplace-settings-checkbox" style="
-                    accent-color: ${theme.highlight || '#48dbfb'};
-                  "/>
+                  } class="wplace-settings-checkbox"/>
               </label>
           </div>
         </div>
@@ -3925,50 +3750,40 @@
             <!-- Paint White Pixels -->
             <label class="wplace-settings-toggle">
               <div>
-                <span class="wplace-settings-toggle-title" style="color: ${theme.text || 'white'};">
+                <span class="wplace-settings-toggle-title">
                   ${Utils.t('paintWhitePixels')}
                 </span>
-                <p class="wplace-settings-toggle-description" style="color: ${
-                  theme.text ? `${theme.text}BB` : 'rgba(255,255,255,0.7)'
-                };">
+                <p class="wplace-settings-toggle-description">
                   ${Utils.t('paintWhitePixelsDescription')}
                 </p>
               </div>
               <input type="checkbox" id="settingsPaintWhiteToggle" ${state.paintWhitePixels ? 'checked' : ''} 
                 class="wplace-settings-checkbox"
-                style="accent-color: ${theme.highlight || '#48dbfb'};"/>
+              />
             </label>
             
             <!-- Paint Transparent Pixels -->
             <label class="wplace-settings-toggle">
               <div>
-                <span class="wplace-settings-toggle-title" style="color: ${theme.text || 'white'};">
+                <span class="wplace-settings-toggle-title">
                   ${Utils.t('paintTransparentPixels')}
                 </span>
-                <p class="wplace-settings-toggle-description" style="color: ${
-                  theme.text ? `${theme.text}BB` : 'rgba(255,255,255,0.7)'
-                };">
+                <p class="wplace-settings-toggle-description">
                   ${Utils.t('paintTransparentPixelsDescription')}
                 </p>
               </div>
               <input type="checkbox" id="settingsPaintTransparentToggle" ${state.paintTransparentPixels ? 'checked' : ''} 
                 class="wplace-settings-checkbox"
-                style="accent-color: ${theme.highlight || '#48dbfb'};"/>
+              />
             </label>
             <label class="wplace-settings-toggle">
               <div>
-                <span class="wplace-settings-toggle-title" style="color: ${
-                  theme.text || 'white'
-                };">${Utils.t('paintUnavailablePixels')}</span>
-                <p class="wplace-settings-toggle-description" style="color: ${
-                  theme.text ? `${theme.text}BB` : 'rgba(255,255,255,0.7)'
-                };">${Utils.t('paintUnavailablePixelsDescription')}</p>
+                <span class="wplace-settings-toggle-title">${Utils.t('paintUnavailablePixels')}</span>
+                <p class="wplace-settings-toggle-description">${Utils.t('paintUnavailablePixelsDescription')}</p>
               </div>
               <input type="checkbox" id="paintUnavailablePixelsToggle" ${
                 state.paintUnavailablePixels ? 'checked' : ''
-              } class="wplace-settings-checkbox" style="
-                    accent-color: ${theme.highlight || '#48dbfb'};
-                  "/>
+              } class="wplace-settings-checkbox"/>
             </label>
           </div>
         </div>
@@ -4077,18 +3892,12 @@
           <div id="snakeControls" class="wplace-snake-pattern-controls wplace-settings-section-wrapper">
             <label class="wplace-settings-toggle">
               <div>
-                <span class="wplace-settings-toggle-title" style="color: ${
-                  theme.text || 'white'
-                };">Snake Pattern</span>
-                <p class="wplace-settings-toggle-description" style="color: ${
-                  theme.text ? `${theme.text}BB` : 'rgba(255,255,255,0.7)'
-                };">Alternate direction for each row/column (zigzag pattern)</p>
+                <span class="wplace-settings-toggle-title">Snake Pattern</span>
+                <p class="wplace-settings-toggle-description">Alternate direction for each row/column (zigzag pattern)</p>
               </div>
               <input type="checkbox" id="coordinateSnakeToggle" ${
                 state.coordinateSnake ? 'checked' : ''
-              } class="wplace-settings-checkbox" style="
-                    accent-color: ${theme.highlight || '#48dbfb'};
-                  "/>
+              } class="wplace-settings-checkbox"/>
             </label>
           </div>
           
@@ -4165,14 +3974,14 @@
           </label>
           <div class="wplace-settings-section-wrapper">
             <select id="themeSelect" class="wplace-settings-select">
-              ${Object.keys(CONFIG.THEMES)
-                .map(
-                  (themeName) =>
-                    `<option value="${themeName}" ${
-                      CONFIG.currentTheme === themeName ? 'selected' : ''
-                    } class="wplace-settings-option">${themeName}</option>`
-                )
-                .join('')}
+            ${Object.entries(CONFIG.THEMES)
+              .map(
+                ([key, theme]) =>
+                  `<option value="${key}" ${
+                    CONFIG.currentThemeKey === key ? 'selected' : ''
+                  } class="wplace-settings-option">${theme.name}</option>`
+              )
+              .join('')}
             </select>
           </div>
         </div>
@@ -4305,7 +4114,7 @@
     const resizeContainer = document.createElement('div');
     resizeContainer.className = 'resize-container';
     resizeContainer.innerHTML = `
-      <h3 class="resize-dialog-title" style="color: ${theme.text}">${Utils.t('resizeImage')}</h3>
+      <h3 class="resize-dialog-title">${Utils.t('resizeImage')}</h3>
       <div class="resize-controls">
         <label class="resize-control-label">
           Width: <span id="widthValue">0</span>px
@@ -4697,9 +4506,6 @@
             settingsContainer.style.animation = '';
           }, 300);
         } else {
-          settingsContainer.style.top = '50%';
-          settingsContainer.style.left = '50%';
-          settingsContainer.style.transform = 'translate(-50%, -50%)';
           settingsContainer.classList.add('show');
           settingsContainer.style.animation = 'settings-slide-in 0.4s ease-out';
         }
@@ -4710,9 +4516,6 @@
         settingsContainer.classList.remove('show');
         setTimeout(() => {
           settingsContainer.style.animation = '';
-          settingsContainer.style.top = '50%';
-          settingsContainer.style.left = '50%';
-          settingsContainer.style.transform = 'translate(-50%, -50%)';
         }, 300);
       });
 
@@ -4869,8 +4672,8 @@
       const themeSelect = settingsContainer.querySelector('#themeSelect');
       if (themeSelect) {
         themeSelect.addEventListener('change', (e) => {
-          const newTheme = e.target.value;
-          switchTheme(newTheme);
+          const newThemeKey = e.target.value;
+          switchTheme(newThemeKey);
         });
       }
 
@@ -6527,10 +6330,10 @@
               b = data[i + 2],
               a = data[i + 3];
             const masked = mask && mask[i >> 2];
-            const isTransparent =
+            const shouldSkipTransparent =
               (!state.paintTransparentPixels && Utils.isTransparentPixel(a)) || masked;
-            const isWhiteAndSkipped = !state.paintWhitePixels && Utils.isWhitePixel(r, g, b);
-            if (isTransparent || isWhiteAndSkipped) {
+            const shouldSkipWhite = !state.paintWhitePixels && Utils.isWhitePixel(r, g, b);
+            if (shouldSkipTransparent || shouldSkipWhite) {
               data[i + 3] = 0; // overlay transparency
               continue;
             }
@@ -6662,20 +6465,23 @@
     if (uploadBtn) {
       uploadBtn.addEventListener('click', async () => {
         const { availableColors } = Utils.extractColors();
-        const newCount = Array.isArray(availableColors) ? availableColors.length : 0;
+        const newColorsCount = Array.isArray(availableColors) ? availableColors.length : 0;
 
-        if (newCount === 0) {
+        if (newColorsCount === 0) {
           updateUI('noColorsKnown', 'error');
           Utils.showAlert(Utils.t('noColorsKnown'), 'error');
           return;
-        } else if (newCount > 0 && Utils.colorsChanged(state.availableColors, availableColors)) {
+        } else if (
+          newColorsCount > 0 &&
+          Utils.colorsChanged(state.availableColors, availableColors)
+        ) {
           const oldCount = state.availableColors.length;
 
           Utils.showAlert(
             Utils.t('colorsUpdated', {
               oldCount,
-              newCount: newCount,
-              diffCount: newCount - oldCount,
+              newCount: newColorsCount,
+              diffCount: newColorsCount - oldCount,
             }),
             'success'
           );
@@ -6707,12 +6513,12 @@
 
           let totalValidPixels = 0;
           for (let i = 0; i < pixels.length; i += 4) {
-            const isTransparent =
+            const shouldSkipTransparent =
               !state.paintTransparentPixels && Utils.isTransparentPixel(pixels[i + 3]);
-            const isWhiteAndSkipped =
+            const shouldSkipWhite =
               !state.paintWhitePixels &&
               Utils.isWhitePixel(pixels[i], pixels[i + 1], pixels[i + 2]);
-            if (!isTransparent && !isWhiteAndSkipped) {
+            if (!shouldSkipTransparent && !shouldSkipWhite) {
               totalValidPixels++;
             }
           }
@@ -6727,7 +6533,6 @@
 
           state.artTotalPixels = totalValidPixels;
           state.userPaintedPixels = 0;
-          state.imageLoaded = true;
 
           // New image: clear previous resize settings
           state.resizeSettings = null;
@@ -7870,7 +7675,6 @@
       setTimeout(() => {
         if (loadBtn) loadBtn.style.animation = '';
       }, 600);
-      console.log('✅ Load Progress button enabled after initial setup');
     }
 
     if (loadFromFileBtn) {
@@ -7881,7 +7685,6 @@
       setTimeout(() => {
         if (loadFromFileBtn) loadFromFileBtn.style.animation = '';
       }, 600);
-      console.log('✅ Load from File button enabled after initial setup');
     }
 
     if (uploadBtn) {
@@ -7892,11 +7695,11 @@
       setTimeout(() => {
         if (uploadBtn) uploadBtn.style.animation = '';
       }, 600);
-      console.log('✅ Upload Image button enabled after initial setup');
     }
 
     // Show a notification that file operations are now available
     Utils.showAlert(Utils.t('fileOperationsAvailable'), 'success');
+    console.log('✅ File operations (Load/Upload) are now available!');
   }
 
   // Optimized token initialization with better timing and error handling
@@ -7943,7 +7746,7 @@
     }
   }
 
-  // Load theme preference immediately on startup before creating UI
+  // Load theme immediately on startup before creating UI
   loadThemePreference();
   applyTheme();
 

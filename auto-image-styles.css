@@ -8,9 +8,9 @@
 /* ========================= */
 
 /* Import theme files - classic is default */
-@import url('https://wplace-autobot.github.io/WPlace-AutoBOT/main/themes/classic.css');
-@import url('https://wplace-autobot.github.io/WPlace-AutoBOT/main/themes/classic-light.css');
-@import url('https://wplace-autobot.github.io/WPlace-AutoBOT/main/themes/neon.css');
+@import url('https://skalsech.github.io/WPlace-AutoBOT/custom-main/themes/classic.css');
+@import url('https://skalsech.github.io/WPlace-AutoBOT/custom-main/themes/classic-light.css');
+@import url('https://skalsech.github.io/WPlace-AutoBOT/custom-main/themes/neon.css');
 
 /* Default :root CSS variables for 100% classic theme compliance */
 /* These ensure the bot works perfectly even if theme files fail to load */
@@ -263,10 +263,10 @@
 
 /* Back-compat for legacy class (some earlier CSS used this) */
 .wplace-drag-active {
-  transition: none !important;
-  box-shadow: var(--wplace-shadow-drag) !important;
-  transform: scale(1.02) !important;
-  z-index: 9999 !important;
+  transition: none;
+  box-shadow: var(--wplace-shadow-drag);
+  transform: scale(1.02);
+  z-index: 9999;
 }
 
 /* ========================= */
@@ -316,7 +316,7 @@
   transition: all 0.2s;
 
   /* Default styling for 100% classic compliance */
-  background: rgb(255 255 255 / 10%);
+  background: var(--wplace-bg-subtle);
   color: var(--wplace-text);
   border-radius: 4px;
   font-family: var(--wplace-font);
@@ -429,7 +429,7 @@
 .wplace-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
-  transform: none !important;
+  transform: none;
 
   /* Theme-specific styling applied via theme files */
 }
@@ -959,27 +959,27 @@
 /* ========================= */
 /* Hidden invisible widget host (token generator) */
 .wplace-turnstile-hidden {
-  position: fixed !important;
-  left: -99999px !important;
-  top: -99999px !important;
-  width: 1px !important;
-  height: 1px !important;
-  pointer-events: none !important;
-  opacity: 0 !important;
-  visibility: hidden !important;
-  z-index: -99999 !important;
-  overflow: hidden !important;
+  position: fixed;
+  left: -99999px;
+  top: -99999px;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  z-index: -99999;
+  overflow: hidden;
 }
 
 /* Visible overlay (interactive fallback) */
 .wplace-turnstile-overlay {
-  position: fixed !important;
-  bottom: 20px !important;
-  right: 20px !important;
-  z-index: 99999 !important;
-  padding: 20px !important;
-  min-width: 300px !important;
-  max-width: 400px !important;
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 99999;
+  padding: 20px;
+  min-width: 300px;
+  max-width: 400px;
 
   /* Theme-specific styling applied via theme files */
 }
@@ -987,27 +987,27 @@
 .wplace-turnstile-title {
   font:
     600 12px/1.3 'Segoe UI',
-    sans-serif !important;
-  margin-bottom: 8px !important;
-  opacity: 0.9 !important;
+    sans-serif;
+  margin-bottom: 8px;
+  opacity: 0.9;
 
   /* Theme-specific styling applied via theme files */
 }
 
 .wplace-turnstile-host {
-  width: 100% !important;
-  min-height: 70px !important;
+  width: 100%;
+  min-height: 70px;
 }
 
 .wplace-turnstile-hide-btn {
-  position: absolute !important;
-  top: 6px !important;
-  right: 6px !important;
-  font-size: 11px !important;
-  background: transparent !important;
-  padding: 2px 6px !important;
-  cursor: pointer !important;
-  transition: background 0.2s ease !important;
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 11px;
+  background: transparent;
+  padding: 2px 6px;
+  cursor: pointer;
+  transition: background 0.2s ease;
 
   /* Theme-specific styling applied via theme files */
 }
@@ -1036,6 +1036,14 @@
   /* Theme-specific styling applied via theme files */
 }
 
+.wplace-alert-base.fade-out {
+  animation: slide-down 0.3s ease-out forwards;
+}
+
+.wplace-alert-base:hover {
+  animation-play-state: paused;
+}
+
 /* Alert styling moved to theme files */
 
 /* ========================= */
@@ -1059,11 +1067,11 @@
 
 /* Overlay visibility helpers */
 .wplace-overlay-hidden {
-  display: none !important;
+  display: none;
 }
 
 .wplace-overlay-visible {
-  display: block !important;
+  display: block;
 }
 
 /* ========================= */
@@ -1077,7 +1085,7 @@
   }
 
   #wplace-stats-container {
-    display: none !important; /* hide secondary panel on small screens */
+    display: none; /* hide secondary panel on small screens */
   }
 
   .wplace-alert-base {
@@ -1086,10 +1094,10 @@
   }
 
   .wplace-turnstile-overlay {
-    bottom: 10px !important;
-    right: 10px !important;
-    left: 10px !important;
-    min-width: auto !important;
+    bottom: 10px;
+    right: 10px;
+    left: 10px;
+    min-width: auto;
   }
 }
 
