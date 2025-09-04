@@ -174,26 +174,146 @@
     COORDINATE_SNAKE: true,
     COORDINATE_BLOCK_WIDTH: 6,
     COORDINATE_BLOCK_HEIGHT: 2,
+    get currentThemeStyles() {
+      return this.THEMES[this.currentTheme];
+    },
+  };
+  const createStorageSaver = (options = {}) => {
+    const { maxLength = 100, shouldLog = false, label = 'LocalStorage' } = options;
+
+    return (key, value) => {
+      let serializedValue;
+
+      try {
+        serializedValue = JSON.stringify(value);
+      } catch (e) {
+        console.groupCollapsed(`⚠️ ${label}: Could not serialize value`);
+        console.log('%cKey:', 'font-weight: bold; color: #4a90e2;', key);
+        console.log('%cValue (failed to serialize):', 'font-weight: bold; color: #d6333f;', value);
+        console.log('%cError:', 'color: #999;', e);
+        console.groupEnd();
+        return false;
+      }
+
+      try {
+        localStorage.setItem(key, serializedValue);
+
+        if (shouldLog) {
+          const displayValue =
+            serializedValue.length > maxLength
+              ? serializedValue.slice(0, maxLength) + '...'
+              : serializedValue;
+
+          console.groupCollapsed(`💾 ${label}: Saved to localStorage`);
+          console.log('%cKey:', 'font-weight: bold; color: #4a90e2;', key);
+          console.log('%cValue:', 'font-weight: bold; color: #50c878;', displayValue);
+          if (serializedValue.length > maxLength) {
+            console.log('%cFull serialized value:', 'color: #999;', serializedValue);
+          }
+          console.groupEnd();
+        }
+      } catch (e) {
+        console.groupCollapsed(`❌ ${label}: Could not save to localStorage`);
+        console.log('%cKey:', 'font-weight: bold; color: #4a90e2;', key);
+        console.log('%cValue (failed to save):', 'font-weight: bold; color: #d6333f;', value);
+        console.log('%cSerialized (partial):', 'color: #999;', serializedValue);
+        console.log('%cError:', 'color: #999;', e);
+        console.groupEnd();
+        return false;
+      }
+      return true;
+    };
   };
 
-  const getCurrentTheme = () => CONFIG.THEMES[CONFIG.currentTheme];
+  const createStorageLoader = (options = {}) => {
+    const { shouldLog = false, label = 'Storage' } = options;
+
+    return (key, defaultValue = null) => {
+      const raw = localStorage.getItem(key);
+
+      // 1. key is not found
+      if (raw === null) {
+        if (shouldLog) {
+          console.groupCollapsed(`🔍 ${label}: Key not found`);
+          console.log('%cKey:', 'font-weight: bold; color: #4a90e2;', key);
+          console.log('%cUsing default:', 'color: #999;', defaultValue);
+          console.groupEnd();
+        }
+        return defaultValue;
+      }
+
+      let parsed = raw;
+      let isParsed = false;
+
+      // 2. try to parse as json
+      try {
+        parsed = JSON.parse(raw);
+        isParsed = true;
+      } catch (e) {
+        // 3. JSON is failed, let's check if string is plain without json traces
+        if (typeof raw === 'string') {
+          const isSuspicious =
+            raw.length > 100 ||
+            /[\x00-\x1F\x7F-\x9F]/.test(raw) || // control chars
+            /[\uFFFD]/.test(raw) || // replacement character
+            raw.trim() === '';
+
+          if (isSuspicious) {
+            // looks like garbage or corrupted json
+            if (shouldLog) {
+              console.groupCollapsed(`❌ ${label}: Invalid or corrupted data`);
+              console.log('%cKey:', 'font-weight: bold; color: #4a90e2;', key);
+              console.log('%cRaw value:', 'color: #d6333f;', raw);
+              console.log('%cError:', 'color: #999;', e);
+              console.log('%cUsing default:', 'color: #666;', defaultValue);
+              console.groupEnd();
+            }
+            return defaultValue;
+          }
+
+          if (shouldLog) {
+            console.groupCollapsed(`🟡 ${label}: Raw string (not JSON)`);
+            console.log('%cKey:', 'font-weight: bold; color: #4a90e2;', key);
+            console.log('%cValue:', 'color: #50c878;', raw);
+            console.groupEnd();
+          }
+        }
+      }
+
+      // 4. successfully parsed JSON
+      if (isParsed && shouldLog) {
+        console.groupCollapsed(`✅ ${label}: Loaded (JSON)`);
+        console.log('%cKey:', 'font-weight: bold; color: #4a90e2;', key);
+        console.log('%cValue:', 'font-weight: bold; color: #50c878;', parsed);
+        console.groupEnd();
+      }
+
+      return parsed;
+    };
+  };
+
+  const saveToStorage = createStorageSaver({
+    maxLength: 80,
+  });
+
+  const loadFromStorage = createStorageLoader();
 
   const switchTheme = (themeName) => {
     if (CONFIG.THEMES[themeName]) {
       CONFIG.currentTheme = themeName;
-      saveThemePreference();
-
-      // APPLY THEME VARS/CLASS (new)
-      applyTheme();
+      saveToStorage('wplace_theme', CONFIG.currentTheme);
 
       // Recreate UI (kept for now)
       createUI();
+
+      // APPLY THEME VARS/CLASS (new)
+      applyTheme();
     }
   };
 
-  // Add this helper (place it after getCurrentTheme/switchTheme definitions)
+  // Add this helper (place it after CONFIG.currentThemeStyles/switchTheme definitions)
   function applyTheme() {
-    const theme = getCurrentTheme();
+    const theme = CONFIG.currentThemeStyles;
     // Toggle theme class on documentElement so CSS vars cascade to our UI
     document.documentElement.classList.remove(
       'wplace-theme-classic',
@@ -236,22 +356,10 @@
     setVar('--wplace-border-color', 'rgba(255,255,255,0.1)');
   }
 
-  const saveThemePreference = () => {
-    try {
-      localStorage.setItem('wplace-theme', CONFIG.currentTheme);
-    } catch (e) {
-      console.warn('Could not save theme preference:', e);
-    }
-  };
-
   const loadThemePreference = () => {
-    try {
-      const saved = localStorage.getItem('wplace-theme');
-      if (saved && CONFIG.THEMES[saved]) {
-        CONFIG.currentTheme = saved;
-      }
-    } catch (e) {
-      console.warn('Could not load theme preference:', e);
+    const saved = loadFromStorage('wplace_theme');
+    if (saved && CONFIG.THEMES[saved]) {
+      CONFIG.currentTheme = saved;
     }
   };
 
@@ -343,7 +451,8 @@
   };
 
   const loadLanguagePreference = async () => {
-    const savedLanguage = localStorage.getItem('wplace_language');
+    const savedLanguage = loadFromStorage('wplace_language');
+
     const browserLocale = navigator.language;
     const browserLanguage = browserLocale.split('-')[0];
 
@@ -358,13 +467,13 @@
       // Try full locale match (e.g. "zh-CN", "zh-TW" etc)
       else if (AVAILABLE_LANGUAGES.includes(browserLocale)) {
         selectedLanguage = browserLocale;
-        localStorage.setItem('wplace_language', browserLocale);
+        saveToStorage('wplace_language', browserLocale);
         console.log(`🔄 Using browser locale: ${selectedLanguage}`);
       }
       // Try base language match (e.g. "en" for "en-US" or "en-GB" etc)
       else if (AVAILABLE_LANGUAGES.includes(browserLanguage)) {
         selectedLanguage = browserLanguage;
-        localStorage.setItem('wplace_language', browserLanguage);
+        saveToStorage('wplace_language', browserLanguage);
         console.log(`🔄 Using browser language: ${selectedLanguage}`);
       }
       // Use English as fallback
@@ -383,7 +492,7 @@
             `⚠️ Failed to load ${selectedLanguage} translations, falling back to English`
           );
           state.language = 'en';
-          localStorage.setItem('wplace_language', 'en');
+          saveToStorage('wplace_language', 'en');
         }
       }
     } catch (error) {
@@ -498,8 +607,9 @@
     running: false,
     imageLoaded: false,
     processing: false,
-    totalPixels: 0,
-    paintedPixels: 0,
+    artTotalPixels: 0,
+    totalPaintedPixels: 0,
+    userPaintedPixels: 0,
     availableColors: [],
     activeColorPalette: [], // User-selected colors for conversion
     paintWhitePixels: true, // Default to ON
@@ -560,8 +670,8 @@
      */
     paintedMap: null,
 
-    get colorsChecked() {
-      return this.availableColors.length !== 0;
+    get hasAvailableColors() {
+      return !!this.availableColors.length;
     },
   };
 
@@ -2256,16 +2366,9 @@
       return result;
     },
 
-    calculateEstimatedTime: (remainingPixels, charges, cooldown) => {
-      if (remainingPixels <= 0) return 0;
-
-      const paintingSpeedDelay = state.paintingSpeed > 0 ? 1000 / state.paintingSpeed : 1000;
-      const timeFromSpeed = remainingPixels * paintingSpeedDelay;
-
-      const cyclesNeeded = Math.ceil(remainingPixels / Math.max(charges, 1));
-      const timeFromCharges = cyclesNeeded * cooldown;
-
-      return timeFromSpeed + timeFromCharges; // combine instead of taking max
+    calculateEstimatedTime: () => {
+      const remainingPixels = state.artTotalPixels - state.userPaintedPixels;
+      return getMsToTargetCharges(state.preciseCurrentCharges, remainingPixels, state.cooldown);
     },
 
     // --- Painted pixel tracking helpers ---
@@ -2367,7 +2470,7 @@
     // Smart save - only save if significant changes
     shouldAutoSave: () => {
       const now = Date.now();
-      const pixelsSinceLastSave = state.paintedPixels - state._lastSavePixelCount;
+      const pixelsSinceLastSave = state.userPaintedPixels - state._lastSavePixelCount;
       const timeSinceLastSave = now - state._lastSaveTime;
 
       // Save conditions:
@@ -2384,9 +2487,9 @@
       const success = Utils.saveProgress();
 
       if (success) {
-        state._lastSavePixelCount = state.paintedPixels;
+        state._lastSavePixelCount = state.userPaintedPixels;
         state._lastSaveTime = Date.now();
-        console.log(`💾 Auto-saved at ${state.paintedPixels} pixels`);
+        console.log(`💾 Auto-saved at ${state.userPaintedPixels} pixels`);
       }
 
       state._saveInProgress = false;
@@ -2581,6 +2684,15 @@
           delete migrated.state.paintedMapPacked;
           delete migrated.state.lastPosition;
           delete migrated.state.colorsChecked;
+
+          if (migrated.state.totalPixels != null) {
+            migrated.state.artTotalPixels = migrated.state.totalPixels;
+            delete migrated.state.totalPixels;
+          }
+          if (migrated.state.paintedPixels != null) {
+            migrated.state.userPaintedPixels = migrated.state.paintedPixels;
+            delete migrated.state.paintedPixels;
+          }
         }
 
         return migrated;
@@ -2629,8 +2741,8 @@
         timestamp: Date.now(),
         version: '2.3',
         state: {
-          totalPixels: state.totalPixels,
-          paintedPixels: state.paintedPixels,
+          artTotalPixels: state.artTotalPixels,
+          userPaintedPixels: state.userPaintedPixels,
           startPosition: state.startPosition,
           region: state.region,
           imageLoaded: state.imageLoaded,
@@ -2681,8 +2793,7 @@
       try {
         const progressData = Utils.buildProgressData(state);
 
-        localStorage.setItem('wplace-bot-progress', JSON.stringify(progressData));
-        return true;
+        return saveToStorage('wplace-bot-progress', progressData);
       } catch (error) {
         console.error('Error saving progress:', error);
         return false;
@@ -2691,15 +2802,12 @@
 
     loadProgress: () => {
       try {
-        const saved = localStorage.getItem('wplace-bot-progress');
-        if (!saved) return null;
-        let data = JSON.parse(saved);
-        const migrated = Utils.migrateProgress(data);
+        const savedData = loadFromStorage('wplace-bot-progress');
+        if (!savedData) return null;
+        const migrated = Utils.migrateProgress(savedData);
 
-        if (migrated && migrated !== data) {
-          try {
-            localStorage.setItem('wplace-bot-progress', JSON.stringify(migrated));
-          } catch {}
+        if (migrated && migrated !== savedData) {
+          saveToStorage('wplace-bot-progress', migrated);
         }
         return migrated;
       } catch (error) {
@@ -2726,12 +2834,13 @@
 
     restoreProgress: (savedData) => {
       try {
-        Object.assign(state, savedData.state);
+        const migrated = Utils.migrateProgress(savedData);
+        Object.assign(state, migrated.state);
 
-        if (savedData.imageData) {
+        if (migrated.imageData) {
           state.imageData = {
-            ...savedData.imageData,
-            pixels: new Uint8ClampedArray(savedData.imageData.pixels),
+            ...migrated.imageData,
+            pixels: new Uint8ClampedArray(migrated.imageData.pixels),
           };
 
           try {
@@ -2783,10 +2892,8 @@
         if (!data || !data.state) {
           throw new Error('Invalid file format');
         }
-        const migrated = Utils.migrateProgress(data);
 
-        const success = Utils.restoreProgress(migrated);
-        return success;
+        return Utils.restoreProgress(data);
       } catch (error) {
         console.error('Error loading from file:', error);
         throw error;
@@ -3452,7 +3559,7 @@
     loadThemePreference();
     await initializeTranslations();
 
-    const theme = getCurrentTheme();
+    const theme = CONFIG.currentThemeStyles;
     applyTheme(); // <- new: set CSS vars and theme class before building UI
 
     function appendLinkOnce(href, attributes = {}) {
@@ -4747,7 +4854,7 @@
         languageSelect.addEventListener('change', async (e) => {
           const newLanguage = e.target.value;
           state.language = newLanguage;
-          localStorage.setItem('wplace_language', newLanguage);
+          saveToStorage('wplace_language', newLanguage);
 
           // Load the new language translations
           await loadTranslations(newLanguage);
@@ -5062,12 +5169,11 @@
         const confirmLoad = confirm(
           `${Utils.t('savedDataFound')}\n\n` +
             `Saved: ${new Date(savedData.timestamp).toLocaleString()}\n` +
-            `Progress: ${savedData.state.paintedPixels}/${savedData.state.totalPixels} pixels`
+            `Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels} pixels`
         );
 
         if (confirmLoad) {
-          const migrated = Utils.migrateProgress(savedData);
-          const success = Utils.restoreProgress(migrated);
+          const success = Utils.restoreProgress(savedData);
           if (success) {
             updateUI('dataLoaded', 'success');
             Utils.showAlert(Utils.t('dataLoaded'), 'success');
@@ -5080,14 +5186,19 @@
               console.error('Failed to restore overlay from localStorage:', error);
             });
 
-            if (!state.colorsChecked) {
+            if (!state.hasAvailableColors) {
               uploadBtn.disabled = false;
             } else {
               uploadBtn.disabled = false;
               selectPosBtn.disabled = false;
             }
 
-            if (state.imageLoaded && state.startPosition && state.region && state.colorsChecked) {
+            if (
+              state.imageLoaded &&
+              state.startPosition &&
+              state.region &&
+              state.hasAvailableColors
+            ) {
               startBtn.disabled = false;
             }
           } else {
@@ -5131,7 +5242,7 @@
               console.error('Failed to restore overlay from file:', error);
             });
 
-            if (state.colorsChecked) {
+            if (state.hasAvailableColors) {
               uploadBtn.disabled = false;
               selectPosBtn.disabled = false;
               resizeBtn.disabled = false;
@@ -5139,7 +5250,12 @@
               uploadBtn.disabled = false;
             }
 
-            if (state.imageLoaded && state.startPosition && state.region && state.colorsChecked) {
+            if (
+              state.imageLoaded &&
+              state.startPosition &&
+              state.region &&
+              state.hasAvailableColors
+            ) {
               startBtn.disabled = false;
             }
           }
@@ -5295,33 +5411,40 @@
           fullChargeEl.innerHTML = newFullText;
         }
       }
+
+      if (state.imageLoaded) {
+        const estimatedEl = document.getElementById('wplace-stat-estimated');
+        if (!estimatedEl) return;
+        state.estimatedTime = Utils.calculateEstimatedTime();
+        const newText = Utils.formatTime(state.estimatedTime);
+        if (estimatedEl.textContent !== newText) {
+          estimatedEl.textContent = newText;
+        }
+      }
     }
 
     function updateImageStats() {
       if (!state.imageLoaded) return;
 
       const progress =
-        state.totalPixels > 0 ? Math.round((state.paintedPixels / state.totalPixels) * 100) : 0;
-      const remainingPixels = state.totalPixels - state.paintedPixels;
+        state.artTotalPixels > 0
+          ? Math.round((state.userPaintedPixels / state.artTotalPixels) * 100)
+          : 0;
 
-      state.estimatedTime = Utils.calculateEstimatedTime(
-        remainingPixels,
-        state.displayCharges,
-        state.cooldown
-      );
+      state.estimatedTime = Utils.calculateEstimatedTime();
 
       progressBar.style.width = `${progress}%`;
 
       document.getElementById('wplace-stat-progress').textContent = `${progress}%`;
       document.getElementById('wplace-stat-pixels').textContent =
-        `${state.paintedPixels}/${state.totalPixels}`;
+        `${state.userPaintedPixels}/${state.artTotalPixels}`;
       document.getElementById('wplace-stat-estimated').textContent = Utils.formatTime(
         state.estimatedTime
       );
     }
 
     function updateColorSwatches() {
-      if (!state.colorsChecked) return;
+      if (!state.hasAvailableColors) return;
 
       const labelEl = document.getElementById('wplace-stat-colors-label');
       const gridEl = document.getElementById('wplace-stat-colors-grid');
@@ -5347,7 +5470,6 @@
     }
 
     updateStats = async (isManualRefresh = false) => {
-      const isForcedRefresh = isManualRefresh;
       const isFirstCheck = !state.fullChargeData?.startTime;
 
       const minUpdateInterval = 60_000;
@@ -5357,7 +5479,7 @@
       const timeSinceLastUpdate = Date.now() - (state.fullChargeData?.startTime || 0);
       const isTimeToUpdate = timeSinceLastUpdate >= randomUpdateThreshold;
 
-      const shouldCallApi = isForcedRefresh || isFirstCheck || isTimeToUpdate;
+      const shouldCallApi = isManualRefresh || isFirstCheck || isTimeToUpdate;
 
       if (shouldCallApi) {
         const { charges, max, cooldown } = await WPlaceService.getCharges();
@@ -5391,10 +5513,31 @@
         cooldownSlider.max = state.maxCharges;
       }
 
+      const { availableColors } = Utils.extractColors();
+      const newCount = Array.isArray(availableColors) ? availableColors.length : 0;
+
+      if (newCount === 0 && isManualRefresh) {
+        Utils.showAlert(Utils.t('noColorsFound'), 'warning');
+      } else if (newCount > 0 && Utils.colorsChanged(state.availableColors, availableColors)) {
+        const oldCount = state.availableColors.length;
+
+        Utils.showAlert(
+          Utils.t('colorsUpdated', {
+            oldCount,
+            newCount: newCount,
+            diffCount: newCount - oldCount,
+          }),
+          'success'
+        );
+
+        state.availableColors = availableColors;
+        Utils.invalidateColorCache({ availableColors: true });
+      }
+
       let lastEl = document.getElementById('wplace-init-msg');
       if (state.imageLoaded) lastEl = ensureImageStats(lastEl);
       if (state.fullChargeData) lastEl = ensureChargeStats(lastEl);
-      if (state.colorsChecked) lastEl = ensureColorSwatches(lastEl);
+      if (state.hasAvailableColors) lastEl = ensureColorSwatches(lastEl);
 
       updateImageStats();
       updateChargeStatsDisplay(intervalMs);
@@ -6408,8 +6551,8 @@
         state.imageData.width = newWidth;
         state.imageData.height = newHeight;
         state.imageData.totalPixels = totalValidPixels;
-        state.totalPixels = totalValidPixels;
-        state.paintedPixels = 0;
+        state.artTotalPixels = totalValidPixels;
+        state.userPaintedPixels = 0;
 
         state.resizeSettings = {
           baseWidth: width,
@@ -6582,8 +6725,8 @@
             processor,
           };
 
-          state.totalPixels = totalValidPixels;
-          state.paintedPixels = 0;
+          state.artTotalPixels = totalValidPixels;
+          state.userPaintedPixels = 0;
           state.imageLoaded = true;
 
           // New image: clear previous resize settings
@@ -6603,7 +6746,7 @@
           toggleOverlayBtn.setAttribute('aria-pressed', 'true');
 
           // Only enable resize button if colors have also been captured
-          if (state.colorsChecked) {
+          if (state.hasAvailableColors) {
             resizeBtn.disabled = false;
           }
           saveBtn.disabled = false;
@@ -6623,9 +6766,9 @@
 
     if (resizeBtn) {
       resizeBtn.addEventListener('click', () => {
-        if (state.imageLoaded && state.imageData.processor && state.colorsChecked) {
+        if (state.imageLoaded && state.imageData.processor && state.hasAvailableColors) {
           showResizeDialog(state.imageData.processor);
-        } else if (!state.colorsChecked) {
+        } else if (!state.hasAvailableColors) {
           Utils.showAlert(Utils.t('uploadImageFirstColors'), 'warning');
         }
       });
@@ -6757,7 +6900,7 @@
         stopBtn.disabled = true;
         updateUI('paintingStoppedByUser', 'warning');
 
-        if (state.imageLoaded && state.paintedPixels > 0) {
+        if (state.imageLoaded && state.userPaintedPixels > 0) {
           Utils.saveProgress();
           Utils.showAlert(Utils.t('autoSaved'), 'success');
         }
@@ -6766,16 +6909,16 @@
 
     const checkSavedProgress = () => {
       const savedData = Utils.loadProgress();
-      if (savedData && savedData.state.paintedPixels > 0) {
+      if (savedData && savedData.state.userPaintedPixels > 0) {
         const savedDate = new Date(savedData.timestamp).toLocaleString();
         const progress = Math.round(
-          (savedData.state.paintedPixels / savedData.state.totalPixels) * 100
+          (savedData.state.userPaintedPixels / savedData.state.artTotalPixels) * 100
         );
 
         Utils.showAlert(
           `${Utils.t('savedDataFound')}\n\n` +
             `Saved: ${savedDate}\n` +
-            `Progress: ${savedData.state.paintedPixels}/${savedData.state.totalPixels} pixels (${progress}%)\n` +
+            `Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels} pixels (${progress}%)\n` +
             `${Utils.t('clickLoadToContinue')}`,
           'info'
         );
@@ -6980,7 +7123,7 @@
     const success = await sendBatchWithRetry(batch.pixels, batch.regionX, batch.regionY);
     if (success) {
       batch.pixels.forEach((p) => {
-        state.paintedPixels++;
+        state.userPaintedPixels++;
       });
       state.fullChargeData = {
         ...state.fullChargeData,
@@ -6988,8 +7131,8 @@
       };
       updateStats();
       updateUI('paintingProgress', 'default', {
-        painted: state.paintedPixels,
-        total: state.totalPixels,
+        painted: state.userPaintedPixels,
+        total: state.artTotalPixels,
       });
       Utils.performSmartSave();
 
@@ -7286,7 +7429,7 @@
       // Save progress when stopped to preserve painted map
       Utils.saveProgress();
     } else {
-      updateUI('paintingComplete', 'success', { count: state.paintedPixels });
+      updateUI('paintingComplete', 'success', { count: state.userPaintedPixels });
 
       Utils.saveProgress();
       overlayManager.clear();
@@ -7299,14 +7442,14 @@
 
     // Log skip statistics
     console.log(`📊 Pixel Statistics:`);
-    console.log(`   Painted: ${state.paintedPixels}`);
+    console.log(`   Painted: ${state.userPaintedPixels}`);
     console.log(`   Skipped - Transparent: ${skippedPixels.transparent}`);
     console.log(`   Skipped - White (disabled): ${skippedPixels.white}`);
     console.log(`   Skipped - Already painted: ${skippedPixels.alreadyPainted}`);
     console.log(`   Skipped - Color Unavailable: ${skippedPixels.colorUnavailable}`);
     console.log(
       `   Total processed: ${
-        state.paintedPixels +
+        state.userPaintedPixels +
         skippedPixels.transparent +
         skippedPixels.white +
         skippedPixels.alreadyPainted +
@@ -7524,7 +7667,7 @@
       CONFIG.PAINTING_SPEED_ENABLED = settings.paintingSpeedEnabled;
       // AUTO_CAPTCHA_ENABLED is always true - no need to save/load
 
-      localStorage.setItem('wplace-bot-settings', JSON.stringify(settings));
+      saveToStorage('wplace-bot-settings', settings);
     } catch (e) {
       console.warn('Could not save bot settings:', e);
     }
@@ -7532,9 +7675,8 @@
 
   function loadBotSettings() {
     try {
-      const saved = localStorage.getItem('wplace-bot-settings');
-      if (!saved) return;
-      const settings = JSON.parse(saved);
+      const settings = loadFromStorage('wplace-bot-settings');
+      if (!settings) return;
 
       state.paintingSpeed = settings.paintingSpeed || CONFIG.PAINTING_SPEED.DEFAULT;
       state.batchMode = settings.batchMode || CONFIG.BATCH_MODE; // Default to "normal"
