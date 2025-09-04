@@ -1879,15 +1879,15 @@
       return v;
     },
     findClosestPaletteColor: (r, g, b, palette) => {
-      // Use provided palette or derive from COLOR_MAP
       if (!palette || palette.length === 0) {
         palette = Object.values(CONFIG.COLOR_MAP)
           .filter((c) => c.rgb)
           .map((c) => [c.rgb.r, c.rgb.g, c.rgb.b]);
       }
+
       if (state.colorMatchingAlgorithm === 'legacy') {
         let menorDist = Infinity;
-        let cor = [0, 0, 0];
+        let cor = [0, 0, 0, 255];
         for (let i = 0; i < palette.length; i++) {
           const [pr, pg, pb] = palette[i];
           const rmean = (pr + r) / 2;
@@ -1901,11 +1901,12 @@
           );
           if (dist < menorDist) {
             menorDist = dist;
-            cor = [pr, pg, pb];
+            cor = [pr, pg, pb, 255];
           }
         }
         return cor;
       }
+
       // LAB algorithm
       const [Lt, at, bt] = Utils._lab(r, g, b);
       const targetChroma = Math.sqrt(at * at + bt * bt);
@@ -1927,11 +1928,11 @@
         }
         if (dist < bestDist) {
           bestDist = dist;
-          best = palette[i];
+          best = [pr, pg, pb, 255];
           if (bestDist === 0) break;
         }
       }
-      return best || [0, 0, 0];
+      return best || [0, 0, 0, 255];
     },
 
     isWhitePixel: (r, g, b) => {
@@ -1942,6 +1943,9 @@
     isTransparentPixel: (a) => {
       const transparencyThreshold =
         state.customTransparencyThreshold || CONFIG.TRANSPARENCY_THRESHOLD;
+      if (a === undefined || a === null) {
+        console.warn(`Expected to get alpha of pixel, but got ${a}`);
+      }
       return a < transparencyThreshold;
     },
 
@@ -1998,7 +2002,7 @@
         );
         return { id: null, rgb: targetRgb };
       }
-      if (Utils.isTransparentPixel(targetRgb[3])) {
+      if (Utils.isTransparentPixel(targetRgba[3])) {
         return { id: CONFIG.COLOR_MAP['0'].id, rgb: CONFIG.COLOR_MAP['0'].rgb };
       }
       const cacheKey = `${targetRgb[0]},${targetRgb[1]},${targetRgb[2]}|${state.colorMatchingAlgorithm}|${
@@ -7163,8 +7167,8 @@
               `[COMPARE] Pixel at 📍 (${pixelX}, ${pixelY}) in region (${
                 regionX + adderX
               }, ${regionY + adderY})\n` +
-                `  ├── Current color: rgb(${tilePixelRGBA.slice(0, 3).join(', ')}) (id: ${mappedCanvasColor.id})\n` +
-                `  ├── Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}) (id: ${targetMappedColorId})\n` +
+                `  ├── Current color: rgb(${tilePixelRGBA.join(', ')}) (id: ${mappedCanvasColor.id})\n` +
+                `  ├── Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}, ${targetPixelInfo.a}) (id: ${targetMappedColorId})\n` +
                 `  └── Status: ${
                   isMatch ? '✅ Already painted → SKIP' : '🔴 Needs paint → PAINT'
                 }\n`
@@ -7185,7 +7189,7 @@
           localX: x,
           localY: y,
         });
-        if (targetMappedColorId === 0) debugger;
+
         const maxBatchSize = calculateBatchSize();
         if (batch.pixels.length >= maxBatchSize) {
           const success = await flushPixelBatch(batch);
