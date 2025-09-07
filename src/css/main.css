@@ -15,7 +15,6 @@
 /* Default :root CSS variables for 100% classic theme compliance */
 /* These ensure the bot works perfectly even if theme files fail to load */
 :root {
-  /* Classic theme colors - exact upstream main values */
   --wplace-primary: linear-gradient(135deg, #000 0%, #1a1a1a 100%);
   --wplace-secondary: linear-gradient(135deg, #111 0%, #2a2a2a 100%);
   --wplace-accent: #222;

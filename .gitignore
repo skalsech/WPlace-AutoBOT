@@ -5,14 +5,10 @@ node_modules/
 package-lock.json
 package.json
 
-# Prettier
-.prettierrc.json
-
-# ESLint
-eslint.config.cjs
-
 # Staged changes
 staged_changes.diff
 
 # IDE (WebStorm/IntelliJ IDEA)
 .idea/
+/git_log.txt
+/staged_changed.diff
