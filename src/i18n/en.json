@@ -151,5 +151,19 @@
   "paintTransparentPixels": "Paint Transparent",
   "paintTransparentPixelsDescription": "If enabled, template transparent pixels will be painted",
   "paintUnavailablePixels": "Paint Unavailable",
-  "paintUnavailablePixelsDescription": "If enabled, template colors that are unavailable will be painted using the closest available color"
+  "paintUnavailablePixelsDescription": "If enabled, template colors that are unavailable will be painted using the closest available color",
+  "paintUnavailableEnabled": "Painting unavailable colors is enabled",
+  "paintUnavailableSkipped": "Unavailable colors will be skipped",
+  "paintTransparentEnabled": "Transparent pixels will be painted",
+  "paintTransparentSkipped": "Transparent pixels will be skipped",
+  "paintWhiteEnabled": "White pixels will be painted",
+  "paintWhiteSkipped": "White pixels will be skipped",
+  "paintSpeedLimitEnabled": "There will be delay between batches to bypass rate-limit",
+  "paintSpeedLimitDisabled": "Batches will go one after another on success without any delay. ⚠️ You may be rate-limited!",
+  "notificationsEnabledGlobally": "🔔 Notifications enabled",
+  "notificationsDisabledGlobally": "🔕 Notifications disabled",
+  "notifyOnChargesEnabled": "🔋 Charge notifications enabled",
+  "notifyOnChargesDisabled": "🔋 Charge notifications disabled",
+  "notifyOnlyUnfocusedEnabled": "👁️ Notifications only when tab is unfocused",
+  "notifyOnlyUnfocusedDisabled": "👁️ Notifications shown always, even when tab is active"
 }

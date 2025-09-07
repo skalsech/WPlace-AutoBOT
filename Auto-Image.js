@@ -248,7 +248,7 @@
     }
 
     CONFIG.currentThemeKey = themeKey;
-    if (state.currentThemeKey === 'neon-retro') {
+    if (CONFIG.currentThemeKey === 'neon-retro') {
       Utils.appendLinkOnce('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
     }
     saveToStorage('wplace_theme', themeKey);
@@ -4704,7 +4704,6 @@
         saveBotSettings();
         Utils.showAlert(Utils.t('settingsSaved'), 'success');
         closeSettingsBtn.click();
-        NotificationManager.syncFromState();
       });
 
       makeDraggable(settingsContainer);

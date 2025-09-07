@@ -11,4 +11,4 @@ staged_changes.diff
 # IDE (WebStorm/IntelliJ IDEA)
 .idea/
 /git_log.txt
-/staged_changed.diff
+/staged_changes.diff
