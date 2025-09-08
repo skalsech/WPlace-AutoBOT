@@ -1,4 +1,14 @@
+/* eslint-disable no-import-assign */
 // WPLACE API SERVICE
+import { state } from './state.js';
+import {
+  ensureToken,
+  turnstileToken,
+  // eslint-disable-next-line no-unused-vars
+  tokenPromise,
+  _resolveToken,
+} from '../security/turnstile-manager.js';
+
 export const WPlaceService = {
   async paintPixelInRegion(regionX, regionY, pixelX, pixelY, color) {
     try {
@@ -35,7 +45,7 @@ export const WPlaceService = {
     const defaultResult = {
       charges: 0,
       max: 1,
-      cooldown: CONFIG.COOLDOWN_DEFAULT,
+      cooldown: state.cooldown,
     };
 
     try {
@@ -53,7 +63,7 @@ export const WPlaceService = {
       return {
         charges: data.charges?.count ?? 0,
         max: data.charges?.max ?? 1,
-        cooldown: data.charges?.cooldownMs ?? CONFIG.COOLDOWN_DEFAULT,
+        cooldown: data.charges?.cooldownMs ?? state.cooldown,
       };
     } catch (e) {
       console.error('Failed to get charges:', e);

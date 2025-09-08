@@ -2,8 +2,8 @@
 // @name         WPlace AutoBOT
 // @namespace    http://tampermonkey.net/
 // @version      __BUILD_VERSION__
-// @description  Автоматизация и улучшения для W-Place
-// @author       Ты
+// @description  blank
+// @author       me
 // @match        https://w-place.com/*
 // @match        https://*.w-place.com/*
 // @grant        GM_addStyle

@@ -3,10 +3,21 @@ import eslint from '@eslint/js';
 import prettierPluginRecommended from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
 
+const globalsUserscript = {
+  GM_info: 'readonly',
+  GM_xmlHttpRequest: 'readonly',
+  GM_download: 'readonly',
+  GM_setValue: 'readonly',
+  GM_getValue: 'readonly',
+  GM_deleteValue: 'readonly',
+  GM_listValues: 'readonly',
+  unsafeWindow: 'readonly',
+};
+
 export default [
   eslint.configs.recommended,
   {
-    files: ['build/**/*.mjs'],
+    files: ['build/**/*.mjs', 'scripts/**/*.js'],
 
     languageOptions: {
       globals: {
@@ -20,6 +31,7 @@ export default [
 
     rules: {
       'no-console': 'off',
+      'no-undef': 'error',
     },
   },
   {
@@ -27,6 +39,7 @@ export default [
     languageOptions: {
       globals: {
         ...globals.browser,
+        ...globalsUserscript,
       },
       parserOptions: {
         ecmaVersion: 'latest',
@@ -60,6 +73,38 @@ export default [
           ignoreRestSiblings: true,
           argsIgnorePattern: '^_',
           varsIgnorePattern: '^_',
+        },
+      ],
+      'prefer-const': 'error',
+      'no-var': 'error',
+      'object-shorthand': 'error',
+      'arrow-spacing': 'error',
+      'no-useless-computed-key': 'error',
+      'no-duplicate-imports': 'error',
+    },
+  },
+  {
+    files: ['tests/**/*.js'],
+    languageOptions: {
+      globals: {
+        ...globals.vitest,
+        ...globals.browser,
+        ...globals.node,
+        ...globalsUserscript,
+      },
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-console': 'off',
+      'no-undef': 'error',
+      'no-unused-vars': [
+        'warn',
+        {
+          args: 'none',
+          varsIgnorePattern: '^(expect|test|describe|it|vi|context)$',
         },
       ],
     },

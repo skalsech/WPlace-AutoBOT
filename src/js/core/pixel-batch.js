@@ -1,9 +1,9 @@
 // Helper function to retry batch until success with exponential backoff
-import { CONFIG } from './config.js';
 import { state } from './state.js';
 import { updateUI } from '../ui/panel.js';
 import { handleCaptcha } from './captcha-handler.js';
 import { sleep } from '../utils/helpers.js';
+import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 
 export async function sendBatchWithRetry(pixels, regionX, regionY, maxRetries = 10) {
   let attempt = 0;

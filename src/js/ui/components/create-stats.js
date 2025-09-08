@@ -6,32 +6,37 @@ export function createStatsContainer() {
   statsContainer.style.display = 'block';
 
   statsContainer.innerHTML = `
-      <div class="wplace-header">
-        <div class="wplace-header-title">
-          <i class="fas fa-chart-bar"></i>
-          <span>${t('paintingStats')}</span>
-        </div>
-        <div class="wplace-header-controls">
-          <button id="refreshChargesBtn" class="wplace-header-btn" title="${t('refreshCharges')}">
-            <i class="fas fa-sync"></i>
-          </button>
-          <button id="closeStatsBtn" class="wplace-header-btn" title="${t('closeStats')}">
-            <i class="fas fa-times"></i>
-          </button>
-        </div>
+    <div class="wplace-header">
+      <div class="wplace-header-title">
+        <i class="fas fa-chart-bar"></i>
+        <span data-i18n-key="paintingStats">${t('paintingStats')}</span>
       </div>
-      <div class="wplace-content">
-        <div class="wplace-stats">
-          <div id="statsArea">
-            <div id="wplace-init-msg" class="wplace-stat-item">
-              <div class="wplace-stat-label">
-                <i class="fas fa-info-circle"></i> ${t('initMessage')}
-              </div>
+      <div class="wplace-header-controls">
+        <button id="refreshChargesBtn" class="wplace-header-btn" title="${t(
+          'refreshCharges'
+        )}" data-i18n-key="refreshCharges" data-i18n-attr="title">
+          <i class="fas fa-sync"></i>
+        </button>
+        <button id="closeStatsBtn" class="wplace-header-btn" title="${t(
+          'closeStats'
+        )}" data-i18n-key="closeStats" data-i18n-attr="title">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <div class="wplace-content">
+      <div class="wplace-stats">
+        <div id="statsArea">
+          <div id="wplace-init-msg" class="wplace-stat-item">
+            <div class="wplace-stat-label">
+              <i class="fas fa-info-circle"></i>
+              <span data-i18n-key="initMessage">${t('initMessage')}</span>
             </div>
           </div>
         </div>
       </div>
-    `;
+    </div>
+  `;
   return statsContainer;
 }
 

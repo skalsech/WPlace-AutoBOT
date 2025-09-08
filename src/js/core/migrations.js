@@ -1,5 +1,6 @@
-import { CONFIG } from './config.js';
+import { DEFAULT_SETTINGS } from '../config/DEFAULT_SETTINGS.js';
 import { packPaintedMapToBase64 } from '../utils/data-packing.js';
+import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 
 export function migrateProgressToV2(saved) {
   if (!saved) return saved;
@@ -56,19 +57,19 @@ export function migrateProgressToV22(data) {
 
     // Add new fields with default values
     if (!migrated.state.coordinateMode) {
-      migrated.state.coordinateMode = CONFIG.COORDINATE_MODE;
+      migrated.state.coordinateMode = DEFAULT_SETTINGS.coordinateMode;
     }
     if (!migrated.state.coordinateDirection) {
-      migrated.state.coordinateDirection = CONFIG.COORDINATE_DIRECTION;
+      migrated.state.coordinateDirection = DEFAULT_SETTINGS.coordinateDirection;
     }
     if (!migrated.state.coordinateSnake) {
-      migrated.state.coordinateSnake = CONFIG.COORDINATE_SNAKE;
+      migrated.state.coordinateSnake = DEFAULT_SETTINGS.coordinateSnake;
     }
     if (!migrated.state.blockWidth) {
-      migrated.state.blockWidth = CONFIG.COORDINATE_BLOCK_WIDTH;
+      migrated.state.blockWidth = DEFAULT_SETTINGS.blockWidth;
     }
     if (!migrated.state.blockHeight) {
-      migrated.state.blockHeight = CONFIG.COORDINATE_BLOCK_HEIGHT;
+      migrated.state.blockHeight = DEFAULT_SETTINGS.blockHeight;
     }
 
     return migrated;

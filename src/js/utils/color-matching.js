@@ -1,5 +1,6 @@
 import { state } from '../core/state.js';
-import { CONFIG } from '../core/config.js';
+import { DEFAULT_SETTINGS } from '../config/DEFAULT_SETTINGS.js';
+import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 
 const _labCache = new Map(); // key: (r<<16)|(g<<8)|b  value: [L,a,b]
 export const colorCache = new Map();
@@ -45,7 +46,7 @@ export function _lab(r, g, b) {
 
 export function findClosestPaletteColor(r, g, b, palette) {
   if (!palette || palette.length === 0) {
-    palette = Object.values(CONFIG.COLOR_MAP)
+    palette = Object.values(APP_CONSTANTS.COLOR_MAP)
       .filter((c) => c.rgb)
       .map((c) => [c.rgb.r, c.rgb.g, c.rgb.b]);
   }
@@ -101,12 +102,12 @@ export function findClosestPaletteColor(r, g, b, palette) {
 }
 
 export function isWhitePixel(r, g, b) {
-  const wt = state.customWhiteThreshold || CONFIG.WHITE_THRESHOLD;
+  const wt = state.customWhiteThreshold || DEFAULT_SETTINGS.customWhiteThreshold;
   return r >= wt && g >= wt && b >= wt;
 }
 
 export function isTransparentPixel(a) {
-  const transparencyThreshold = state.customTransparencyThreshold || CONFIG.TRANSPARENCY_THRESHOLD;
+  const transparencyThreshold = state.customTransparencyThreshold || DEFAULT_SETTINGS.customTransparencyThreshold;
   if (a === undefined || a === null) {
     console.warn(`Expected to get alpha of pixel, but got ${a}`);
   }
@@ -167,7 +168,7 @@ export function resolveColor(targetRgba, availableColors, exactMatch = false) {
     return { id: null, rgb: targetRgb };
   }
   if (isTransparentPixel(targetRgba[3])) {
-    return { id: CONFIG.COLOR_MAP['0'].id, rgb: CONFIG.COLOR_MAP['0'].rgb };
+    return { id: APP_CONSTANTS.COLOR_MAP['0'].id, rgb: APP_CONSTANTS.COLOR_MAP['0'].rgb };
   }
   const cacheKey = `${targetRgb[0]},${targetRgb[1]},${targetRgb[2]}|${state.colorMatchingAlgorithm}|${
     state.enableChromaPenalty ? 'c' : 'nc'
@@ -194,7 +195,7 @@ export function resolveColor(targetRgba, availableColors, exactMatch = false) {
   }
 
   // check for white using threshold
-  const whiteThreshold = state.customWhiteThreshold || CONFIG.WHITE_THRESHOLD;
+  const whiteThreshold = state.customWhiteThreshold || DEFAULT_SETTINGS.customWhiteThreshold;
   if (
     targetRgb[0] >= whiteThreshold &&
     targetRgb[1] >= whiteThreshold &&

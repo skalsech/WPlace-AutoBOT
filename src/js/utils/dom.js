@@ -1,4 +1,4 @@
-import { CONFIG } from '../core/config.js';
+import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 
 export function createElement(tag, props = {}, children = []) {
   const element = document.createElement(tag);
@@ -49,7 +49,7 @@ export function extractColors() {
         console.warn(`Skipping color element ${el.id} — cannot parse RGB`);
         return null;
       } else {
-        const configTransparent = CONFIG.COLOR_MAP[id];
+        const configTransparent = APP_CONSTANTS.COLOR_MAP[id];
         if (!configTransparent) return null;
         return {
           id: configTransparent.id,
@@ -61,7 +61,7 @@ export function extractColors() {
     }
 
     const rgb = rgbMatch.map(Number);
-    const colorInfo = CONFIG.COLOR_MAP[id];
+    const colorInfo = APP_CONSTANTS.COLOR_MAP[id];
     const name = colorInfo ? colorInfo.name : `Unknown Color ${id}`;
     if (!colorInfo) console.warn(`Color id ${id} not found in known colors`);
 

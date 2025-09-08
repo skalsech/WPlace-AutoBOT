@@ -1,13 +1,11 @@
-import { CONFIG } from '../core/config.js';
-import { state } from '../core/state.js';
 import { appendLinkOnce } from '../utils/helpers.js';
-import { loadFromStorage, saveToStorage } from '../core/storage.js';
+import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 
-function applyTheme() {
-  const theme = CONFIG.THEMES[CONFIG.currentThemeKey];
+function applyThemeWithKey(themeKey) {
+  const theme = APP_CONSTANTS.THEMES[themeKey];
 
   if (!theme) {
-    console.error(`Unknown theme: ${CONFIG.currentThemeKey}`);
+    console.error(`Unknown theme: ${themeKey}`);
     return;
   }
 
@@ -22,7 +20,7 @@ function applyTheme() {
 }
 
 export const switchTheme = (themeKey) => {
-  if (!CONFIG.THEMES[themeKey]) {
+  if (!APP_CONSTANTS.THEMES[themeKey]) {
     console.warn(`Theme not found: ${themeKey}`);
     return;
   }
@@ -30,17 +28,5 @@ export const switchTheme = (themeKey) => {
   if (themeKey === 'neon-retro') {
     appendLinkOnce('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
   }
-  CONFIG.currentThemeKey = themeKey;
-  saveToStorage('wplace_theme', themeKey);
-  applyTheme();
-};
-
-export const loadThemePreference = () => {
-  const saved = loadFromStorage('wplace_theme');
-
-  if (saved && CONFIG.THEMES[saved]) {
-    CONFIG.currentThemeKey = saved;
-  } else {
-    CONFIG.currentThemeKey = 'classic';
-  }
+  applyThemeWithKey(themeKey);
 };

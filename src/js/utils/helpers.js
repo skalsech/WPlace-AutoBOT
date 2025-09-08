@@ -17,12 +17,14 @@ export const randStr = (
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * Возвращает обёрнутую функцию, вызов которой откладывается на `delay` миллисекунд.
- * Если функция вызывается снова за это время — предыдущий таймер отменяется.
+ * Returns a debounced version of the given function.
+ * The function call will be delayed by `delay` milliseconds.
+ * If the debounced function is called again within this time,
+ * the previous timer will be cleared and restarted.
  *
- * @param {Function} fn - Функция, которую нужно "дебаунсить"
- * @param {number} delay - Задержка в миллисекундах
- * @returns {Function} - Дебаунсированная функция
+ * @param {Function} fn - The function to debounce
+ * @param {number} delay - Delay in milliseconds
+ * @returns {Function} - The debounced function
  */
 export function debounce(fn, delay) {
   let timeoutId = null;
@@ -32,16 +34,17 @@ export function debounce(fn, delay) {
     timeoutId = setTimeout(() => fn.apply(this, args), delay);
   };
 
-  debounced.flush = () => {
+  debounced.flush = function (...args) {
     if (timeoutId) {
       clearTimeout(timeoutId);
       timeoutId = null;
-      fn.apply(this, arguments);
+      fn.apply(this, args);
     }
   };
 
   return debounced;
 }
+
 export const dynamicSleep = async function (tickAndGetRemainingMs) {
   let remaining = Math.max(0, await tickAndGetRemainingMs());
   while (remaining > 0) {
@@ -120,3 +123,16 @@ export const calculateTileRange = (
     endTileY: startRegionY + Math.floor((endPixelY - 1) / tileSize),
   };
 };
+
+export function deepFreeze(obj) {
+  Object.getOwnPropertyNames(obj).forEach((prop) => {
+    if (
+      obj[prop] !== null &&
+      (typeof obj[prop] === 'object' || typeof obj[prop] === 'function') &&
+      !Object.isFrozen(obj[prop])
+    ) {
+      deepFreeze(obj[prop]);
+    }
+  });
+  return Object.freeze(obj);
+}

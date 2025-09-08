@@ -1,7 +1,7 @@
 // Emergency fallback TEXT (minimal)
-const FALLBACK_TEXT = {
+export const FALLBACK_TEXT = {
   en: {
-    title: 'WPlace Auto-Image',
+    title: 'Auto-Image',
     toggleOverlay: 'Toggle Overlay',
     scanColors: 'Scan Colors',
     uploadImage: 'Upload Image',

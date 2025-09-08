@@ -16,16 +16,16 @@ export function createCheckboxHandler(settingKey, onMessageKey, offMessageKey) {
 }
 
 /**
- * Создаёт обработчик для input[type="range"], который:
- * - Обновляет state[settingKey]
- * - Сохраняет настройки
- * - Обновляет элемент отображения значения (если передан)
- * - Показывает лог
+ * Creates an event handler for an input[type="range"] element that:
+ * - Updates state[settingKey]
+ * - Persists the settings
+ * - Updates the display element with the current value (if provided)
+ * - Logs the change to the console
  *
- * @param {string} settingKey - Ключ в state
- * @param {string} [valueElementSelector] - CSS-селектор элемента, куда выводить значение (опционально)
- * @param {function} [formatFn] - Функция форматирования значения (по умолчанию: (v) => Math.round(v * 100) + '%')
- * @returns {function}
+ * @param {string} settingKey - The key in the state object to update
+ * @param {string} [valueElementSelector] - A CSS selector for the element that displays the value (optional)
+ * @param {function} [formatFn] - A function to format the displayed value (default: (v) => Math.round(v * 100) + '%')
+ * @returns {function} - The event handler function
  */
 export function createSliderHandler(settingKey, valueElementSelector, formatFn = null) {
   const defaultFormat = (value) => `${Math.round(value * 100)}%`;

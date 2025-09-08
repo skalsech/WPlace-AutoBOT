@@ -77,6 +77,7 @@ export function ensureTurnstileOverlayContainer() {
 
   const title = document.createElement('div');
   title.textContent = t('turnstileInstructions');
+  title.dataset.i18nKey = 'turnstileInstructions';
   title.className = 'wplace-turnstile-title';
 
   const host = document.createElement('div');
@@ -85,6 +86,7 @@ export function ensureTurnstileOverlayContainer() {
 
   const hideBtn = document.createElement('button');
   hideBtn.textContent = t('hideTurnstileBtn');
+  hideBtn.dataset.i18nKey = 'hideTurnstileBtn';
   hideBtn.className = 'wplace-turnstile-hide-btn';
   hideBtn.addEventListener('click', () => overlay.remove());
 

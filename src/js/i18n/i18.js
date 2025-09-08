@@ -1,32 +1,18 @@
-// Simple translation cache
-const translationCache = new Map();
+import { sleep } from '../utils/helpers.js';
+import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
+import { state } from '../core/state.js';
+import { isSavedSettingsEmpty } from '../core/settings-manager.js';
+import { FALLBACK_TEXT } from './fallback.js';
 
-// Dynamically loaded translations
-let loadedTranslations = {};
+const loadedTranslations = {};
 
-// Available languages
-const AVAILABLE_LANGUAGES = [
-  'en',
-  'ru',
-  'pt',
-  'vi',
-  'fr',
-  'id',
-  'tr',
-  'zh-CN',
-  'zh-TW',
-  'ja',
-  'ko',
-  'uk',
-];
-
-// Function to load translations from JSON file with retry mechanism
 export const loadTranslations = async (languageKey, retryCount = 0) => {
   if (loadedTranslations[languageKey]) {
     return loadedTranslations[languageKey];
   }
 
-  const url = `https://skalsech.github.io/WPlace-AutoBOT/custom-main/lang/${languageKey}.json`;
+  const url =
+    `https://skalsech.github.io/WPlace-AutoBOT/custom-main/lang/${languageKey}.json`.trim();
   const maxRetries = 3;
   const baseDelay = 1000;
 
@@ -43,7 +29,6 @@ export const loadTranslations = async (languageKey, retryCount = 0) => {
     if (response.ok) {
       const translations = await response.json();
 
-      // Validate that translations is an object with keys
       if (
         typeof translations === 'object' &&
         translations !== null &&
@@ -72,7 +57,6 @@ export const loadTranslations = async (languageKey, retryCount = 0) => {
       error
     );
 
-    // Retry with exponential backoff
     if (retryCount < maxRetries) {
       const delay = baseDelay * Math.pow(2, retryCount);
       console.log(`⏳ Retrying in ${delay}ms...`);
@@ -83,60 +67,26 @@ export const loadTranslations = async (languageKey, retryCount = 0) => {
 
   return null;
 };
-
-const loadLanguagePreference = async () => {
-  const savedLanguage = loadFromStorage('wplace_language');
-
+/**
+ * Determines the best matching language from the user's browser preferences
+ * based on the list of supported languages.
+ * @returns {string} The matched language code (e.g. 'en', 'ru-RU')
+ */
+export const resolvePreferredLanguage = () => {
   const browserLocale = navigator.language;
   const browserLanguage = browserLocale.split('-')[0];
 
-  let selectedLanguage = 'en'; // Default fallback
-
-  try {
-    // Check if we have the saved language available
-    if (savedLanguage && AVAILABLE_LANGUAGES.includes(savedLanguage)) {
-      selectedLanguage = savedLanguage;
-      console.log(`🔄 Using saved language preference: ${selectedLanguage}`);
-    }
-    // Try full locale match (e.g. "zh-CN", "zh-TW" etc)
-    else if (AVAILABLE_LANGUAGES.includes(browserLocale)) {
-      selectedLanguage = browserLocale;
-      saveToStorage('wplace_language', browserLocale);
-      console.log(`🔄 Using browser locale: ${selectedLanguage}`);
-    }
-    // Try base language match (e.g. "en" for "en-US" or "en-GB" etc)
-    else if (AVAILABLE_LANGUAGES.includes(browserLanguage)) {
-      selectedLanguage = browserLanguage;
-      saveToStorage('wplace_language', browserLanguage);
-      console.log(`🔄 Using browser language: ${selectedLanguage}`);
-    }
-    // Use English as fallback
-    else {
-      console.log(`🔄 No matching language found, using English fallback`);
-    }
-
-    // Set the language in state first
-    state.languageKey = selectedLanguage;
-
-    // Only load translations if not already loaded and not English (which should already be loaded)
-    if (selectedLanguage !== 'en' && !loadedTranslations[selectedLanguage]) {
-      const loaded = await loadTranslations(selectedLanguage);
-      if (!loaded) {
-        console.warn(`⚠️ Failed to load ${selectedLanguage} translations, falling back to English`);
-        state.languageKey = 'en';
-        saveToStorage('wplace_language', 'en');
-      }
-    }
-  } catch (error) {
-    console.error(`❌ Error in loadLanguagePreference:`, error);
-    state.languageKey = 'en'; // Always ensure we have a valid language
+  if (APP_CONSTANTS.LANGUAGES.includes(browserLocale)) {
+    return browserLocale;
   }
+  if (APP_CONSTANTS.LANGUAGES.includes(browserLanguage)) {
+    return browserLanguage;
+  }
+  return 'en';
 };
 
-// Simple user notification function for critical issues
 const showTranslationWarning = (message) => {
   try {
-    // Create a simple temporary notification banner
     const warning = document.createElement('div');
     warning.style.cssText = `
         position: fixed; top: 10px; right: 10px; z-index: 10001;
@@ -148,88 +98,78 @@ const showTranslationWarning = (message) => {
     warning.textContent = message;
     document.body.appendChild(warning);
 
-    // Auto-remove after 8 seconds
     setTimeout(() => {
       if (warning.parentNode) {
         warning.remove();
       }
     }, 8000);
   } catch (e) {
-    // If DOM manipulation fails, just log
     console.warn('Failed to show translation warning UI:', e);
   }
 };
 
-// Initialize translations function
 export const initializeTranslations = async () => {
-  try {
-    console.log('🌐 Initializing translation system...');
-
-    // Always ensure English is loaded as fallback first
-    if (!loadedTranslations['en']) {
-      const englishLoaded = await loadTranslations('en');
-      if (!englishLoaded) {
-        console.warn('⚠️ Failed to load English translations from CDN, using fallback');
-        showTranslationWarning('⚠️ Translation loading failed, using basic fallbacks');
-      }
+  if (!loadedTranslations['en']) {
+    const englishLoaded = await loadTranslations('en');
+    if (!englishLoaded) {
+      console.warn('⚠️ Failed to load English translations from CDN, using fallback');
+      showTranslationWarning('⚠️ Translation loading failed, using basic fallbacks');
     }
-
-    // Then load user's language preference
-    await loadLanguagePreference();
-
-    console.log(`✅ Translation system initialized. Active language: ${state.languageKey}`);
-  } catch (error) {
-    console.error('❌ Translation initialization failed:', error);
-    // Ensure state has a valid language even if loading fails
-    if (!state.languageKey) {
-      state.languageKey = 'en';
-    }
-    console.warn('⚠️ Using fallback translations due to initialization failure');
-    showTranslationWarning('⚠️ Translation system error, using basic English');
   }
+
+  if (isSavedSettingsEmpty()) {
+    const bestLanguage = resolvePreferredLanguage();
+    if (!loadedTranslations[bestLanguage]) {
+      await loadTranslations(bestLanguage);
+      state.languageKey = bestLanguage;
+    }
+  }
+  console.log(`✅ Translation system initialized. Active language: ${state.languageKey}`);
 };
 
 export function t(key, params = {}) {
-  // Try to get from cache first
-  const cacheKey = `${state.languageKey}_${key}`;
-  if (translationCache.has(cacheKey)) {
-    let text = translationCache.get(cacheKey);
-    Object.keys(params).forEach((param) => {
-      text = text.replace(`{${param}}`, params[param]);
-    });
-    return text;
+  let text = loadedTranslations[state.languageKey]?.[key];
+
+  if (!text && state.languageKey !== 'en') {
+    text = loadedTranslations['en']?.[key];
   }
 
-  // Try dynamically loaded translations (already loaded)
-  if (loadedTranslations[state.languageKey]?.[key]) {
-    let text = loadedTranslations[state.languageKey][key];
-    // Cache for future use
-    translationCache.set(cacheKey, text);
-    Object.keys(params).forEach((param) => {
-      text = text.replace(`{${param}}`, params[param]);
-    });
-    return text;
+  if (!text) {
+    text = FALLBACK_TEXT[state.languageKey]?.[key] || FALLBACK_TEXT.en?.[key] || key;
+    if (text === key) {
+      console.warn(`⚠️ Missing translation for key: ${key} (language: ${state.languageKey})`);
+    }
   }
 
-  // Fallback to English if current language failed
-  if (state.languageKey !== 'en' && loadedTranslations['en']?.[key]) {
-    let text = loadedTranslations['en'][key];
-    Object.keys(params).forEach((param) => {
-      text = text.replace(`{${param}}`, params[param]);
-    });
-    return text;
-  }
-
-  // Final fallback to emergency fallback or key
-  let text = FALLBACK_TEXT[state.languageKey]?.[key] || FALLBACK_TEXT.en?.[key] || key;
   Object.keys(params).forEach((param) => {
-    text = text.replace(new RegExp(`\\{${param}\\}`, 'g'), params[param]);
+    const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    text = text.replace(new RegExp(`\\{${escapeRegExp(param)}\\}`, 'g'), params[param]);
   });
 
-  // Log missing translations for debugging
-  if (text === key && key !== 'undefined') {
-    console.warn(`⚠️ Missing translation for key: ${key} (language: ${state.languageKey})`);
-  }
-
   return text;
+}
+
+export function updateTranslations() {
+  document.querySelectorAll('[data-i18n-key]').forEach((el) => {
+    const key = el.dataset.i18nKey;
+    const params = el.dataset.i18nParams ? JSON.parse(el.dataset.i18nParams) : {};
+
+    const newText = t(key, params);
+
+    if (el.dataset.i18nAttr === 'title') {
+      el.title = newText;
+    } else if (el.dataset.i18nAttr === 'placeholder') {
+      el.placeholder = newText;
+    } else {
+      el.innerText = newText;
+      /*
+      const textNodes = [...el.childNodes].filter(node => node.nodeType === Node.TEXT_NODE);
+      if (textNodes.length > 0) {
+        textNodes[textNodes.length - 1].textContent = newText;
+      } else {
+        el.innerText = newText;
+      }
+      */
+    }
+  });
 }

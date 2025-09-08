@@ -8,19 +8,25 @@ export function createMainContainer() {
       <div class="wplace-header">
         <div class="wplace-header-title">
           <i class="fas fa-image"></i>
-          <span>${t('title')}</span>
+        <span data-i18n-key="title">${t('title')}</span>
         </div>
         <div class="wplace-header-controls">
-          <button id="settingsBtn" class="wplace-header-btn" title="${t('settings')}">
+        <button id="settingsBtn" class="wplace-header-btn" title="${t(
+          'settings'
+        )}" data-i18n-key="settings" data-i18n-attr="title">
             <i class="fas fa-cog"></i>
           </button>
-          <button id="statsBtn" class="wplace-header-btn" title="${t('showStats')}">
+        <button id="statsBtn" class="wplace-header-btn" title="${t('showStats')}" data-i18n-key="showStats" data-i18n-attr="title">
             <i class="fas fa-chart-bar"></i>
           </button>
-          <button id="compactBtn" class="wplace-header-btn" title="${t('compactMode')}">
+        <button id="compactBtn" class="wplace-header-btn" title="${t(
+          'compactMode'
+        )}" data-i18n-key="compactMode" data-i18n-attr="title">
             <i class="fas fa-compress"></i>
           </button>
-          <button id="minimizeBtn" class="wplace-header-btn" title="${t('minimize')}">
+        <button id="minimizeBtn" class="wplace-header-btn" title="${t(
+          'minimize'
+        )}" data-i18n-key="minimize" data-i18n-attr="title">
             <i class="fas fa-minus"></i>
           </button>
         </div>
@@ -28,7 +34,7 @@ export function createMainContainer() {
       <div class="wplace-content">
         <!-- Status Section - Always visible -->
         <div class="wplace-status-section">
-          <div id="statusText" class="wplace-status status-default">
+        <div id="statusText" class="wplace-status status-default" data-i18n-key="initMessage">
             ${t('initMessage')}
           </div>
           <div class="wplace-progress">
@@ -38,24 +44,26 @@ export function createMainContainer() {
 
         <!-- Image Section -->
         <div class="wplace-section">
-          <div class="wplace-section-title">🖼️ Image Management</div>
+        <div class="wplace-section-title" data-i18n-key="imageManagement">🖼️ ${t(
+          'imageManagement'
+        )}</div>
           <div class="wplace-controls">
             <div class="wplace-row">
-              <button id="uploadBtn" class="wplace-btn wplace-btn-upload" disabled title="${t(
-                'waitingSetupComplete'
-              )}">
+            <button id="uploadBtn" class="wplace-btn wplace-btn-upload" disabled title="${t(
+              'waitingSetupComplete'
+            )}" data-i18n-key="waitingSetupComplete" data-i18n-attr="title">
                 <i class="fas fa-upload"></i>
-                <span>${t('uploadImage')}</span>
+              <span data-i18n-key="uploadImage">${t('uploadImage')}</span>
               </button>
               <button id="resizeBtn" class="wplace-btn wplace-btn-primary" disabled>
                 <i class="fas fa-expand"></i>
-                <span>${t('resizeImage')}</span>
+              <span data-i18n-key="resizeImage">${t('resizeImage')}</span>
               </button>
             </div>
             <div class="wplace-row single">
               <button id="selectPosBtn" class="wplace-btn wplace-btn-select" disabled>
                 <i class="fas fa-crosshairs"></i>
-                <span>${t('selectPosition')}</span>
+              <span data-i18n-key="selectPosition">${t('selectPosition')}</span>
               </button>
             </div>
           </div>
@@ -63,22 +71,24 @@ export function createMainContainer() {
 
         <!-- Control Section -->
         <div class="wplace-section">
-          <div class="wplace-section-title">🎮 Painting Control</div>
+        <div class="wplace-section-title" data-i18n-key="paintingControl">🎮 ${t(
+          'paintingControl'
+        )}</div>
           <div class="wplace-controls">
             <div class="wplace-row">
               <button id="startBtn" class="wplace-btn wplace-btn-start" disabled>
                 <i class="fas fa-play"></i>
-                <span>${t('startPainting')}</span>
+              <span data-i18n-key="startPainting">${t('startPainting')}</span>
               </button>
               <button id="stopBtn" class="wplace-btn wplace-btn-stop" disabled>
                 <i class="fas fa-stop"></i>
-                <span>${t('stopPainting')}</span>
+              <span data-i18n-key="stopPainting">${t('stopPainting')}</span>
               </button>
             </div>
             <div class="wplace-row single">
                 <button id="toggleOverlayBtn" class="wplace-btn wplace-btn-overlay" disabled>
                     <i class="fas fa-eye"></i>
-                    <span>${t('toggleOverlay')}</span>
+              <span data-i18n-key="toggleOverlay">${t('toggleOverlay')}</span>
                 </button>
             </div>
           </div>
@@ -86,9 +96,11 @@ export function createMainContainer() {
 
         <!-- Cooldown Section -->
         <div class="wplace-section">
-            <div class="wplace-section-title">⏱️ ${t('cooldownSettings')}</div>
+        <div class="wplace-section-title" data-i18n-key="cooldownSettings">⏱️ ${t(
+          'cooldownSettings'
+        )}</div>
             <div class="wplace-cooldown-control">
-                <label id="cooldownLabel">${t('waitCharges')}:</label>
+          <label id="cooldownLabel" data-i18n-key="waitCharges">${t('waitCharges')}:</label>
                 <div class="wplace-slider-container">
                     <input type="range" id="cooldownSlider" class="wplace-slider" min="1" max="1" value="${state.cooldownChargeThreshold}">
                     <span id="cooldownValue" class="wplace-cooldown-value">${state.cooldownChargeThreshold}</span>
@@ -98,30 +110,32 @@ export function createMainContainer() {
 
         <!-- Data Section -->
         <div class="wplace-section">
-          <div class="wplace-section-title">💾 Data Management</div>
+        <div class="wplace-section-title" data-i18n-key="dataManagement">💾 ${t(
+          'dataManagement'
+        )}</div>
           <div class="wplace-controls">
             <div class="wplace-row">
               <button id="saveBtn" class="wplace-btn wplace-btn-primary" disabled>
                 <i class="fas fa-save"></i>
-                <span>${t('saveData')}</span>
+              <span data-i18n-key="saveData">${t('saveData')}</span>
               </button>
-              <button id="loadBtn" class="wplace-btn wplace-btn-primary" disabled title="${t(
-                'waitingTokenGenerator'
-              )}">
+            <button id="loadBtn" class="wplace-btn wplace-btn-primary" disabled title="${t(
+              'waitingTokenGenerator'
+            )}" data-i18n-key="waitingTokenGenerator" data-i18n-attr="title">
                 <i class="fas fa-folder-open"></i>
-                <span>${t('loadData')}</span>
+              <span data-i18n-key="loadData">${t('loadData')}</span>
               </button>
             </div>
             <div class="wplace-row">
               <button id="saveToFileBtn" class="wplace-btn wplace-btn-file" disabled>
                 <i class="fas fa-download"></i>
-                <span>${t('saveToFile')}</span>
+              <span data-i18n-key="saveToFile">${t('saveToFile')}</span>
               </button>
-              <button id="loadFromFileBtn" class="wplace-btn wplace-btn-file" disabled title="${t(
-                'waitingTokenGenerator'
-              )}">
+            <button id="loadFromFileBtn" class="wplace-btn wplace-btn-file" disabled title="${t(
+              'waitingTokenGenerator'
+            )}" data-i18n-key="waitingTokenGenerator" data-i18n-attr="title">
                 <i class="fas fa-upload"></i>
-                <span>${t('loadFromFile')}</span>
+              <span data-i18n-key="loadFromFile">${t('loadFromFile')}</span>
               </button>
             </div>
           </div>

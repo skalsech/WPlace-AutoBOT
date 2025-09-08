@@ -1,6 +1,5 @@
 import { state } from './state.js';
 import { updateStats, updateUI } from '../ui/panel.js';
-import { CONFIG } from './config.js';
 import { sendBatchWithRetry } from './pixel-batch.js';
 import { performSmartSave } from './auto-save.js';
 import { dynamicSleep, sleep } from '../utils/helpers.js';
@@ -14,6 +13,8 @@ import { generateCoordinates } from './coordinate-generator.js';
 import { getMsToTargetCharges } from '../utils/painting-helpers.js';
 import { NotificationManager } from './notification-manager.js';
 import { saveProgress } from './progress-manager.js';
+import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
+import { overlayManager } from '../overlay/overlay-manager.js';
 
 async function flushPixelBatch(batch) {
   if (!batch || batch.pixels.length === 0) return true;
@@ -120,9 +121,9 @@ export async function processImage() {
     // we skip painting, since template and canvas both resolve to the same available color (Dark Gray).
     let mappedTargetColor;
     if (isWhitePixel(r, g, b)) {
-      mappedTargetColor = CONFIG.COLOR_MAP['5'];
+      mappedTargetColor = APP_CONSTANTS.COLOR_MAP['5'];
     } else if (isTransparentPixel(a)) {
-      mappedTargetColor = CONFIG.COLOR_MAP['0'];
+      mappedTargetColor = APP_CONSTANTS.COLOR_MAP['0'];
     } else {
       mappedTargetColor = resolveColor(
         findClosestPaletteColor(r, g, b, state.activeColorPalette),

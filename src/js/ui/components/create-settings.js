@@ -1,5 +1,7 @@
 import { state } from '../../core/state.js';
 import { t } from '../../i18n/i18.js';
+import { DEFAULT_SETTINGS } from '../../config/DEFAULT_SETTINGS.js';
+import { APP_CONSTANTS } from '../../config/APP_CONSTANTS.js';
 
 export function createSettingsContainer() {
   const settingsContainer = document.createElement('div');
@@ -11,9 +13,11 @@ export function createSettingsContainer() {
         <div class="wplace-settings-title-wrapper">
           <h3 class="wplace-settings-title">
             <i class="fas fa-cog wplace-settings-icon"></i>
-            ${t('settings')}
+          <span data-i18n-key="settings">${t('settings')}</span>
           </h3>
-          <button id="closeSettingsBtn" class="wplace-settings-close-btn">✕</button>
+        <button id="closeSettingsBtn" class="wplace-settings-close-btn" title="${t(
+          'close'
+        )}" data-i18n-key="close" data-i18n-attr="title">✕</button>
         </div>
       </div>
 
@@ -23,21 +27,21 @@ export function createSettingsContainer() {
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-key wplace-icon-key"></i>
-            Token Source
+          <span data-i18n-key="tokenSource">Token Source</span>
           </label>
           <div class="wplace-settings-section-wrapper">
             <select id="tokenSourceSelect" class="wplace-settings-select">
-              <option value="generator" ${
-                state.tokenSource === 'generator' ? 'selected' : ''
-              } class="wplace-settings-option">🤖 Automatic Token Generator (Recommended)</option>
-              <option value="hybrid" ${
-                state.tokenSource === 'hybrid' ? 'selected' : ''
-              } class="wplace-settings-option">🔄 Generator + Auto Fallback</option>
-              <option value="manual" ${
-                state.tokenSource === 'manual' ? 'selected' : ''
-              } class="wplace-settings-option">🎯 Manual Pixel Placement</option>
+            <option value="generator" ${
+              DEFAULT_SETTINGS.tokenSource === 'generator' ? 'selected' : ''
+            } data-i18n-key="tokenSourceGenerator" class="wplace-settings-option">🤖 Automatic Token Generator (Recommended)</option>
+            <option value="hybrid" ${
+              DEFAULT_SETTINGS.tokenSource === 'hybrid' ? 'selected' : ''
+            } data-i18n-key="tokenSourceHybrid" class="wplace-settings-option">🔄 Generator + Auto Fallback</option>
+            <option value="manual" ${
+              DEFAULT_SETTINGS.tokenSource === 'manual' ? 'selected' : ''
+            } data-i18n-key="tokenSourceManual" class="wplace-settings-option">🎯 Manual Pixel Placement</option>
             </select>
-            <p class="wplace-settings-description">
+          <p class="wplace-settings-description" data-i18n-key="tokenSourceDescription">
               Generator mode creates tokens automatically. Hybrid mode falls back to manual when generator fails. Manual mode only uses pixel placement.
             </p>
           </div>
@@ -47,7 +51,7 @@ export function createSettingsContainer() {
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-robot wplace-icon-robot"></i>
-            ${t('automation')}
+          <span data-i18n-key="automation">${t('automation')}</span>
           </label>
           <!-- Token generator is always enabled - settings moved to Token Source above -->
         </div>
@@ -56,28 +60,28 @@ export function createSettingsContainer() {
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-eye wplace-icon-eye"></i>
-            Overlay Settings
+          <span data-i18n-key="overlaySettings">Overlay Settings</span>
           </label>
           <div class="wplace-settings-section-wrapper wplace-overlay-wrapper">
               <!-- Opacity Slider -->
               <div class="wplace-overlay-opacity-control">
                 <div class="wplace-overlay-opacity-header">
-                   <span class="wplace-overlay-opacity-label">Overlay Opacity</span>
+                 <span class="wplace-overlay-opacity-label" data-i18n-key="overlayOpacity">Overlay Opacity</span>
                    <div id="overlayOpacityValue" class="wplace-overlay-opacity-value">
-                    ${Math.round(state.overlayOpacity * 100)}%
+                    ${Math.round(DEFAULT_SETTINGS.overlayOpacity * 100)}%
                    </div>
                 </div>
-                <input type="range" id="overlayOpacitySlider" min="0.1" max="1" step="0.05" value="${state.overlayOpacity}" class="wplace-overlay-opacity-slider">
+                <input type="range" id="overlayOpacitySlider" min="0.1" max="1" step="0.05" value="${DEFAULT_SETTINGS.overlayOpacity}" class="wplace-overlay-opacity-slider">
               </div>
               <!-- Blue Marble Toggle -->
               <label for="enableBlueMarbleToggle" class="wplace-settings-toggle">
                   <div>
-                      <span class="wplace-settings-toggle-title">Blue Marble Effect</span>
-                      <p class="wplace-settings-toggle-description">Renders a dithered "shredded" overlay.</p>
+                    <span class="wplace-settings-toggle-title" data-i18n-key="blueMarbleEffect">Blue Marble Effect</span>
+                    <p class="wplace-settings-toggle-description" data-i18n-key="blueMarbleDescription">Renders a dithered "shredded" overlay.</p>
                   </div>
-                  <input type="checkbox" id="enableBlueMarbleToggle" ${
-                    state.blueMarbleEnabled ? 'checked' : ''
-                  } class="wplace-settings-checkbox"/>
+                <input type="checkbox" id="enableBlueMarbleToggle" ${
+                  DEFAULT_SETTINGS.blueMarbleEnabled ? 'checked' : ''
+                } class="wplace-settings-checkbox"/>
               </label>
           </div>
         </div>
@@ -86,55 +90,51 @@ export function createSettingsContainer() {
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-paint-brush wplace-icon-paint"></i>
-            ${t('paintOptions')}
+          <span data-i18n-key="paintOptions">${t('paintOptions')}</span>
           </label>
           <!-- Pixel Filter Toggles -->
           <div id="pixelFilterControls" class="wplace-settings-section-wrapper wplace-pixel-filter-controls">
             <!-- Paint White Pixels -->
             <label class="wplace-settings-toggle">
               <div>
-                <span class="wplace-settings-toggle-title">
-                  ${t('paintWhitePixels')}
-                </span>
-                <p class="wplace-settings-toggle-description">
-                  ${t('paintWhitePixelsDescription')}
-                </p>
+              <span class="wplace-settings-toggle-title" data-i18n-key="paintWhitePixels">${t(
+                'paintWhitePixels'
+              )}</span>
+              <p class="wplace-settings-toggle-description" data-i18n-key="paintWhitePixelsDescription">${t(
+                'paintWhitePixelsDescription'
+              )}</p>
               </div>
-              <input type="checkbox" id="settingsPaintWhiteToggle" ${
-                state.paintWhitePixels ? 'checked' : ''
-              } 
-                class="wplace-settings-checkbox"
-              />
+            <input type="checkbox" id="settingsPaintWhiteToggle" ${
+              DEFAULT_SETTINGS.paintWhitePixels ? 'checked' : ''
+            } class="wplace-settings-checkbox"/>
             </label>
             
             <!-- Paint Transparent Pixels -->
             <label class="wplace-settings-toggle">
               <div>
-                <span class="wplace-settings-toggle-title">
-                  ${t('paintTransparentPixels')}
-                </span>
-                <p class="wplace-settings-toggle-description">
-                  ${t('paintTransparentPixelsDescription')}
-                </p>
+              <span class="wplace-settings-toggle-title" data-i18n-key="paintTransparentPixels">${t(
+                'paintTransparentPixels'
+              )}</span>
+              <p class="wplace-settings-toggle-description" data-i18n-key="paintTransparentPixelsDescription">${t(
+                'paintTransparentPixelsDescription'
+              )}</p>
               </div>
-              <input type="checkbox" id="settingsPaintTransparentToggle" ${
-                state.paintTransparentPixels ? 'checked' : ''
-              } 
-                class="wplace-settings-checkbox"
-              />
+            <input type="checkbox" id="settingsPaintTransparentToggle" ${
+              DEFAULT_SETTINGS.paintTransparentPixels ? 'checked' : ''
+            } class="wplace-settings-checkbox"/>
             </label>
             <label class="wplace-settings-toggle">
               <div>
-                <span class="wplace-settings-toggle-title">${t(
-                  'paintUnavailablePixels'
-                )}</span>
-                <p class="wplace-settings-toggle-description">${t(
-                  'paintUnavailablePixelsDescription'
-                )}</p>
+              <span class="wplace-settings-toggle-title" data-i18n-key="paintUnavailablePixels">${t(
+                'paintUnavailablePixels'
+              )}</span>
+              <p class="wplace-settings-toggle-description" data-i18n-key="paintUnavailablePixelsDescription">${t(
+                'paintUnavailablePixelsDescription'
+              )}</p>
               </div>
-              <input type="checkbox" id="paintUnavailablePixelsToggle" ${
-                state.paintUnavailablePixels ? 'checked' : ''
-              } class="wplace-settings-checkbox"/>
+            <input type="checkbox" id="paintUnavailablePixelsToggle" ${
+              DEFAULT_SETTINGS.paintUnavailablePixels ? 'checked' : ''
+            } class="wplace-settings-checkbox"/>
             </label>
           </div>
         </div>
@@ -143,30 +143,30 @@ export function createSettingsContainer() {
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-tachometer-alt wplace-icon-speed"></i>
-            ${t('paintingSpeed')}
+          <span data-i18n-key="paintingSpeed">${t('paintingSpeed')}</span>
           </label>
           
           <!-- Batch Mode Selection -->
           <div class="wplace-mode-selection">
             <label class="wplace-mode-label">
               <i class="fas fa-dice wplace-icon-dice"></i>
-              Batch Mode
+            <span data-i18n-key="batchMode">Batch Mode</span>
             </label>
             <select id="batchModeSelect" class="wplace-settings-select">
-              <option value="normal" class="wplace-settings-option">📦 Normal (Fixed Size)</option>
-              <option value="random" class="wplace-settings-option">🎲 Random (Range)</option>
+              <option value="normal" data-i18n-key="batchModeNormal" class="wplace-settings-option">📦 Normal (Fixed Size)</option>
+              <option value="random" data-i18n-key="batchModeRandom" class="wplace-settings-option">🎲 Random (Range)</option>
             </select>
           </div>
           
           <!-- Normal Mode: Fixed Size Slider -->
           <div id="normalBatchControls" class="wplace-batch-controls wplace-normal-batch-controls">
             <div class="wplace-speed-slider-container">
-              <input type="range" id="speedSlider" min="${CONFIG.PAINTING_SPEED.MIN}" max="${CONFIG.PAINTING_SPEED.MAX}" value="${CONFIG.PAINTING_SPEED.DEFAULT}" class="wplace-speed-slider">
-              <div id="speedValue" class="wplace-speed-value">${CONFIG.PAINTING_SPEED.DEFAULT} (batch size)</div>
+              <input type="range" id="speedSlider" min="${APP_CONSTANTS.PAINTING_SPEED.MIN}" max="${APP_CONSTANTS.PAINTING_SPEED.MAX}" value="${DEFAULT_SETTINGS.paintingSpeed}" class="wplace-speed-slider">
+              <div id="speedValue" class="wplace-speed-value">${DEFAULT_SETTINGS.paintingSpeed}</div>
             </div>
             <div class="wplace-speed-labels">
-              <span class="wplace-speed-min"><i class="fas fa-turtle"></i> ${CONFIG.PAINTING_SPEED.MIN}</span>
-              <span class="wplace-speed-max"><i class="fas fa-rabbit"></i> ${CONFIG.PAINTING_SPEED.MAX}</span>
+              <span class="wplace-speed-min"><i class="fas fa-turtle"></i> ${APP_CONSTANTS.PAINTING_SPEED.MIN}</span>
+              <span class="wplace-speed-max"><i class="fas fa-rabbit"></i> ${APP_CONSTANTS.PAINTING_SPEED.MAX}</span>
             </div>
           </div>
           
@@ -176,27 +176,27 @@ export function createSettingsContainer() {
               <div>
                 <label class="wplace-random-batch-label">
                   <i class="fas fa-arrow-down wplace-icon-min"></i>
-                  Minimum Batch Size
+                <span data-i18n-key="minimumBatchSize">Minimum Batch Size</span>
                 </label>
-                <input type="number" id="randomBatchMin" min="1" max="1000" value="${CONFIG.RANDOM_BATCH_RANGE.MIN}" class="wplace-settings-number-input">
+                <input type="number" id="randomBatchMin" min="1" max="1000" value="${DEFAULT_SETTINGS.randomBatchMin}" class="wplace-settings-number-input">
               </div>
               <div>
                 <label class="wplace-random-batch-label">
                   <i class="fas fa-arrow-up wplace-icon-max"></i>
-                  Maximum Batch Size
+                <span data-i18n-key="maximumBatchSize">Maximum Batch Size</span>
                 </label>
-                <input type="number" id="randomBatchMax" min="1" max="1000" value="${CONFIG.RANDOM_BATCH_RANGE.MAX}" class="wplace-settings-number-input">
+                <input type="number" id="randomBatchMax" min="1" max="1000" value="${DEFAULT_SETTINGS.randomBatchMax}" class="wplace-settings-number-input">
               </div>
             </div>
-            <p class="wplace-random-batch-description">
-              🎲 Random batch size between min and max values
-            </p>
+          <p class="wplace-random-batch-description" data-i18n-key="randomBatchDescription">🎲 Random batch size between min and max values</p>
           </div>
           
           <!-- Speed Control Toggle -->
           <label class="wplace-speed-control-toggle">
-            <input type="checkbox" id="enableSpeedToggle" ${state.paintingSpeedLimitEnabled ? 'checked' : ''} class="wplace-speed-checkbox"/>
-            <span>${t('enablePaintingSpeedLimit')}</span>
+            <input type="checkbox" id="enableSpeedToggle" ${
+              DEFAULT_SETTINGS.paintingSpeedLimitEnabled ? 'checked' : ''
+            } class="wplace-speed-checkbox"/>
+          <span data-i18n-key="enablePaintingSpeedLimit">${t('enablePaintingSpeedLimit')}</span>
           </label>
         </div>
         
@@ -204,22 +204,22 @@ export function createSettingsContainer() {
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-route wplace-icon-route"></i>
-            Coordinate Generation
+          <span data-i18n-key="coordinateGeneration">Coordinate Generation</span>
           </label>
           
           <!-- Mode Selection -->
           <div class="wplace-mode-selection">
             <label class="wplace-mode-label">
               <i class="fas fa-th wplace-icon-table"></i>
-              Generation Mode
+            <span data-i18n-key="generationMode">Generation Mode</span>
             </label>
             <select id="coordinateModeSelect" class="wplace-settings-select">
-              <option value="rows" class="wplace-settings-option">📏 Rows (Horizontal Lines)</option>
-              <option value="columns" class="wplace-settings-option">📐 Columns (Vertical Lines)</option>
-              <option value="circle-out" class="wplace-settings-option">⭕ Circle Out (Center → Edges)</option>
-              <option value="circle-in" class="wplace-settings-option">⭕ Circle In (Edges → Center)</option>
-              <option value="blocks" class="wplace-settings-option">🟫 Blocks (Ordered)</option>
-              <option value="shuffle-blocks" class="wplace-settings-option">🎲 Shuffle Blocks (Random)</option>
+            <option value="rows" data-i18n-key="modeRows" class="wplace-settings-option">📏 Rows (Horizontal Lines)</option>
+            <option value="columns" data-i18n-key="modeColumns" class="wplace-settings-option">📐 Columns (Vertical Lines)</option>
+            <option value="circle-out" data-i18n-key="modeCircleOut" class="wplace-settings-option">⭕ Circle Out (Center → Edges)</option>
+            <option value="circle-in" data-i18n-key="modeCircleIn" class="wplace-settings-option">⭕ Circle In (Edges → Center)</option>
+            <option value="blocks" data-i18n-key="modeBlocks" class="wplace-settings-option">🟫 Blocks (Ordered)</option>
+            <option value="shuffle-blocks" data-i18n-key="modeShuffleBlocks" class="wplace-settings-option">🎲 Shuffle Blocks (Random)</option>
             </select>
           </div>
           
@@ -227,13 +227,13 @@ export function createSettingsContainer() {
           <div id="directionControls" class="wplace-mode-selection">
             <label class="wplace-mode-label">
               <i class="fas fa-compass wplace-icon-compass"></i>
-              Starting Direction
+            <span data-i18n-key="startingDirection">Starting Direction</span>
             </label>
             <select id="coordinateDirectionSelect" class="wplace-settings-select">
-              <option value="top-left" class="wplace-settings-option">↖️ Top-Left</option>
-              <option value="top-right" class="wplace-settings-option">↗️ Top-Right</option>
-              <option value="bottom-left" class="wplace-settings-option">↙️ Bottom-Left</option>
-              <option value="bottom-right" class="wplace-settings-option">↘️ Bottom-Right</option>
+            <option value="top-left" data-i18n-key="topLeft" class="wplace-settings-option">↖️ Top-Left</option>
+            <option value="top-right" data-i18n-key="topRight" class="wplace-settings-option">↗️ Top-Right</option>
+            <option value="bottom-left" data-i18n-key="bottomLeft" class="wplace-settings-option">↙️ Bottom-Left</option>
+            <option value="bottom-right" data-i18n-key="bottomRight" class="wplace-settings-option">↘️ Bottom-Right</option>
             </select>
           </div>
           
@@ -241,12 +241,12 @@ export function createSettingsContainer() {
           <div id="snakeControls" class="wplace-snake-pattern-controls wplace-settings-section-wrapper">
             <label class="wplace-settings-toggle">
               <div>
-                <span class="wplace-settings-toggle-title">Snake Pattern</span>
-                <p class="wplace-settings-toggle-description">Alternate direction for each row/column (zigzag pattern)</p>
+              <span class="wplace-settings-toggle-title" data-i18n-key="snakePattern">Snake Pattern</span>
+              <p class="wplace-settings-toggle-description" data-i18n-key="snakePatternDescription">Alternate direction for each row/column (zigzag pattern)</p>
               </div>
-              <input type="checkbox" id="coordinateSnakeToggle" ${
-                state.coordinateSnake ? 'checked' : ''
-              } class="wplace-settings-checkbox"/>
+            <input type="checkbox" id="coordinateSnakeToggle" ${
+              DEFAULT_SETTINGS.coordinateSnake ? 'checked' : ''
+            } class="wplace-settings-checkbox"/>
             </label>
           </div>
           
@@ -256,21 +256,19 @@ export function createSettingsContainer() {
               <div>
                 <label class="wplace-block-size-label">
                   <i class="fas fa-arrows-alt-h wplace-icon-width"></i>
-                  Block Width
+                <span data-i18n-key="blockWidth">Block Width</span>
                 </label>
                 <input type="number" id="blockWidthInput" min="1" max="50" value="6" class="wplace-settings-number-input">
               </div>
               <div>
                 <label style="display: block; color: rgba(255,255,255,0.8); font-size: 12px; margin-bottom: 8px;">
                   <i class="fas fa-arrows-alt-v wplace-icon-height"></i>
-                  Block Height
+                <span data-i18n-key="blockHeight">Block Height</span>
                 </label>
                 <input type="number" id="blockHeightInput" min="1" max="50" value="2" class="wplace-settings-number-input">
               </div>
             </div>
-            <p class="wplace-block-size-description">
-              🧱 Block dimensions for block-based generation modes
-            </p>
+          <p class="wplace-block-size-description" data-i18n-key="blockSizeDescription">🧱 Block dimensions for block-based generation modes</p>
           </div>
         </div>
         
@@ -278,39 +276,41 @@ export function createSettingsContainer() {
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-bell wplace-icon-bell"></i>
-            Desktop Notifications
+          <span data-i18n-key="desktopNotifications">Desktop Notifications</span>
           </label>
           <div class="wplace-settings-section-wrapper wplace-notifications-wrapper">
             <label class="wplace-notification-toggle">
-              <span>${t('enableNotifications')}</span>
-              <input type="checkbox" id="notifEnabledToggle" ${
-                state.notificationsEnabled ? 'checked' : ''
-              } class="wplace-notification-checkbox" />
+            <span data-i18n-key="enableNotifications">${t('enableNotifications')}</span>
+            <input type="checkbox" id="notifEnabledToggle" ${
+              DEFAULT_SETTINGS.notificationsEnabled ? 'checked' : ''
+            } class="wplace-notification-checkbox" />
             </label>
             <label class="wplace-notification-toggle">
-              <span>${t('notifyOnChargesThreshold')}</span>
-              <input type="checkbox" id="notifOnChargesToggle" ${
-                state.notifyOnChargesReached ? 'checked' : ''
-              } class="wplace-notification-checkbox" />
+            <span data-i18n-key="notifyOnChargesThreshold">${t('notifyOnChargesThreshold')}</span>
+            <input type="checkbox" id="notifOnChargesToggle" ${
+              DEFAULT_SETTINGS.notifyOnChargesReached ? 'checked' : ''
+            } class="wplace-notification-checkbox" />
             </label>
             <label class="wplace-notification-toggle">
-              <span>${t('onlyWhenNotFocused')}</span>
-              <input type="checkbox" id="notifOnlyUnfocusedToggle" ${
-                state.notifyOnlyWhenUnfocused ? 'checked' : ''
-              } class="wplace-notification-checkbox" />
+            <span data-i18n-key="onlyWhenNotFocused">${t('onlyWhenNotFocused')}</span>
+            <input type="checkbox" id="notifOnlyUnfocusedToggle" ${
+              DEFAULT_SETTINGS.notifyOnlyWhenUnfocused ? 'checked' : ''
+            } class="wplace-notification-checkbox" />
             </label>
             <div class="wplace-notification-interval">
-              <span>${t('repeatEvery')}</span>
-              <input type="number" id="notifIntervalInput" min="1" max="60" value="${state.notificationIntervalMinutes}" class="wplace-notification-interval-input" />
-              <span>${t('minutesPl')}</span>
+            <span data-i18n-key="repeatEvery">${t('repeatEvery')}</span>
+              <input type="number" id="notifIntervalInput" min="1" max="60" value="${DEFAULT_SETTINGS.notificationIntervalMinutes}" class="wplace-notification-interval-input" />
+            <span data-i18n-key="minutesPl">${t('minutesPl')}</span>
             </div>
             <div class="wplace-notification-buttons">
-              <button id="notifRequestPermBtn" class="wplace-btn wplace-btn-secondary wplace-notification-perm-btn"><i class="fas fa-unlock"></i><span>${t(
-                'grantPermission'
-              )}</span></button>
-              <button id="notifTestBtn" class="wplace-btn wplace-notification-test-btn"><i class="fas fa-bell"></i><span>${t(
-                'test'
-              )}</span></button>
+            <button id="notifRequestPermBtn" class="wplace-btn wplace-btn-secondary wplace-notification-perm-btn">
+              <i class="fas fa-unlock"></i>
+              <span data-i18n-key="grantPermission">${t('grantPermission')}</span>
+            </button>
+            <button id="notifTestBtn" class="wplace-btn wplace-notification-test-btn">
+              <i class="fas fa-bell"></i>
+              <span data-i18n-key="test">${t('test')}</span>
+            </button>
             </div>
           </div>
         </div>
@@ -319,16 +319,16 @@ export function createSettingsContainer() {
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-palette wplace-icon-palette"></i>
-            ${t('themeSettings')}
+          <span data-i18n-key="themeSettings">${t('themeSettings')}</span>
           </label>
           <div class="wplace-settings-section-wrapper">
             <select id="themeSelect" class="wplace-settings-select">
-            ${Object.entries(CONFIG.THEMES)
+            ${Object.entries(APP_CONSTANTS.THEMES)
               .map(
                 ([key, theme]) =>
                   `<option value="${key}" ${
-                    CONFIG.currentThemeKey === key ? 'selected' : ''
-                  } class="wplace-settings-option">${theme.name}</option>`
+                    state.themeKey === key ? 'selected' : ''
+                  } data-i18n-key="theme_${key}" class="wplace-settings-option">${theme.name}</option>`
               )
               .join('')}
             </select>
@@ -339,26 +339,26 @@ export function createSettingsContainer() {
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-globe wplace-icon-globe"></i>
-            ${t('language')}
+          <span data-i18n-key="language">${t('language')}</span>
           </label>
           <div class="wplace-settings-section-wrapper">
             <select id="languageSelect" class="wplace-settings-select">
-              <option value="vi" ${state.languageKey === 'vi' ? 'selected' : ''} class="wplace-settings-option">🇻🇳 Tiếng Việt</option>
-              <option value="id" ${state.languageKey === 'id' ? 'selected' : ''} class="wplace-settings-option">🇮🇩 Bahasa Indonesia</option>
-              <option value="ru" ${state.languageKey === 'ru' ? 'selected' : ''} class="wplace-settings-option">🇷🇺 Русский</option>
-              <option value="uk" ${state.languageKey === 'uk' ? 'selected' : ''} class="wplace-settings-option">🇺🇦 Українська</option>
-              <option value="en" ${state.languageKey === 'en' ? 'selected' : ''} class="wplace-settings-option">🇺🇸 English</option>
-              <option value="pt" ${state.languageKey === 'pt' ? 'selected' : ''} class="wplace-settings-option">🇧🇷 Português</option>
-              <option value="fr" ${state.languageKey === 'fr' ? 'selected' : ''} class="wplace-settings-option">🇫🇷 Français</option>
-              <option value="tr" ${state.languageKey === 'tr' ? 'selected' : ''} class="wplace-settings-option">🇹🇷 Türkçe</option>
-              <option value="zh-CN" ${
-                state.languageKey === 'zh-CN' ? 'selected' : ''
-              } class="wplace-settings-option">🇨🇳 简体中文</option>
-              <option value="zh-TW" ${
-                state.languageKey === 'zh-TW' ? 'selected' : ''
-              } class="wplace-settings-option">🇹🇼 繁體中文</option>
-              <option value="ja" ${state.languageKey === 'ja' ? 'selected' : ''} class="wplace-settings-option">🇯🇵 日本語</option>
-              <option value="ko" ${state.languageKey === 'ko' ? 'selected' : ''} class="wplace-settings-option">🇰🇷 한국어</option>
+            <option value="vi" ${state.languageKey === 'vi' ? 'selected' : ''} data-i18n-key="lang_vi" class="wplace-settings-option">🇻🇳 Tiếng Việt</option>
+            <option value="id" ${state.languageKey === 'id' ? 'selected' : ''} data-i18n-key="lang_id" class="wplace-settings-option">🇮🇩 Bahasa Indonesia</option>
+            <option value="ru" ${state.languageKey === 'ru' ? 'selected' : ''} data-i18n-key="lang_ru" class="wplace-settings-option">🇷🇺 Русский</option>
+            <option value="uk" ${state.languageKey === 'uk' ? 'selected' : ''} data-i18n-key="lang_uk" class="wplace-settings-option">🇺🇦 Українська</option>
+            <option value="en" ${state.languageKey === 'en' ? 'selected' : ''} data-i18n-key="lang_en" class="wplace-settings-option">🇺🇸 English</option>
+            <option value="pt" ${state.languageKey === 'pt' ? 'selected' : ''} data-i18n-key="lang_pt" class="wplace-settings-option">🇧🇷 Português</option>
+            <option value="fr" ${state.languageKey === 'fr' ? 'selected' : ''} data-i18n-key="lang_fr" class="wplace-settings-option">🇫🇷 Français</option>
+            <option value="tr" ${state.languageKey === 'tr' ? 'selected' : ''} data-i18n-key="lang_tr" class="wplace-settings-option">🇹🇷 Türkçe</option>
+            <option value="zh-CN" ${
+              state.languageKey === 'zh-CN' ? 'selected' : ''
+            } data-i18n-key="lang_zh_CN" class="wplace-settings-option">🇨🇳 简体中文</option>
+            <option value="zh-TW" ${
+              state.languageKey === 'zh-TW' ? 'selected' : ''
+            } data-i18n-key="lang_zh_TW" class="wplace-settings-option">🇹🇼 繁體中文</option>
+            <option value="ja" ${state.languageKey === 'ja' ? 'selected' : ''} data-i18n-key="lang_ja" class="wplace-settings-option">🇯🇵 日本語</option>
+            <option value="ko" ${state.languageKey === 'ko' ? 'selected' : ''} data-i18n-key="lang_ko" class="wplace-settings-option">🇰🇷 한국어</option>
               </select>
           </div>
         </div>

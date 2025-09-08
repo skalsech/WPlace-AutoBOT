@@ -2,11 +2,9 @@ import { createCheckboxHandler, createSliderHandler } from '../checkbox-handlers
 import { state } from '../../../core/state.js';
 import { overlayManager } from '../../../overlay/overlay-manager.js';
 import { showAlert } from '../../alerts.js';
-import { loadTranslations, t } from '../../../i18n/i18.js';
+import { loadTranslations, t, updateTranslations } from '../../../i18n/i18.js';
 import { saveBotSettings } from '../../../core/settings-manager.js';
 import { debounce } from '../../../utils/helpers.js';
-import { createUI } from '../../panel.js';
-import { saveToStorage } from '../../../core/storage.js';
 import { switchTheme } from '../../theme.js';
 
 export const handlePaintUnavailablePixelsToggle = createCheckboxHandler(
@@ -133,31 +131,26 @@ export const handlePaintSpeedToggle = createCheckboxHandler(
   'paintSpeedLimitDisabled'
 );
 
-/**
- * Обработчик смены темы
- */
 export function handleThemeChange(e) {
   const newThemeKey = e.target.value;
   switchTheme(newThemeKey);
+  state.themeKey = newThemeKey;
+  saveBotSettings();
 }
 
 export async function handleLanguageChange(e) {
   const newLanguageKey = e.target.value;
+  const oldLanguageKey = state.languageKey;
+
   state.languageKey = newLanguageKey;
-  saveToStorage('wplace_language', newLanguageKey);
-
+  saveBotSettings();
   await loadTranslations(newLanguageKey);
+  updateTranslations();
 
-  const container = e.target.closest('.settings-container');
-  setTimeout(() => {
-    if (container) {
-      container.style.display = 'none';
-    }
-    createUI();
-  }, 100);
+  console.log(`🔄 Language switched to ${newLanguageKey} (was ${oldLanguageKey})`);
 }
 
-export function handleCloseSettingsClick(){
+export function handleCloseSettingsClick() {
   const settingsContainer = document.getElementById('wplace-settings-container');
   if (!settingsContainer) return;
 

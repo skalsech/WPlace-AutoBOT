@@ -65,7 +65,7 @@ function initializeColorPalette(container) {
     let availableCount = 0;
     let totalCount = 0;
 
-    const allColors = Object.values(CONFIG.COLOR_MAP);
+    const allColors = Object.values(APP_CONSTANTS.COLOR_MAP);
 
     allColors.forEach((colorData) => {
       const { id, name, rgb } = colorData;

@@ -1,36 +1,26 @@
-// CONFIGURATION CONSTANTS
-export const CONFIG = {
-  COOLDOWN_DEFAULT: 31000,
-  TRANSPARENCY_THRESHOLD: 100,
-  WHITE_THRESHOLD: 250,
-  LOG_INTERVAL: 10,
+import { GENERATED_LANGUAGES } from './AUTO_GENERATED_LANGUAGES.js';
+
+export const APP_CONSTANTS = {
+  LANGUAGES: GENERATED_LANGUAGES,
   PAINTING_SPEED: {
-    MIN: 1, // Minimum 1 pixel batch size
-    MAX: 1000, // Maximum 1000 pixels batch size
-    DEFAULT: 5, // Default 5 pixels batch size
+    MIN: 1,
+    MAX: 1000,
   },
-  BATCH_MODE: 'normal', // "normal" or "random" - default to normal
-  RANDOM_BATCH_RANGE: {
-    MIN: 3, // Random range minimum
-    MAX: 20, // Random range maximum
+  THEMES: {
+    classic: {
+      name: 'Classic',
+      cssClass: 'wplace-theme-classic',
+    },
+    'classic-light': {
+      name: 'Classic Light',
+      cssClass: 'wplace-theme-classic-light',
+    },
+    'neon-retro': {
+      name: 'Neon Retro',
+      cssClass: 'wplace-theme-neon',
+    },
   },
-  PAINTING_SPEED_LIMIT_ENABLED: true, // On by default
-  AUTO_CAPTCHA_ENABLED: true, // Turnstile generator enabled by default
-  TOKEN_SOURCE: 'generator', // "generator", "manual", or "hybrid" - default to generator
-  COOLDOWN_CHARGE_THRESHOLD: 1, // Default wait threshold
-  // Desktop Notifications (defaults)
-  NOTIFICATIONS: {
-    ENABLED: false,
-    ON_CHARGES_REACHED: true,
-    ONLY_WHEN_UNFOCUSED: true,
-    REPEAT_MINUTES: 5, // repeat reminder while threshold condition holds
-  },
-  OVERLAY: {
-    OPACITY_DEFAULT: 0.2,
-    BLUE_MARBLE_DEFAULT: false,
-    ditheringEnabled: false,
-  }, // --- START: Color data from colour-converter.js ---
-  // New color structure with proper ID mapping
+  // --- START: Color data from colour-converter.js ---
   COLOR_MAP: {
     0: { id: 0, name: 'Transparent', rgb: { r: 222, g: 250, b: 206 } }, //deface
     1: { id: 1, name: 'Black', rgb: { r: 0, g: 0, b: 0 } },
@@ -96,26 +86,5 @@ export const CONFIG = {
     61: { id: 61, name: 'Dark Stone', rgb: { r: 109, g: 100, b: 63 } },
     62: { id: 62, name: 'Stone', rgb: { r: 148, g: 140, b: 107 } },
     63: { id: 63, name: 'Light Stone', rgb: { r: 205, g: 197, b: 158 } },
-  }, // --- END: Color data ---
-  THEMES: {
-    classic: {
-      name: 'Classic',
-      cssClass: 'wplace-theme-classic',
-    },
-    'classic-light': {
-      name: 'Classic Light',
-      cssClass: 'wplace-theme-classic-light',
-    },
-    'neon-retro': {
-      name: 'Neon Retro',
-      cssClass: 'wplace-theme-neon',
-    },
   },
-  currentThemeKey: 'classic',
-  PAINT_UNAVAILABLE: false,
-  COORDINATE_MODE: 'rows',
-  COORDINATE_DIRECTION: 'bottom-left',
-  COORDINATE_SNAKE: true,
-  COORDINATE_BLOCK_WIDTH: 6,
-  COORDINATE_BLOCK_HEIGHT: 2,
 };

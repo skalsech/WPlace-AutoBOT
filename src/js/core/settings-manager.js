@@ -1,60 +1,13 @@
 import { loadFromStorage, saveToStorage } from './storage.js';
 import { state } from './state.js';
-import { CONFIG } from './config.js';
-
-const SETTINGS_KEYS = [
-  // main panel
-  'minimized',
-  'cooldownChargeThreshold',
-
-  // settings
-  'tokenSource',
-  'overlayOpacity',
-
-  // batch settings
-  'batchMode',
-  'randomBatchMin',
-  'randomBatchMax',
-  'paintingSpeed',
-  'paintingSpeedLimitEnabled',
-
-  // paint options
-  'paintWhitePixels',
-  'paintTransparentPixels',
-  'paintUnavailablePixels',
-
-  // generate coordinates
-  'coordinateMode',
-  'coordinateDirection',
-  'coordinateSnake',
-  'blockWidth',
-  'blockHeight',
-
-  // notifications
-  'notificationsEnabled',
-  'notifyOnChargesReached',
-  'notifyOnlyWhenUnfocused',
-  'notificationIntervalMinutes',
-
-  // Color Matching - Resize settings
-  'resizeSettings',
-  'originalImage',
-  'ditheringEnabled',
-  'colorMatchingAlgorithm',
-  'enableChromaPenalty',
-  'chromaPenaltyWeight',
-  'customTransparencyThreshold',
-  'customWhiteThreshold',
-];
+import { DEFAULT_SETTINGS } from '../config/DEFAULT_SETTINGS.js';
 
 export function saveBotSettings() {
   try {
     const settings = {};
 
-    for (const key of SETTINGS_KEYS) {
-      if (key in state) {
-        settings[key] = state[key];
-      }
+    for (const key of Object.keys(DEFAULT_SETTINGS)) {
+      settings[key] = state[key];
     }
 
     if (
@@ -71,17 +24,15 @@ export function saveBotSettings() {
       settings.resizeIgnoreMask = null;
     }
 
-    const toggle = document.getElementById('enableBlueMarbleToggle');
-    if (toggle) {
-      settings.blueMarbleEnabled = toggle.checked;
-    } else {
-      settings.blueMarbleEnabled = state.blueMarbleEnabled;
-    }
-
     saveToStorage('wplace-bot-settings', settings);
   } catch (e) {
     console.warn('Could not save bot settings:', e);
   }
+}
+
+export function isSavedSettingsEmpty() {
+  const settings = loadFromStorage('wplace-bot-settings');
+  return !settings;
 }
 
 export function loadBotSettings() {
@@ -89,37 +40,59 @@ export function loadBotSettings() {
     const settings = loadFromStorage('wplace-bot-settings');
     if (!settings) return;
 
-    // simple values with fallback to CONFIG
-    for (const key of SETTINGS_KEYS) {
-      if (settings[key] !== undefined) {
-        state[key] = settings[key];
-      } else if (CONFIG[key.toUpperCase()] !== undefined) {
-        state[key] = CONFIG[key.toUpperCase()];
+    Object.assign(state, DEFAULT_SETTINGS, settings);
+
+    // special cases
+    function parseResizeIgnoreMask(mask, current) {
+      if (!mask?.data) {
+        console.debug('[Settings] parseResizeIgnoreMask: no mask.data');
+        return null;
       }
-    }
 
-    // manual fallbacks (if there is no CONFIG value for that)
-    state.minimized = settings.minimized ?? false;
+      if (!current) {
+        console.debug('[Settings] parseResizeIgnoreMask: no state.resizeSettings');
+        return null;
+      }
 
-    if (
-      settings.resizeIgnoreMask &&
-      settings.resizeIgnoreMask.data &&
-      state.resizeSettings &&
-      settings.resizeIgnoreMask.w === state.resizeSettings.width &&
-      settings.resizeIgnoreMask.h === state.resizeSettings.height
-    ) {
+      if (mask.w !== current.width || mask.h !== current.height) {
+        console.warn(
+          `[Settings] parseResizeIgnoreMask: dimensions mismatch: ${mask.w}x${mask.h} != ${current.width}x${current.height}`
+        );
+        return null;
+      }
+
+      const expectedMaskSize = mask.w * mask.h;
+
+      let bin;
       try {
-        const bin = atob(settings.resizeIgnoreMask.data);
-        const arr = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
-        state.resizeIgnoreMask = arr;
+        bin = atob(mask.data);
       } catch (e) {
-        console.warn('Failed to restore resizeIgnoreMask', e);
-        state.resizeIgnoreMask = null;
+        console.warn('[Settings] parseResizeIgnoreMask: failed to decode base64', e);
+        return null;
       }
-    } else {
-      state.resizeIgnoreMask = null;
+
+      if (bin.length !== expectedMaskSize) {
+        console.warn(
+          `[Settings] parseResizeIgnoreMask: size mismatch: got ${bin.length}, expected ${expectedMaskSize}`
+        );
+        return null;
+      }
+
+      const arr = new Uint8Array(expectedMaskSize);
+      for (let i = 0; i < expectedMaskSize; i++) {
+        const code = bin.charCodeAt(i);
+        // atob chars are guaranteed to be 0–255 range, but just in case check
+        if (code < 0 || code > 255) {
+          console.warn(`[Settings] parseResizeIgnoreMask: invalid byte at index ${i}: ${code}`);
+          return null;
+        }
+        arr[i] = code;
+      }
+
+      return arr;
     }
+    state.resizeIgnoreMask =
+      parseResizeIgnoreMask(settings.resizeIgnoreMask, state.resizeSettings) ?? null;
   } catch (e) {
     console.warn('Could not load bot settings:', e);
   }
