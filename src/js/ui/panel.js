@@ -35,7 +35,7 @@ async function initializeDependencies() {
   await initializeTranslations();
   appendLinkOnce('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
 
-  appendLinkOnce('https://skalsech.github.io/WPlace-AutoBOT/custom-main/auto-image-styles.css', {
+  appendLinkOnce('https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css/main.css', {
     'data-wplace-theme': 'true',
   });
 }
@@ -412,6 +412,7 @@ const checkSavedProgress = () => {
 export async function createUI() {
   cleanupExistingUI();
 
+  loadBotSettings();
   await initializeDependencies();
   const container = createMainContainer();
   const statsContainer = createStatsContainer();
@@ -439,7 +440,6 @@ export async function createUI() {
   updateDataButtons();
   setTimeout(checkSavedProgress, 1000);
 
-  loadBotSettings();
   syncSettingsUI();
   NotificationManager.syncFromState();
 

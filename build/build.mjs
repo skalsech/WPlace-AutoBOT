@@ -1,7 +1,8 @@
 // build/build.mjs
 import esbuild from 'esbuild';
 import fs from 'fs';
-
+import { glob } from 'glob';
+import { promisify } from 'node:util';
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -22,12 +23,18 @@ await esbuild.build({
   },
 });
 
+const themeEntries = await glob('src/css/themes/*.css');
+
 await esbuild.build({
-  entryPoints: ['src/css/main.css'],
-  outfile: 'dist/css/main.css',
+  entryPoints: [
+    'src/css/main.css',
+    ...themeEntries,
+  ],
+  outdir: 'dist',
   minify: isProd,
   bundle: true,
   write: true,
+  outbase: 'src',
 });
 
 fs.cpSync('src/i18n', 'dist/i18n', { recursive: true });

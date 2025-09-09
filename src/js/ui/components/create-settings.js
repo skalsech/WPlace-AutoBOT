@@ -343,23 +343,20 @@ export function createSettingsContainer() {
           </label>
           <div class="wplace-settings-section-wrapper">
             <select id="languageSelect" class="wplace-settings-select">
-            <option value="vi" ${state.languageKey === 'vi' ? 'selected' : ''} data-i18n-key="lang_vi" class="wplace-settings-option">🇻🇳 Tiếng Việt</option>
-            <option value="id" ${state.languageKey === 'id' ? 'selected' : ''} data-i18n-key="lang_id" class="wplace-settings-option">🇮🇩 Bahasa Indonesia</option>
-            <option value="ru" ${state.languageKey === 'ru' ? 'selected' : ''} data-i18n-key="lang_ru" class="wplace-settings-option">🇷🇺 Русский</option>
-            <option value="uk" ${state.languageKey === 'uk' ? 'selected' : ''} data-i18n-key="lang_uk" class="wplace-settings-option">🇺🇦 Українська</option>
-            <option value="en" ${state.languageKey === 'en' ? 'selected' : ''} data-i18n-key="lang_en" class="wplace-settings-option">🇺🇸 English</option>
-            <option value="pt" ${state.languageKey === 'pt' ? 'selected' : ''} data-i18n-key="lang_pt" class="wplace-settings-option">🇧🇷 Português</option>
-            <option value="fr" ${state.languageKey === 'fr' ? 'selected' : ''} data-i18n-key="lang_fr" class="wplace-settings-option">🇫🇷 Français</option>
-            <option value="tr" ${state.languageKey === 'tr' ? 'selected' : ''} data-i18n-key="lang_tr" class="wplace-settings-option">🇹🇷 Türkçe</option>
-            <option value="zh-CN" ${
-              state.languageKey === 'zh-CN' ? 'selected' : ''
-            } data-i18n-key="lang_zh_CN" class="wplace-settings-option">🇨🇳 简体中文</option>
-            <option value="zh-TW" ${
-              state.languageKey === 'zh-TW' ? 'selected' : ''
-            } data-i18n-key="lang_zh_TW" class="wplace-settings-option">🇹🇼 繁體中文</option>
-            <option value="ja" ${state.languageKey === 'ja' ? 'selected' : ''} data-i18n-key="lang_ja" class="wplace-settings-option">🇯🇵 日本語</option>
-            <option value="ko" ${state.languageKey === 'ko' ? 'selected' : ''} data-i18n-key="lang_ko" class="wplace-settings-option">🇰🇷 한국어</option>
-              </select>
+            <option value="zh-CN" ${state.languageKey === 'zh-CN' ? 'selected' : ''} class="wplace-settings-option">🇨🇳 简体中文</option>
+            <option value="es-MX" ${state.languageKey === 'es-MX' ? 'selected' : ''} class="wplace-settings-option">🇲🇽 Español mexicano</option>
+            <option value="en" ${state.languageKey === 'en' ? 'selected' : ''} class="wplace-settings-option">🇺🇸 English</option>
+            <option value="ru" ${state.languageKey === 'ru' ? 'selected' : ''} class="wplace-settings-option">🇷🇺 Русский</option>
+            <option value="pt" ${state.languageKey === 'pt' ? 'selected' : ''} class="wplace-settings-option">🇧🇷 Português</option>
+            <option value="id" ${state.languageKey === 'id' ? 'selected' : ''} class="wplace-settings-option">🇮🇩 Bahasa Indonesia</option>
+            <option value="fr" ${state.languageKey === 'fr' ? 'selected' : ''} class="wplace-settings-option">🇫🇷 Français</option>
+            <option value="tr" ${state.languageKey === 'tr' ? 'selected' : ''} class="wplace-settings-option">🇹🇷 Türkçe</option>
+            <option value="ja" ${state.languageKey === 'ja' ? 'selected' : ''} class="wplace-settings-option">🇯🇵 日本語</option>
+            <option value="vi" ${state.languageKey === 'vi' ? 'selected' : ''} class="wplace-settings-option">🇻🇳 Tiếng Việt</option>
+            <option value="ko" ${state.languageKey === 'ko' ? 'selected' : ''} class="wplace-settings-option">🇰🇷 한국어</option>
+            <option value="uk" ${state.languageKey === 'uk' ? 'selected' : ''} class="wplace-settings-option">🇺🇦 Українська</option>
+            <option value="zh-TW" ${state.languageKey === 'zh-TW' ? 'selected' : ''} class="wplace-settings-option">🇹🇼 繁體中文</option>
+            </select>
           </div>
         </div>
       </div>

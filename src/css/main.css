@@ -1,16 +1,6 @@
-/* WPlace Auto-Image Bot - Unified CSS Styles (decoupled from JS)
-   Why: bring external CSS in-sync with the UI that Auto-Image.js renders,
-   fix layout (positions, widths, z-index), and ensure class names match JS
-   (e.g., .wplace-dragging) so buttons and panels behave correctly. */
-
-/* ========================= */
-/* Theme tokens (CSS vars)   */
-/* ========================= */
-
-/* Import theme files - classic is default */
-@import url('https://skalsech.github.io/WPlace-AutoBOT/custom-main/themes/classic.css');
-@import url('https://skalsech.github.io/WPlace-AutoBOT/custom-main/themes/classic-light.css');
-@import url('https://skalsech.github.io/WPlace-AutoBOT/custom-main/themes/neon.css');
+@import url("https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css/themes/classic.css");
+@import url("https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css/themes/classic-light.css");
+@import url("https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css/themes/neon.css");
 
 /* Default :root CSS variables for 100% classic theme compliance */
 /* These ensure the bot works perfectly even if theme files fail to load */

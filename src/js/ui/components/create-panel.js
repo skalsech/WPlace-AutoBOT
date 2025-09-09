@@ -44,7 +44,7 @@ export function createMainContainer() {
 
         <!-- Image Section -->
         <div class="wplace-section">
-        <div class="wplace-section-title" data-i18n-key="imageManagement">🖼️ ${t(
+        <div class="wplace-section-title" data-i18n-key="imageManagement">${t(
           'imageManagement'
         )}</div>
           <div class="wplace-controls">
@@ -71,7 +71,7 @@ export function createMainContainer() {
 
         <!-- Control Section -->
         <div class="wplace-section">
-        <div class="wplace-section-title" data-i18n-key="paintingControl">🎮 ${t(
+        <div class="wplace-section-title" data-i18n-key="paintingControl">${t(
           'paintingControl'
         )}</div>
           <div class="wplace-controls">
@@ -96,7 +96,7 @@ export function createMainContainer() {
 
         <!-- Cooldown Section -->
         <div class="wplace-section">
-        <div class="wplace-section-title" data-i18n-key="cooldownSettings">⏱️ ${t(
+        <div class="wplace-section-title" data-i18n-key="cooldownSettings">${t(
           'cooldownSettings'
         )}</div>
             <div class="wplace-cooldown-control">
@@ -110,7 +110,7 @@ export function createMainContainer() {
 
         <!-- Data Section -->
         <div class="wplace-section">
-        <div class="wplace-section-title" data-i18n-key="dataManagement">💾 ${t(
+        <div class="wplace-section-title" data-i18n-key="dataManagement">${t(
           'dataManagement'
         )}</div>
           <div class="wplace-controls">

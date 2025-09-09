@@ -1,7 +1,9 @@
 import { sleep } from '../utils/helpers.js';
 import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 import { state } from '../core/state.js';
-import { isSavedSettingsEmpty } from '../core/settings-manager.js';
+import {
+  isSavedSettingsEmpty, loadBotSettings,
+} from '../core/settings-manager.js';
 import { FALLBACK_TEXT } from './fallback.js';
 
 const loadedTranslations = {};
@@ -12,7 +14,7 @@ export const loadTranslations = async (languageKey, retryCount = 0) => {
   }
 
   const url =
-    `https://skalsech.github.io/WPlace-AutoBOT/custom-main/lang/${languageKey}.json`.trim();
+    `https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/i18n/${languageKey}.json`.trim();
   const maxRetries = 3;
   const baseDelay = 1000;
 
@@ -125,6 +127,7 @@ export const initializeTranslations = async () => {
     }
   } else {
     await loadTranslations(state.languageKey);
+    updateTranslations();
   }
   console.log(`✅ Translation system initialized. Active language: ${state.languageKey}`);
 };
