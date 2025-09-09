@@ -10,19 +10,6 @@ export function setupStatsListeners() {
   const closeStatsBtn = container.querySelector('#closeStatsBtn');
   const refreshChargesBtn = container.querySelector('#refreshChargesBtn');
 
-  safeOn(statsBtn, 'click', () => {
-    const isVisible = container.style.display !== 'none';
-    if (isVisible) {
-      container.style.display = 'none';
-      statsBtn.innerHTML = '<i class="fas fa-chart-bar"></i>';
-      statsBtn.title = t('showStats');
-    } else {
-      container.style.display = 'block';
-      statsBtn.innerHTML = '<i class="fas fa-chart-line"></i>';
-      statsBtn.title = t('hideStats');
-    }
-  });
-
   safeOn(closeStatsBtn, 'click', () => {
     container.style.display = 'none';
     statsBtn.innerHTML = '<i class="fas fa-chart-bar"></i>';

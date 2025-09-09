@@ -3,20 +3,10 @@
 // @namespace    http://tampermonkey.net/
 // @version      0.0.1
 // @description  blank
-// @author       me
-// @match        https://w-place.com/*
-// @match        https://*.w-place.com/*
-// @grant        GM_addStyle
-// @grant        GM_getResourceText
-// @grant        GM_setValue
-// @grant        GM_getValue
-// @grant        GM_registerMenuCommand
-// @connect      raw.githubusercontent.com
-// @connect      cdn.jsdelivr.net
-// @require      https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js
-// @resource     THEME-CSS https://cdn.jsdelivr.net/gh/yourname/wplace-auto-bot@main/dist/css/theme.css
-// @resource     I18N-EN    https://cdn.jsdelivr.net/gh/yourname/wplace-auto-bot@main/dist/i18n/en.json
-// @resource     I18N-RU    https://cdn.jsdelivr.net/gh/yourname/wplace-auto-bot@main/dist/i18n/ru.json
+// @author       10590
+// @match        https://wplace.live/*
+// @grant        none
+// @run-at       document-start
 // ==/UserScript==
 
 (() => {
@@ -179,6 +169,52 @@
     languageKey: "en"
   });
 
+  // src/js/core/state.js
+  var state = {
+    ...DEFAULT_SETTINGS,
+    // runtime-only (todo some progress also, to be separated)
+    running: false,
+    processing: false,
+    artTotalPixels: 0,
+    totalPaintedPixels: 0,
+    userPaintedPixels: 0,
+    availableColors: [],
+    activeColorPalette: [],
+    // User-selected colors for conversion
+    fullChargeData: null,
+    fullChargeInterval: null,
+    displayCharges: 0,
+    preciseCurrentCharges: 0,
+    maxCharges: 1,
+    cooldown: 31e3,
+    imageData: null,
+    stopFlag: false,
+    startPosition: null,
+    selectingPosition: false,
+    region: null,
+    estimatedTime: 0,
+    chargesThresholdInterval: null,
+    initialSetupComplete: false,
+    // Track if initial startup setup is complete (only happens once)
+    resizeIgnoreMask: null,
+    _lastChargesNotifyAt: 0,
+    _lastChargesBelow: true,
+    // Smart save tracking
+    _lastSavePixelCount: 0,
+    _lastSaveTime: 0,
+    _saveInProgress: false,
+    /**
+     * @deprecated Painted map is account-specific and should not be saved.
+     */
+    paintedMap: null,
+    get hasAvailableColors() {
+      return !!this.availableColors.length;
+    },
+    get imageLoaded() {
+      return !!this.imageData;
+    }
+  };
+
   // src/js/config/AUTO_GENERATED_LANGUAGES.js
   var GENERATED_LANGUAGES = [
     "en",
@@ -284,52 +320,6 @@
       61: { id: 61, name: "Dark Stone", rgb: { r: 109, g: 100, b: 63 } },
       62: { id: 62, name: "Stone", rgb: { r: 148, g: 140, b: 107 } },
       63: { id: 63, name: "Light Stone", rgb: { r: 205, g: 197, b: 158 } }
-    }
-  };
-
-  // src/js/core/state.js
-  var state = {
-    ...DEFAULT_SETTINGS,
-    // runtime-only (todo some progress also, to be separated)
-    running: false,
-    processing: false,
-    artTotalPixels: 0,
-    totalPaintedPixels: 0,
-    userPaintedPixels: 0,
-    availableColors: [],
-    activeColorPalette: [],
-    // User-selected colors for conversion
-    fullChargeData: null,
-    fullChargeInterval: null,
-    displayCharges: 0,
-    preciseCurrentCharges: 0,
-    maxCharges: 1,
-    cooldown: 31e3,
-    imageData: null,
-    stopFlag: false,
-    startPosition: null,
-    selectingPosition: false,
-    region: null,
-    estimatedTime: 0,
-    chargesThresholdInterval: null,
-    initialSetupComplete: false,
-    // Track if initial startup setup is complete (only happens once)
-    resizeIgnoreMask: null,
-    _lastChargesNotifyAt: 0,
-    _lastChargesBelow: true,
-    // Smart save tracking
-    _lastSavePixelCount: 0,
-    _lastSaveTime: 0,
-    _saveInProgress: false,
-    /**
-     * @deprecated Painted map is account-specific and should not be saved.
-     */
-    paintedMap: null,
-    get hasAvailableColors() {
-      return !!this.availableColors.length;
-    },
-    get imageLoaded() {
-      return !!this.imageData;
     }
   };
 
@@ -3292,7 +3282,7 @@
       return false;
     }
   };
-  async function restoreOverlayFromData(overlayManager2) {
+  async function restoreOverlayFromData() {
     if (!state.imageLoaded || !state.imageData || !state.startPosition || !state.region) {
       return false;
     }
@@ -3306,9 +3296,9 @@
       const ctx = canvas.getContext("2d");
       ctx.putImageData(imageData, 0, 0);
       const imageBitmap = await canvas.transferToImageBitmap();
-      await overlayManager2.setImage(imageBitmap);
-      await overlayManager2.setPosition(state.startPosition, state.region);
-      overlayManager2.enable();
+      await overlayManager.setImage(imageBitmap);
+      await overlayManager.setPosition(state.startPosition, state.region);
+      overlayManager.enable();
       const toggleOverlayBtn2 = document.getElementById("toggleOverlayBtn");
       if (toggleOverlayBtn2) {
         toggleOverlayBtn2.disabled = false;
@@ -3583,18 +3573,6 @@
     if (!container || !statsBtn) return;
     const closeStatsBtn = container.querySelector("#closeStatsBtn");
     const refreshChargesBtn = container.querySelector("#refreshChargesBtn");
-    safeOn(statsBtn, "click", () => {
-      const isVisible = container.style.display !== "none";
-      if (isVisible) {
-        container.style.display = "none";
-        statsBtn.innerHTML = '<i class="fas fa-chart-bar"></i>';
-        statsBtn.title = t("showStats");
-      } else {
-        container.style.display = "block";
-        statsBtn.innerHTML = '<i class="fas fa-chart-line"></i>';
-        statsBtn.title = t("hideStats");
-      }
-    });
     safeOn(closeStatsBtn, "click", () => {
       container.style.display = "none";
       statsBtn.innerHTML = '<i class="fas fa-chart-bar"></i>';
@@ -6011,7 +5989,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
   }
   function handleMinimizeClick() {
     state.minimized = !state.minimized;
-    const container = document.getElementById("wplace-container");
+    const container = document.getElementById("wplace-image-bot-container");
     const content = container?.querySelector(".wplace-content");
     const btn = document.getElementById("minimizeBtn");
     if (state.minimized) {
@@ -6032,7 +6010,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
     saveBotSettings();
   }
   function handleCompactClick() {
-    const container = document.getElementById("wplace-container");
+    const container = document.getElementById("wplace-image-bot-container");
     const btn = document.getElementById("compactBtn");
     container.classList.toggle("wplace-compact");
     const isCompact = container.classList.contains("wplace-compact");
@@ -6682,7 +6660,99 @@ ${t("clickLoadToContinue")}`,
     }
   }
 
+  // src/js/core/fetch-interceptor.js
+  function setupFetchInterceptor() {
+    const injectedFunction = () => {
+      const fetchedBlobQueue = /* @__PURE__ */ new Map();
+      window.addEventListener("message", (event) => {
+        const { source, blobID, blobData } = event.data;
+        if (source === "auto-image-overlay" && blobID && blobData) {
+          const callback = fetchedBlobQueue.get(blobID);
+          if (typeof callback === "function") {
+            callback(blobData);
+          }
+          fetchedBlobQueue.delete(blobID);
+        }
+      });
+      const originalFetch = window.fetch;
+      window.fetch = async function(...args) {
+        const response = await originalFetch.apply(this, args);
+        const url = args[0] instanceof Request ? args[0].url : args[0];
+        if (typeof url === "string") {
+          if (url.includes("https://backend.wplace.live/s0/pixel/")) {
+            try {
+              const payload = JSON.parse(args[1].body);
+              if (payload.t) {
+                console.log(
+                  `\u{1F50D}\u2705 Turnstile Token Captured - Type: ${typeof payload.t}, Value: ${payload.t ? typeof payload.t === "string" ? payload.t.length > 50 ? payload.t.substring(0, 50) + "..." : payload.t : JSON.stringify(payload.t) : "null/undefined"}, Length: ${payload.t?.length || 0}`
+                );
+                window.postMessage({ source: "turnstile-capture", token: payload.t }, "*");
+              }
+            } catch (_) {
+            }
+          }
+          const contentType = response.headers.get("content-type") || "";
+          if (contentType.includes("image/png") && url.includes(".png")) {
+            const cloned = response.clone();
+            return new Promise(async (resolve) => {
+              const blobUUID = crypto.randomUUID();
+              const originalBlob = await cloned.blob();
+              fetchedBlobQueue.set(blobUUID, (processedBlob) => {
+                resolve(
+                  new Response(processedBlob, {
+                    headers: cloned.headers,
+                    status: cloned.status,
+                    statusText: cloned.statusText
+                  })
+                );
+              });
+              window.postMessage(
+                {
+                  source: "auto-image-tile",
+                  endpoint: url,
+                  blobID: blobUUID,
+                  blobData: originalBlob
+                },
+                "*"
+              );
+            });
+          }
+        }
+        return response;
+      };
+    };
+    const code = `(${injectedFunction.toString()})()`;
+    const blob = new Blob([code], { type: "application/javascript" });
+    const blobUrl = URL.createObjectURL(blob);
+    const script = document.createElement("script");
+    script.src = blobUrl;
+    script.async = true;
+    script.onload = () => {
+      URL.revokeObjectURL(blobUrl);
+      script.remove();
+    };
+    script.onerror = () => {
+      URL.revokeObjectURL(blobUrl);
+      console.error("[WPlace-AutoBOT] Failed to inject fetch interceptor via blob");
+    };
+    (document.head || document.documentElement).appendChild(script);
+  }
+  window.addEventListener("message", (event) => {
+    const { source, endpoint, blobID, blobData, token } = event.data;
+    if (source === "auto-image-tile" && endpoint && blobID && blobData) {
+      overlayManager.processAndRespondToTileRequest(event.data);
+    }
+    if (source === "turnstile-capture" && token) {
+      setTurnstileToken(token);
+      if (document.querySelector("#statusText")?.textContent.includes("CAPTCHA")) {
+        showAlert(t("tokenCapturedSuccess"), "success");
+        updateUI("colorsFound", "success", { count: state.availableColors.length });
+      }
+    }
+  });
+
   // src/js/main.js
+  setupFetchInterceptor();
   createUI().then(() => {
     setTimeout(initializeTokenGenerator, 1e3);
     updateStats();

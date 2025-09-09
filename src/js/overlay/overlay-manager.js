@@ -462,7 +462,7 @@ class OverlayManager {
   }
 }
 
-export async function restoreOverlayFromData(overlayManager) {
+export async function restoreOverlayFromData() {
   if (!state.imageLoaded || !state.imageData || !state.startPosition || !state.region) {
     return false;
   }

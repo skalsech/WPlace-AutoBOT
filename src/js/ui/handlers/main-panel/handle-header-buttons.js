@@ -38,7 +38,7 @@ export function handleStatsClick() {
 
 export function handleMinimizeClick() {
   state.minimized = !state.minimized;
-  const container = document.getElementById('wplace-container');
+  const container = document.getElementById('wplace-image-bot-container');
   const content = container?.querySelector('.wplace-content');
   const btn = document.getElementById('minimizeBtn');
 
@@ -61,7 +61,7 @@ export function handleMinimizeClick() {
 }
 
 export function handleCompactClick() {
-  const container = document.getElementById('wplace-container');
+  const container = document.getElementById('wplace-image-bot-container');
   const btn = document.getElementById('compactBtn');
   container.classList.toggle('wplace-compact');
   const isCompact = container.classList.contains('wplace-compact');
