@@ -1,53 +1,61 @@
-// Optimized Turnstile token handling with improved caching and retry logic
 import { sleep, waitForSelector } from '../utils/helpers.js';
 import { executeTurnstile, obtainSitekeyAndToken } from './turnstile.js';
 
-export let turnstileToken = null;
-export let tokenExpiryTime = 0;
-export let tokenGenerationInProgress = false;
-export let _resolveToken = null;
-export let tokenPromise = new Promise((resolve) => {
-  _resolveToken = resolve;
-});
-const TOKEN_LIFETIME = 240000; // 4 minutes (tokens typically last 5 min, use 4 for safety)
+// 🔁 Mutable state object (single source of truth)
+const TurnstileState = {
+  token: null,
+  expiryTime: 0,
+  generationInProgress: false,
+  resolveToken: null,
+  tokenPromise: null,
+};
 
+// Initialize promise
+TurnstileState.tokenPromise = new Promise((resolve) => {
+  TurnstileState.resolveToken = resolve;
+});
+
+const TOKEN_LIFETIME = 240000; // 4 minutes
+
+// ✅ Exported getters and setters
 export function setTurnstileToken(token) {
-  if (_resolveToken) {
-    _resolveToken(token);
-    _resolveToken = null;
+  if (TurnstileState.resolveToken) {
+    TurnstileState.resolveToken(token);
+    TurnstileState.resolveToken = null;
   }
-  turnstileToken = token;
-  tokenExpiryTime = Date.now() + TOKEN_LIFETIME;
+  TurnstileState.token = token;
+  TurnstileState.expiryTime = Date.now() + TOKEN_LIFETIME;
   console.log('✅ Turnstile token set successfully');
 }
 
+export function getTurnstileToken() {
+  return TurnstileState.token;
+}
+
 export function isTokenValid() {
-  return turnstileToken && Date.now() < tokenExpiryTime;
+  return TurnstileState.token && Date.now() < TurnstileState.expiryTime;
 }
 
 function invalidateToken() {
-  turnstileToken = null;
-  tokenExpiryTime = 0;
+  TurnstileState.token = null;
+  TurnstileState.expiryTime = 0;
   console.log('🗑️ Token invalidated, will force fresh generation');
 }
 
 export async function ensureToken(forceRefresh = false) {
-  // Return cached token if still valid and not forcing refresh
   if (isTokenValid() && !forceRefresh) {
-    return turnstileToken;
+    return TurnstileState.token;
   }
 
-  // Invalidate token if forcing refresh
   if (forceRefresh) invalidateToken();
 
-  // Avoid multiple simultaneous token generations
-  if (tokenGenerationInProgress) {
+  if (TurnstileState.generationInProgress) {
     console.log('🔄 Token generation already in progress, waiting...');
     await sleep(2000);
-    return isTokenValid() ? turnstileToken : null;
+    return isTokenValid() ? TurnstileState.token : null;
   }
 
-  tokenGenerationInProgress = true;
+  TurnstileState.generationInProgress = true;
 
   try {
     console.log('🔄 Token expired or missing, generating new one...');
@@ -69,11 +77,11 @@ export async function ensureToken(forceRefresh = false) {
     console.log('❌ All token generation methods failed');
     return null;
   } finally {
-    tokenGenerationInProgress = false;
+    TurnstileState.generationInProgress = false;
   }
 }
 
-async function handleCaptchaWithRetry() {
+export async function handleCaptchaWithRetry() {
   const startTime = performance.now();
 
   try {
@@ -106,7 +114,7 @@ async function handleCaptchaWithRetry() {
     } else {
       if (isTokenValid()) {
         console.log('♻️ Using existing cached token (from previous session)');
-        token = turnstileToken;
+        token = TurnstileState.token;
       } else {
         console.log('🔐 Generating new token with executeTurnstile...');
         token = await executeTurnstile(sitekey, 'paint');
@@ -132,12 +140,13 @@ export async function handleCaptchaFallback() {
   // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     try {
-      // Ensure we have a fresh promise to await for a new token capture
-      if (!_resolveToken) {
-        tokenPromise = new Promise((res) => {
-          _resolveToken = res;
+      // Reset promise for new capture
+      if (!TurnstileState.resolveToken) {
+        TurnstileState.tokenPromise = new Promise((res) => {
+          TurnstileState.resolveToken = res;
         });
       }
+
       const timeoutPromise = sleep(20000).then(() => reject(new Error('Auto-CAPTCHA timed out.')));
 
       const solvePromise = (async () => {
@@ -188,12 +197,10 @@ export async function handleCaptchaFallback() {
         );
         await sleep(500);
 
-        // 800ms delay before sending confirmation
         await sleep(800);
 
-        // Keep confirming until token is captured
         const confirmLoop = async () => {
-          while (!turnstileToken) {
+          while (!TurnstileState.token) {
             let confirmBtn = await waitForSelector(
               'button.btn.btn-primary.btn-lg, button.btn.btn-primary.sm\\:btn-xl'
             );
@@ -204,14 +211,13 @@ export async function handleCaptchaFallback() {
             if (confirmBtn) {
               confirmBtn.click();
             }
-            await sleep(500); // 500ms delay between confirmation attempts
+            await sleep(500);
           }
         };
 
-        // Start confirmation loop and wait for token
         confirmLoop();
-        const token = await tokenPromise;
-        await sleep(300); // small delay after token is captured
+        const token = await TurnstileState.tokenPromise;
+        await sleep(300);
         resolve(token);
       })();
 

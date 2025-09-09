@@ -1,9 +1,9 @@
 import { state } from './state.js';
 import {
+  getTurnstileToken,
   handleCaptchaFallback,
   isTokenValid,
   setTurnstileToken,
-  turnstileToken,
 } from '../security/turnstile-manager.js';
 import { executeTurnstile, loadTurnstile, obtainSitekeyAndToken } from '../security/turnstile.js';
 
@@ -52,7 +52,7 @@ export async function handleCaptcha() {
     // ✅ Or use globally cached token if still valid
     else if (isTokenValid()) {
       console.log('♻️ Using existing cached token (from previous operation)');
-      token = turnstileToken;
+      token = getTurnstileToken();
     }
     // ✅ Otherwise generate a new one
     else {

@@ -337,7 +337,7 @@ export async function updateStats(isManualRefresh = false) {
 
     state.fullChargeData = {
       current: charges,
-      max: max,
+      max,
       cooldownMs: cooldown,
       startTime: Date.now(),
       spentSinceShot: 0,
@@ -370,7 +370,7 @@ export async function updateStats(isManualRefresh = false) {
     showAlert(
       t('colorsUpdated', {
         oldCount,
-        newCount: newCount,
+        newCount,
         diffCount: newCount - oldCount,
       }),
       'success'
@@ -417,7 +417,6 @@ export async function createUI() {
   const statsContainer = createStatsContainer();
   const settingsContainer = createSettingsContainer();
   const resizeContainer = createResizeContainer();
-
   const resizeOverlay = document.createElement('div');
   resizeOverlay.className = 'resize-overlay';
 

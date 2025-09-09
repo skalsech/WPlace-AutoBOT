@@ -8,7 +8,8 @@ import {
 import { safeOn } from '../../utils/dom.js';
 import {
   handleBatchModeChange,
-  handleBlueMarbleToggle, handleCloseSettingsClick,
+  handleBlueMarbleToggle,
+  handleCloseSettingsClick,
   handleLanguageChange,
   handleOverlayOpacityChange,
   handlePaintSpeedToggle,
@@ -70,7 +71,7 @@ export function setupSettingsListeners() {
   safeOn(randomBatchMax, 'input', handleRandomBatchMaxInput);
 
   // --- Paint Speed ---
-  const paintSpeedToggle = container.getElementById('enableSpeedToggle');
+  const paintSpeedToggle = container.querySelector('#enableSpeedToggle');
   safeOn(paintSpeedToggle, 'change', handlePaintSpeedToggle);
 
   // --- Coordinate Mode ---

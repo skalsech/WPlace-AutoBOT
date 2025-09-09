@@ -3,44 +3,6 @@ import { state } from '../core/state.js';
 import { calculateTileRange, sleep } from '../utils/helpers.js';
 import { isTransparentPixel } from '../utils/color-matching.js';
 
-export async function restoreOverlayFromData(overlayManager) {
-  if (!state.imageLoaded || !state.imageData || !state.startPosition || !state.region) {
-    return false;
-  }
-
-  try {
-    // Recreate ImageBitmap from loaded pixel data
-    const imageData = new ImageData(
-      state.imageData.pixels,
-      state.imageData.width,
-      state.imageData.height
-    );
-
-    const canvas = new OffscreenCanvas(state.imageData.width, state.imageData.height);
-    const ctx = canvas.getContext('2d');
-    ctx.putImageData(imageData, 0, 0);
-    const imageBitmap = await canvas.transferToImageBitmap();
-
-    // Set up overlay with restored data
-    await overlayManager.setImage(imageBitmap);
-    await overlayManager.setPosition(state.startPosition, state.region);
-    overlayManager.enable();
-
-    // Update overlay button state
-    const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
-    if (toggleOverlayBtn) {
-      toggleOverlayBtn.disabled = false;
-      toggleOverlayBtn.classList.add('active');
-    }
-
-    console.log('Overlay restored from data');
-    return true;
-  } catch (error) {
-    console.error('Failed to restore overlay from data:', error);
-    return false;
-  }
-}
-export const overlayManager = new OverlayManager();
 class OverlayManager {
   constructor() {
     this.isEnabled = false;
@@ -330,7 +292,7 @@ class OverlayManager {
     window.postMessage(
       {
         source: 'auto-image-overlay',
-        blobID: blobID,
+        blobID,
         blobData: finalBlob,
       },
       '*'
@@ -499,3 +461,42 @@ class OverlayManager {
     return false;
   }
 }
+
+export async function restoreOverlayFromData(overlayManager) {
+  if (!state.imageLoaded || !state.imageData || !state.startPosition || !state.region) {
+    return false;
+  }
+
+  try {
+    // Recreate ImageBitmap from loaded pixel data
+    const imageData = new ImageData(
+      state.imageData.pixels,
+      state.imageData.width,
+      state.imageData.height
+    );
+
+    const canvas = new OffscreenCanvas(state.imageData.width, state.imageData.height);
+    const ctx = canvas.getContext('2d');
+    ctx.putImageData(imageData, 0, 0);
+    const imageBitmap = await canvas.transferToImageBitmap();
+
+    // Set up overlay with restored data
+    await overlayManager.setImage(imageBitmap);
+    await overlayManager.setPosition(state.startPosition, state.region);
+    overlayManager.enable();
+
+    // Update overlay button state
+    const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
+    if (toggleOverlayBtn) {
+      toggleOverlayBtn.disabled = false;
+      toggleOverlayBtn.classList.add('active');
+    }
+
+    console.log('Overlay restored from data');
+    return true;
+  } catch (error) {
+    console.error('Failed to restore overlay from data:', error);
+    return false;
+  }
+}
+export const overlayManager = new OverlayManager();

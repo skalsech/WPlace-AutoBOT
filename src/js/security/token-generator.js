@@ -1,4 +1,4 @@
-async function createWasmToken(regionX, regionY, payload) {
+export async function createWasmToken(regionX, regionY, payload) {
   try {
     // Load the Pawtect module and WASM
     const mod = await import('/_app/immutable/chunks/BBb1ALhY.js');

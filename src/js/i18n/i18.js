@@ -123,6 +123,8 @@ export const initializeTranslations = async () => {
       await loadTranslations(bestLanguage);
       state.languageKey = bestLanguage;
     }
+  } else {
+    await loadTranslations(state.languageKey);
   }
   console.log(`✅ Translation system initialized. Active language: ${state.languageKey}`);
 };
@@ -130,7 +132,7 @@ export const initializeTranslations = async () => {
 export function t(key, params = {}) {
   let text = loadedTranslations[state.languageKey]?.[key];
 
-  if (!text && state.languageKey !== 'en') {
+  if ((!text || text === key) && state.languageKey !== 'en') {
     text = loadedTranslations['en']?.[key];
   }
 

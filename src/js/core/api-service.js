@@ -1,23 +1,19 @@
-/* eslint-disable no-import-assign */
-// WPLACE API SERVICE
 import { state } from './state.js';
 import {
   ensureToken,
-  turnstileToken,
-  // eslint-disable-next-line no-unused-vars
-  tokenPromise,
-  _resolveToken,
+  getTurnstileToken,
+  setTurnstileToken,
 } from '../security/turnstile-manager.js';
 
 export const WPlaceService = {
   async paintPixelInRegion(regionX, regionY, pixelX, pixelY, color) {
     try {
       await ensureToken();
-      if (!turnstileToken) return 'token_error';
+      if (!getTurnstileToken) return 'token_error';
       const payload = {
         coords: [pixelX, pixelY],
         colors: [color],
-        t: turnstileToken,
+        t: getTurnstileToken,
       };
       const res = await fetch(`https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`, {
         method: 'POST',
@@ -27,10 +23,7 @@ export const WPlaceService = {
       });
       if (res.status === 403) {
         console.error('❌ 403 Forbidden. Turnstile token might be invalid or expired.');
-        turnstileToken = null;
-        tokenPromise = new Promise((resolve) => {
-          _resolveToken = resolve;
-        });
+        setTurnstileToken(null);
         return 'token_error';
       }
       const data = await res.json();

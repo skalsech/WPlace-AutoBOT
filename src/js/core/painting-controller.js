@@ -181,13 +181,13 @@ export async function processImage() {
       }
 
       const targetPixelInfo = checkPixelEligibility(x, y);
-      let absX = startX + x;
-      let absY = startY + y;
+      const absX = startX + x;
+      const absY = startY + y;
 
-      let adderX = Math.floor(absX / 1000);
-      let adderY = Math.floor(absY / 1000);
-      let pixelX = absX % 1000;
-      let pixelY = absY % 1000;
+      const adderX = Math.floor(absX / 1000);
+      const adderY = Math.floor(absY / 1000);
+      const pixelX = absX % 1000;
+      const pixelY = absY % 1000;
 
       // Template color ID, normalized/mapped to the nearest available color in our palette.
       // Example: template requires "Slate", but we only have "Dark Gray" available

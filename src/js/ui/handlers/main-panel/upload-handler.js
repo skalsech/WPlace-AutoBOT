@@ -14,29 +14,31 @@ import { createImageUploader } from '../../../utils/files.js';
 import { ImageProcessor } from '../../../core/image-processor.js';
 import { overlayManager } from '../../../overlay/overlay-manager.js';
 import { extractColors } from '../../../utils/dom.js';
+import { updateDataButtons } from './handle-data-buttons.js';
 
 export async function handleUploadClick() {
-  const { availableColors } = extractColors();
-  const newColorsCount = Array.isArray(availableColors) ? availableColors.length : 0;
+  if (!state.hasAvailableColors) {
+    const { availableColors } = extractColors();
+    const newColorsCount = Array.isArray(availableColors) ? availableColors.length : 0;
 
-  if (newColorsCount === 0) {
-    updateUI('noColorsKnown', 'error');
-    showAlert(t('noColorsKnown'), 'error');
-    return;
-  } else if (newColorsCount > 0 && colorsChanged(state.availableColors, availableColors)) {
-    const oldCount = state.availableColors.length;
-    showAlert(
-      t('colorsUpdated', {
-        oldCount,
-        newCount: newColorsCount,
-        diffCount: newColorsCount - oldCount,
-      }),
-      'success'
-    );
-    state.availableColors = availableColors;
-    invalidateColorCache({ availableColors: true });
+    if (newColorsCount === 0) {
+      updateUI('noColorsKnown', 'error');
+      showAlert(t('noColorsKnown'), 'error');
+      return;
+    } else if (newColorsCount > 0 && colorsChanged(state.availableColors, availableColors)) {
+      const oldCount = state.availableColors.length;
+      showAlert(
+        t('colorsUpdated', {
+          oldCount,
+          newCount: newColorsCount,
+          diffCount: newColorsCount - oldCount,
+        }),
+        'success'
+      );
+      state.availableColors = availableColors;
+      invalidateColorCache({ availableColors: true });
+    }
   }
-
   await updateStats();
 
   const selectPosBtn = document.getElementById('selectPosBtn');

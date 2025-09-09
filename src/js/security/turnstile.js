@@ -1,17 +1,17 @@
-// Turnstile Generator Integration - Optimized with widget reuse and proper cleanup
 import { t } from '../i18n/i18.js';
-import { isTokenValid } from './turnstile-manager.js';
+import { getTurnstileToken, isTokenValid, setTurnstileToken } from './turnstile-manager.js';
 
 let turnstileLoaded = false;
 let _turnstileContainer = null;
 let _turnstileOverlay = null;
 let _turnstileWidgetId = null;
 let _lastSitekey = null;
+let _cachedSitekey = null;
 
 export async function loadTurnstile() {
   // If Turnstile is already present, just resolve.
   if (window.turnstile) {
-    this.turnstileLoaded = true;
+    turnstileLoaded = true;
     return Promise.resolve();
   }
 
@@ -22,7 +22,7 @@ export async function loadTurnstile() {
     ) {
       const checkReady = () => {
         if (window.turnstile) {
-          this.turnstileLoaded = true;
+          turnstileLoaded = true;
           resolve();
         } else {
           setTimeout(checkReady, 100);
@@ -36,7 +36,7 @@ export async function loadTurnstile() {
     script.async = true;
     script.defer = true;
     script.onload = () => {
-      this.turnstileLoaded = true;
+      turnstileLoaded = true;
       console.log('✅ Turnstile script loaded successfully');
       resolve();
     };
@@ -50,25 +50,25 @@ export async function loadTurnstile() {
 
 // Create or reuse the turnstile container - completely hidden for token generation
 export function ensureTurnstileContainer() {
-  if (!this._turnstileContainer || !document.body.contains(this._turnstileContainer)) {
+  if (!_turnstileContainer || !document.body.contains(_turnstileContainer)) {
     // Clean up old container if it exists
-    if (this._turnstileContainer) {
-      this._turnstileContainer.remove();
+    if (_turnstileContainer) {
+      _turnstileContainer.remove();
     }
 
-    this._turnstileContainer = document.createElement('div');
-    this._turnstileContainer.className = 'wplace-turnstile-hidden';
-    this._turnstileContainer.setAttribute('aria-hidden', 'true');
-    this._turnstileContainer.id = 'turnstile-widget-container';
-    document.body.appendChild(this._turnstileContainer);
+    _turnstileContainer = document.createElement('div');
+    _turnstileContainer.className = 'wplace-turnstile-hidden';
+    _turnstileContainer.setAttribute('aria-hidden', 'true');
+    _turnstileContainer.id = 'turnstile-widget-container';
+    document.body.appendChild(_turnstileContainer);
   }
-  return this._turnstileContainer;
+  return _turnstileContainer;
 }
 
 // Interactive overlay container for visible widgets when needed
 export function ensureTurnstileOverlayContainer() {
-  if (this._turnstileOverlay && document.body.contains(this._turnstileOverlay)) {
-    return this._turnstileOverlay;
+  if (_turnstileOverlay && document.body.contains(_turnstileOverlay)) {
+    return _turnstileOverlay;
   }
 
   const overlay = document.createElement('div');
@@ -95,19 +95,19 @@ export function ensureTurnstileOverlayContainer() {
   overlay.appendChild(hideBtn);
   document.body.appendChild(overlay);
 
-  this._turnstileOverlay = overlay;
+  _turnstileOverlay = overlay;
   return overlay;
 }
 
 export async function executeTurnstile(sitekey, action = 'paint') {
-  await this.loadTurnstile();
+  await loadTurnstile();
 
   // Try reusing existing widget first if sitekey matches
-  if (this._turnstileWidgetId && this._lastSitekey === sitekey && window.turnstile?.execute) {
+  if (_turnstileWidgetId && _lastSitekey === sitekey && window.turnstile?.execute) {
     try {
       console.log('🔄 Reusing existing Turnstile widget...');
       const token = await Promise.race([
-        window.turnstile.execute(this._turnstileWidgetId, { action }),
+        window.turnstile.execute(_turnstileWidgetId, { action }),
         new Promise((_, reject) => setTimeout(() => reject(new Error('Execute timeout')), 15000)),
       ]);
       if (token && token.length > 20) {
@@ -120,29 +120,29 @@ export async function executeTurnstile(sitekey, action = 'paint') {
   }
 
   // Try invisible widget first
-  const invisibleToken = await this.createTurnstileWidget(sitekey, action);
+  const invisibleToken = await createTurnstileWidget(sitekey, action);
   if (invisibleToken && invisibleToken.length > 20) {
     return invisibleToken;
   }
 
   console.log('� Falling back to interactive Turnstile (visible).');
-  return await this.createTurnstileWidgetInteractive(sitekey, action);
+  return await createTurnstileWidgetInteractive(sitekey, action);
 }
 
 export async function createTurnstileWidget(sitekey, action) {
   return new Promise((resolve) => {
     try {
       // Force cleanup of any existing widget
-      if (this._turnstileWidgetId && window.turnstile?.remove) {
+      if (_turnstileWidgetId && window.turnstile?.remove) {
         try {
-          window.turnstile.remove(this._turnstileWidgetId);
+          window.turnstile.remove(_turnstileWidgetId);
           console.log('🧹 Cleaned up existing Turnstile widget');
         } catch (e) {
           console.warn('⚠️ Widget cleanup warning:', e.message);
         }
       }
 
-      const container = this.ensureTurnstileContainer();
+      const container = ensureTurnstileContainer();
       container.innerHTML = '';
 
       // Verify Turnstile is available
@@ -167,8 +167,8 @@ export async function createTurnstileWidget(sitekey, action) {
         'timeout-callback': () => resolve(null),
       });
 
-      this._turnstileWidgetId = widgetId;
-      this._lastSitekey = sitekey;
+      _turnstileWidgetId = widgetId;
+      _lastSitekey = sitekey;
 
       if (!widgetId) {
         return resolve(null);
@@ -197,15 +197,15 @@ export async function createTurnstileWidgetInteractive(sitekey, action) {
   return new Promise((resolve) => {
     try {
       // Force cleanup of any existing widget
-      if (this._turnstileWidgetId && window.turnstile?.remove) {
+      if (_turnstileWidgetId && window.turnstile?.remove) {
         try {
-          window.turnstile.remove(this._turnstileWidgetId);
+          window.turnstile.remove(_turnstileWidgetId);
         } catch (e) {
           console.warn('⚠️ Widget cleanup warning:', e.message);
         }
       }
 
-      const overlay = this.ensureTurnstileOverlayContainer();
+      const overlay = ensureTurnstileOverlayContainer();
       overlay.classList.remove('wplace-overlay-hidden');
       overlay.style.display = 'block';
 
@@ -247,8 +247,8 @@ export async function createTurnstileWidgetInteractive(sitekey, action) {
         },
       });
 
-      this._turnstileWidgetId = widgetId;
-      this._lastSitekey = sitekey;
+      _turnstileWidgetId = widgetId;
+      _lastSitekey = sitekey;
 
       if (!widgetId) {
         clearTimeout(timeout);
@@ -268,39 +268,39 @@ export async function createTurnstileWidgetInteractive(sitekey, action) {
 
 // Cleanup method for when the script is disabled/reloaded
 export function cleanupTurnstile() {
-  if (this._turnstileWidgetId && window.turnstile?.remove) {
+  if (_turnstileWidgetId && window.turnstile?.remove) {
     try {
-      window.turnstile.remove(this._turnstileWidgetId);
+      window.turnstile.remove(_turnstileWidgetId);
     } catch (e) {
       console.warn('Failed to cleanup Turnstile widget:', e);
     }
   }
 
-  if (this._turnstileContainer && document.body.contains(this._turnstileContainer)) {
-    this._turnstileContainer.remove();
+  if (_turnstileContainer && document.body.contains(_turnstileContainer)) {
+    _turnstileContainer.remove();
   }
 
-  if (this._turnstileOverlay && document.body.contains(this._turnstileOverlay)) {
-    this._turnstileOverlay.remove();
+  if (_turnstileOverlay && document.body.contains(_turnstileOverlay)) {
+    _turnstileOverlay.remove();
   }
 
-  this._turnstileWidgetId = null;
-  this._turnstileContainer = null;
-  this._turnstileOverlay = null;
-  this._lastSitekey = null;
+  _turnstileWidgetId = null;
+  _turnstileContainer = null;
+  _turnstileOverlay = null;
+  _lastSitekey = null;
 }
 
 export async function obtainSitekeyAndToken(fallback = '0x4AAAAAABpqJe8FO0N84q0F') {
   // Cache sitekey to avoid repeated DOM queries
-  if (this._cachedSitekey) {
-    console.log('🔍 Using cached sitekey:', this._cachedSitekey);
+  if (_cachedSitekey) {
+    console.log('🔍 Using cached sitekey:', _cachedSitekey);
 
     return isTokenValid()
       ? {
-          sitekey: this._cachedSitekey,
-          token: turnstileToken,
+          sitekey: _cachedSitekey,
+          token: getTurnstileToken(),
         }
-      : { sitekey: this._cachedSitekey, token: null };
+      : { sitekey: _cachedSitekey, token: null };
   }
 
   // List of potential sitekeys to try
@@ -314,12 +314,12 @@ export async function obtainSitekeyAndToken(fallback = '0x4AAAAAABpqJe8FO0N84q0F
     if (!sitekey || sitekey.length < 10) return null;
 
     console.log(`🔍 Testing sitekey from ${source}:`, sitekey);
-    const token = await this.executeTurnstile(sitekey);
+    const token = await executeTurnstile(sitekey);
 
     if (token && token.length >= 20) {
       console.log(`✅ Valid token generated from ${source} sitekey`);
       setTurnstileToken(token);
-      this._cachedSitekey = sitekey;
+      _cachedSitekey = sitekey;
       return { sitekey, token };
     } else {
       console.log(`❌ Failed to get token from ${source} sitekey`);

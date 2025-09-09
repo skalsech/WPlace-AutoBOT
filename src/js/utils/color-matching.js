@@ -107,7 +107,8 @@ export function isWhitePixel(r, g, b) {
 }
 
 export function isTransparentPixel(a) {
-  const transparencyThreshold = state.customTransparencyThreshold || DEFAULT_SETTINGS.customTransparencyThreshold;
+  const transparencyThreshold =
+    state.customTransparencyThreshold || DEFAULT_SETTINGS.customTransparencyThreshold;
   if (a === undefined || a === null) {
     console.warn(`Expected to get alpha of pixel, but got ${a}`);
   }

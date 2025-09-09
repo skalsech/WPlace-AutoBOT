@@ -1,5 +1,4 @@
 import { DEFAULT_SETTINGS } from '../config/DEFAULT_SETTINGS.js';
-import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 
 /**
  * @typedef {DefaultSettings & {

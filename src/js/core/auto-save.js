@@ -2,7 +2,7 @@
 import { state } from './state.js';
 import { saveProgress } from './progress-manager.js';
 
-function shouldAutoSave(){
+function shouldAutoSave() {
   const now = Date.now();
   const pixelsSinceLastSave = state.userPaintedPixels - state._lastSavePixelCount;
   const timeSinceLastSave = now - state._lastSaveTime;

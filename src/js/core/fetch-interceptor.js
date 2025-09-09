@@ -1,3 +1,10 @@
+import { overlayManager } from '../overlay/overlay-manager.js';
+import { setTurnstileToken } from '../security/turnstile-manager.js';
+import { showAlert } from '../ui/alerts.js';
+import { updateUI } from '../ui/panel.js';
+import { t } from '../i18n/i18.js';
+import { state } from './state.js';
+
 function inject(callback) {
   const script = document.createElement('script');
   script.textContent = `(${callback})();`;
@@ -51,6 +58,7 @@ inject(() => {
       const contentType = response.headers.get('content-type') || '';
       if (contentType.includes('image/png') && url.includes('.png')) {
         const cloned = response.clone();
+        // eslint-disable-next-line no-async-promise-executor
         return new Promise(async (resolve) => {
           const blobUUID = crypto.randomUUID();
           const originalBlob = await cloned.blob();

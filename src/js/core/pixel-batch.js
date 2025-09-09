@@ -2,8 +2,10 @@
 import { state } from './state.js';
 import { updateUI } from '../ui/panel.js';
 import { handleCaptcha } from './captcha-handler.js';
-import { sleep } from '../utils/helpers.js';
+import { randStr, sleep } from '../utils/helpers.js';
 import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
+import { getTurnstileToken, setTurnstileToken } from '../security/turnstile-manager.js';
+import { createWasmToken } from '../security/token-generator.js';
 
 export async function sendBatchWithRetry(pixels, regionX, regionY, maxRetries = 10) {
   let attempt = 0;
@@ -53,19 +55,16 @@ export async function sendBatchWithRetry(pixels, regionX, regionY, maxRetries = 
 }
 
 async function sendPixelBatch(pixelBatch, regionX, regionY) {
-  let token = turnstileToken;
+  let token = getTurnstileToken();
 
   // Generate new token if we don't have one
   if (!token) {
     try {
       console.log('🔑 Generating Turnstile token for pixel batch...');
       token = await handleCaptcha();
-      turnstileToken = token; // Store for potential reuse
+      setTurnstileToken(token); // Store for potential reuse
     } catch (error) {
       console.error('❌ Failed to generate Turnstile token:', error);
-      tokenPromise = new Promise((resolve) => {
-        _resolveToken = resolve;
-      });
       return 'token_error';
     }
   }
@@ -106,7 +105,7 @@ async function sendPixelBatch(pixelBatch, regionX, regionY) {
       try {
         console.log('🔄 Regenerating Turnstile token after 403...');
         token = await handleCaptcha();
-        turnstileToken = token;
+        setTurnstileToken(token);
 
         // Retry the request with new token
         const retryPayload = {
@@ -127,10 +126,7 @@ async function sendPixelBatch(pixelBatch, regionX, regionY) {
         });
 
         if (retryRes.status === 403) {
-          turnstileToken = null;
-          tokenPromise = new Promise((resolve) => {
-            _resolveToken = resolve;
-          });
+          setTurnstileToken(null);
           return 'token_error';
         }
 
@@ -138,10 +134,7 @@ async function sendPixelBatch(pixelBatch, regionX, regionY) {
         return retryData?.painted === pixelBatch.length;
       } catch (retryError) {
         console.error('❌ Token regeneration failed:', retryError);
-        turnstileToken = null;
-        tokenPromise = new Promise((resolve) => {
-          _resolveToken = resolve;
-        });
+        setTurnstileToken(null);
         return 'token_error';
       }
     }

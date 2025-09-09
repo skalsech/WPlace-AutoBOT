@@ -165,5 +165,9 @@
   "notifyOnChargesEnabled": "🔋 Charge notifications enabled",
   "notifyOnChargesDisabled": "🔋 Charge notifications disabled",
   "notifyOnlyUnfocusedEnabled": "👁️ Notifications only when tab is unfocused",
-  "notifyOnlyUnfocusedDisabled": "👁️ Notifications shown always, even when tab is active"
+  "notifyOnlyUnfocusedDisabled": "👁️ Notifications shown always, even when tab is active",
+  "imageManagement": "Image Management",
+  "paintingControl": "Painting Control",
+  "dataManagement": "Data Management",
+  "keepAspectRatio": "Keep aspect ratio",
 }

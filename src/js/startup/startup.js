@@ -1,4 +1,14 @@
-// Function to enable file operations after initial startup setup is complete
+import {
+  handleCaptchaWithRetry,
+  isTokenValid,
+  setTurnstileToken,
+} from '../security/turnstile-manager.js';
+import { updateUI } from '../ui/panel.js';
+import { showAlert } from '../ui/alerts.js';
+import { t } from '../i18n/i18.js';
+import { loadTurnstile } from '../security/turnstile.js';
+import { state } from '../core/state.js';
+
 function enableFileOperations() {
   state.initialSetupComplete = true;
 

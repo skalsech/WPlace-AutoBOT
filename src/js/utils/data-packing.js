@@ -96,7 +96,7 @@ export function buildPaintedMapPacked() {
       return {
         width: state.imageData.width,
         height: state.imageData.height,
-        data: data,
+        data,
       };
     }
   }

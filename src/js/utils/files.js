@@ -36,7 +36,8 @@ export const createFileUploader = () =>
           try {
             const data = JSON.parse(reader.result);
             resolve(data);
-          } catch (error) {
+            // eslint-disable-next-line no-unused-vars
+          } catch (_) {
             reject(new Error('Invalid JSON file'));
           }
         };

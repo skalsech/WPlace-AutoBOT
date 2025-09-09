@@ -1,6 +1,6 @@
 import { state } from '../../../core/state.js';
 import { updateUI } from '../../panel.js';
-import { ensureToken, turnstileToken } from '../../../security/turnstile-manager.js';
+import { ensureToken, getTurnstileToken } from '../../../security/turnstile-manager.js';
 import { processImage } from '../../../core/painting-controller.js';
 
 export async function handleStartPainting() {
@@ -9,7 +9,7 @@ export async function handleStartPainting() {
     return;
   }
   await ensureToken();
-  if (!turnstileToken) return;
+  if (!getTurnstileToken()) return;
 
   state.running = true;
   state.stopFlag = false;

@@ -1,21 +1,9 @@
-function updateActiveColorPalette() {
-  state.activeColorPalette = [];
-  const activeSwatches = document.querySelectorAll('.wplace-color-swatch.active');
-  if (activeSwatches) {
-    activeSwatches.forEach((swatch) => {
-      const rgbStr = swatch.getAttribute('data-rgb');
-      if (rgbStr) {
-        const rgb = rgbStr.split(',').map(Number);
-        state.activeColorPalette.push(rgb);
-      }
-    });
-  }
-  if (document.querySelector('.resize-container')?.style.display === 'block') {
-    _updateResizePreview();
-  }
-}
+import { state } from '../../../core/state.js';
+import { APP_CONSTANTS } from '../../../config/APP_CONSTANTS.js';
+import { createElement } from '../../../utils/dom.js';
+import { t } from '../../../i18n/i18.js';
 
-function toggleAllColors(select, showingUnavailable = false) {
+function toggleAllColors(select, updateActiveColorPalette, showingUnavailable = false) {
   const swatches = document.querySelectorAll('.wplace-color-swatch');
   if (swatches) {
     swatches.forEach((swatch) => {
@@ -32,7 +20,7 @@ function toggleAllColors(select, showingUnavailable = false) {
   updateActiveColorPalette();
 }
 
-function unselectAllPaidColors() {
+function unselectAllPaidColors(updateActiveColorPalette) {
   const swatches = document.querySelectorAll('.wplace-color-swatch');
   if (swatches) {
     swatches.forEach((swatch) => {
@@ -45,7 +33,7 @@ function unselectAllPaidColors() {
   updateActiveColorPalette();
 }
 
-function initializeColorPalette(container) {
+export function initializeColorPalette(container, onPaletteChange) {
   const colorsContainer = container.querySelector('#colors-container');
   const showAllToggle = container.querySelector('#showAllColorsToggle');
   if (!colorsContainer) return;
@@ -59,7 +47,23 @@ function initializeColorPalette(container) {
     )}</div>`;
     return;
   }
+  function updateActiveColorPalette(onPaletteChange) {
+    const newPalette = [];
+    const activeSwatches = document.querySelectorAll('.wplace-color-swatch.active');
+    activeSwatches.forEach((swatch) => {
+      const rgbStr = swatch.getAttribute('data-rgb');
+      if (rgbStr) {
+        const rgb = rgbStr.split(',').map(Number);
+        newPalette.push(rgb);
+      }
+    });
 
+    state.activeColorPalette = newPalette;
+
+    if (typeof onPaletteChange === 'function') {
+      onPaletteChange(newPalette);
+    }
+  }
   function populateColors(showUnavailable = false) {
     colorsContainer.innerHTML = '';
     let availableCount = 0;
@@ -141,12 +145,16 @@ function initializeColorPalette(container) {
   }
 
   container
-  .querySelector('#selectAllBtn')
-  ?.addEventListener('click', () => toggleAllColors(true, showAllToggle?.checked));
+    .querySelector('#selectAllBtn')
+    ?.addEventListener('click', () =>
+      toggleAllColors(true, updateActiveColorPalette, showAllToggle?.checked)
+    );
   container
-  .querySelector('#unselectAllBtn')
-  ?.addEventListener('click', () => toggleAllColors(false, showAllToggle?.checked));
+    .querySelector('#unselectAllBtn')
+    ?.addEventListener('click', () =>
+      toggleAllColors(false, updateActiveColorPalette, showAllToggle?.checked)
+    );
   container
-  .querySelector('#unselectPaidBtn')
-  ?.addEventListener('click', () => unselectAllPaidColors());
+    .querySelector('#unselectPaidBtn')
+    ?.addEventListener('click', () => unselectAllPaidColors(updateActiveColorPalette));
 }
