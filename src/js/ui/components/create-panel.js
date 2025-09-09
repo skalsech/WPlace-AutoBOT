@@ -17,7 +17,7 @@ export function createMainContainer() {
             <i class="fas fa-cog"></i>
           </button>
         <button id="statsBtn" class="wplace-header-btn" title="${t('showStats')}" data-i18n-key="showStats" data-i18n-attr="title">
-            <i class="fas fa-chart-bar"></i>
+            <i class="fas fa-chart-line"></i>
           </button>
         <button id="compactBtn" class="wplace-header-btn" title="${t(
           'compactMode'

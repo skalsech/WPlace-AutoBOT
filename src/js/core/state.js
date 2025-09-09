@@ -1,4 +1,5 @@
 import { DEFAULT_SETTINGS } from '../config/DEFAULT_SETTINGS.js';
+import { EventEmitter } from '../utils/EventEmitter.js';
 
 /**
  * @typedef {DefaultSettings & {
@@ -16,7 +17,7 @@ import { DEFAULT_SETTINGS } from '../config/DEFAULT_SETTINGS.js';
  *   preciseCurrentCharges: number,
  *   maxCharges: number,
  *   cooldown: number,
- *   imageData: ImageData | null,
+ *   imageData: {   totalPixels: number,   pixels: Uint8ClampedArray,   width: number,   height: number },
  *   stopFlag: boolean,
  *   startPosition: any,
  *   selectingPosition: boolean,
@@ -34,11 +35,15 @@ import { DEFAULT_SETTINGS } from '../config/DEFAULT_SETTINGS.js';
  *   paintedMap: any,
  *   hasAvailableColors: boolean,
  *   imageLoaded: boolean
+ *   _eventEmitter: EventEmitter
+ *   update: (updates: object) => void,
+ *   updateColorSettings: (updates: object) => void
  * }} State
  */
 
 /**
  * @type {State}
+ * ⚠️ WARNING: When modifying state — update @typedef State!
  */
 export const state = {
   ...DEFAULT_SETTINGS,
@@ -82,4 +87,33 @@ export const state = {
   get imageLoaded() {
     return !!this.imageData;
   },
+
+  _eventEmitter: new EventEmitter(),
+  update(updates) {
+    const changedKeys = [];
+
+    for (const [key, value] of Object.entries(updates)) {
+      if (this[key] !== value) {
+        this[key] = value;
+        changedKeys.push(key);
+      }
+    }
+
+    if (changedKeys.length > 0) {
+      this._eventEmitter.emit('stateChange', { keys: changedKeys, state: this });
+    }
+  },
+
+  updateColorSettings(updates) {
+    this.update(updates);
+    this._eventEmitter.emit('colorSettingsChange', updates);
+  },
 };
+
+export function onStateChange(callback) {
+  state._eventEmitter.on('stateChange', callback);
+}
+
+export function onColorSettingsChange(callback) {
+  state._eventEmitter.on('colorSettingsChange', callback);
+}

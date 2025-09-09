@@ -214,7 +214,7 @@ export function createSettingsContainer() {
             <span data-i18n-key="generationMode">Generation Mode</span>
             </label>
             <select id="coordinateModeSelect" class="wplace-settings-select">
-            <option value="rows" data-i18n-key="modeRows" class="wplace-settings-option">📏 Rows (Horizontal Lines)</option>
+            <option value="rows" data-i18n-key="modeRows" class="wplace-settings-option">${t('modeRows')}</option>
             <option value="columns" data-i18n-key="modeColumns" class="wplace-settings-option">📐 Columns (Vertical Lines)</option>
             <option value="circle-out" data-i18n-key="modeCircleOut" class="wplace-settings-option">⭕ Circle Out (Center → Edges)</option>
             <option value="circle-in" data-i18n-key="modeCircleIn" class="wplace-settings-option">⭕ Circle In (Edges → Center)</option>
@@ -227,13 +227,13 @@ export function createSettingsContainer() {
           <div id="directionControls" class="wplace-mode-selection">
             <label class="wplace-mode-label">
               <i class="fas fa-compass wplace-icon-compass"></i>
-            <span data-i18n-key="startingDirection">Starting Direction</span>
+            <span data-i18n-key="startingDirection">${t('startingDirection')}</span>
             </label>
             <select id="coordinateDirectionSelect" class="wplace-settings-select">
-            <option value="top-left" data-i18n-key="topLeft" class="wplace-settings-option">↖️ Top-Left</option>
-            <option value="top-right" data-i18n-key="topRight" class="wplace-settings-option">↗️ Top-Right</option>
-            <option value="bottom-left" data-i18n-key="bottomLeft" class="wplace-settings-option">↙️ Bottom-Left</option>
-            <option value="bottom-right" data-i18n-key="bottomRight" class="wplace-settings-option">↘️ Bottom-Right</option>
+            <option value="top-left" data-i18n-key="topLeft" class="wplace-settings-option">${t('topLeft')}</option>
+            <option value="top-right" data-i18n-key="topRight" class="wplace-settings-option">${t('topRight')}</option>
+            <option value="bottom-left" data-i18n-key="bottomLeft" class="wplace-settings-option">${t('bottomLeft')}</option>
+            <option value="bottom-right" data-i18n-key="bottomRight" class="wplace-settings-option">${t('bottomRight')}</option>
             </select>
           </div>
           

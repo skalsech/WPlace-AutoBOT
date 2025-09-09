@@ -184,7 +184,7 @@ export function createResizeContainer() {
       </button>
       <button id="confirmResize" class="wplace-btn wplace-btn-start">
         <i class="fas fa-check"></i>
-        <span data-i18n-key="apply">${t('apply')}</span>
+        <span data-i18n-key="confirm">${t('confirm')}</span>
       </button>
       <button id="cancelResize" class="wplace-btn wplace-btn-stop">
         <i class="fas fa-times"></i>

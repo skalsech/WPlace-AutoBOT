@@ -47,7 +47,7 @@ export function initializeColorPalette(container, onPaletteChange) {
     )}</div>`;
     return;
   }
-  function updateActiveColorPalette(onPaletteChange) {
+  function updateActiveColorPalette() {
     const newPalette = [];
     const activeSwatches = document.querySelectorAll('.wplace-color-swatch.active');
     activeSwatches.forEach((swatch) => {

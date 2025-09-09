@@ -1,4 +1,3 @@
-// eslint.config.js
 import eslint from '@eslint/js';
 import prettierPluginRecommended from 'eslint-plugin-prettier/recommended';
 import globals from 'globals';
@@ -21,6 +20,7 @@ export default [
 
     languageOptions: {
       globals: {
+        __DEV__: 'readonly',
         ...globals.node,
       },
       parserOptions: {
@@ -35,11 +35,39 @@ export default [
     },
   },
   {
-    files: ['src/**/*.js'],
+    files: ['tests/**/*.js'],
+    languageOptions: {
+      globals: {
+        __DEV__: 'readonly',
+        ...globals.vitest,
+        ...globals.browser,
+        ...globals.node,
+        ...globalsUserscript,
+      },
+      parserOptions: {
+        ecmaVersion: 'latest',
+        sourceType: 'module',
+      },
+    },
+    rules: {
+      'no-console': 'off',
+      'no-undef': 'error',
+      'no-unused-vars': [
+        'warn',
+        {
+          args: 'none',
+          varsIgnorePattern: '^(expect|test|describe|it|vi|context)$',
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/**/*.js', 'src/**/*.mjs'],
     languageOptions: {
       globals: {
         ...globals.browser,
         ...globalsUserscript,
+        __DEV__: 'readonly',
       },
       parserOptions: {
         ecmaVersion: 'latest',
@@ -81,32 +109,6 @@ export default [
       'arrow-spacing': 'error',
       'no-useless-computed-key': 'error',
       'no-duplicate-imports': 'error',
-    },
-  },
-  {
-    files: ['tests/**/*.js'],
-    languageOptions: {
-      globals: {
-        ...globals.vitest,
-        ...globals.browser,
-        ...globals.node,
-        ...globalsUserscript,
-      },
-      parserOptions: {
-        ecmaVersion: 'latest',
-        sourceType: 'module',
-      },
-    },
-    rules: {
-      'no-console': 'off',
-      'no-undef': 'error',
-      'no-unused-vars': [
-        'warn',
-        {
-          args: 'none',
-          varsIgnorePattern: '^(expect|test|describe|it|vi|context)$',
-        },
-      ],
     },
   },
   prettierPluginRecommended,

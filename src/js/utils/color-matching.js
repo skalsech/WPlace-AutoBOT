@@ -155,6 +155,7 @@ export function invalidateColorCache(changedParams = {}) {
       Number(chromaWeight) !== changedParams.chromaPenaltyWeight
     ) {
       colorCache.delete(key);
+      // noinspection UnnecessaryContinueJS
       continue;
     }
   }

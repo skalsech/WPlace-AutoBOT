@@ -26,8 +26,17 @@ async function generateLanguages() {
 export const GENERATED_LANGUAGES = ${formattedArray};
 `;
 
-    await fs.promises.writeFile(OUTPUT_FILE, content, 'utf-8');
-    console.log('✅ Successfully generated list of available languages:', languageKeys);
+    try {
+      const existing = fs.readFileSync(OUTPUT_FILE, 'utf8');
+      if (existing === content) {
+        console.log('✅ No changes in languages — skipping write');
+        process.exit(0);
+      }
+    } catch (_) { /* empty */ }
+
+    fs.writeFileSync(OUTPUT_FILE, content, 'utf8');
+    console.log('✅ Successfully generated list of available languages');
+    process.exit(0);
   } catch (error) {
     console.error('❌ Error during generation of available languages list:', error);
     process.exit(1);

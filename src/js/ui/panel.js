@@ -444,47 +444,6 @@ export async function createUI() {
   NotificationManager.syncFromState();
 
   container.style.display = 'block';
-  /**
-   * @deprecated This block is temporarily retained for advanced settings that are not yet
-   *             migrated to the reactive system or the resize dialog. Once the resize dialog
-   *             is refactored, these settings should be handled reactively and this handler
-   *             can be safely removed. All settings here should eventually be synchronized
-   *             through state bindings or dedicated UI components.
-   */
-  /*const applySettingsBtn = settingsContainer.querySelector('#applySettingsBtn');
-  applySettingsBtn.addEventListener('click', () => {
-    // Sync advanced settings before save
-    const colorAlgorithmSelect = document.getElementById('colorAlgorithmSelect');
-    if (colorAlgorithmSelect) {
-      state.colorMatchingAlgorithm = colorAlgorithmSelect.value;
-      invalidateColorCache({ colorMatchingAlgorithm: state.colorMatchingAlgorithm });
-    }
-    const enableChromaPenaltyToggle = document.getElementById('enableChromaPenaltyToggle');
-    if (enableChromaPenaltyToggle) {
-      state.enableChromaPenalty = enableChromaPenaltyToggle.checked;
-      invalidateColorCache({ enableChromaPenalty: state.enableChromaPenalty });
-    }
-    const chromaPenaltyWeightSlider = document.getElementById('chromaPenaltyWeightSlider');
-    if (chromaPenaltyWeightSlider) {
-      state.chromaPenaltyWeight = parseFloat(chromaPenaltyWeightSlider.value) || 0.15;
-      invalidateColorCache({ chromaPenaltyWeight: state.chromaPenaltyWeight });
-    }
-    const transparencyThresholdInput = document.getElementById('transparencyThresholdInput');
-    if (transparencyThresholdInput) {
-      const v = parseInt(transparencyThresholdInput.value, 10);
-      if (!isNaN(v) && v >= 0 && v <= 255) state.customTransparencyThreshold = v;
-    }
-    const whiteThresholdInput = document.getElementById('whiteThresholdInput');
-    if (whiteThresholdInput) {
-      const v = parseInt(whiteThresholdInput.value, 10);
-      if (!isNaN(v) && v >= 200 && v <= 255) state.customWhiteThreshold = v;
-    }
 
-    CONFIG.TRANSPARENCY_THRESHOLD = state.customTransparencyThreshold;
-    CONFIG.WHITE_THRESHOLD = state.customWhiteThreshold;
-
-    saveBotSettings();
-    showAlert(t('settingsSaved'), 'success');
-    NotificationManager.syncFromState();
-  });*/
+  // const applySettingsBtn = settingsContainer.querySelector('#applySettingsBtn');
 }

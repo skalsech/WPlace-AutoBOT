@@ -1,7 +1,8 @@
 import { ImageProcessor } from '../../../core/image-processor.js';
-import { state } from '../../../core/state.js';
+import { onColorSettingsChange, state } from '../../../core/state.js';
 import {
   findClosestPaletteColor,
+  invalidateColorCache,
   isTransparentPixel,
   isWhitePixel,
 } from '../../../utils/color-matching.js';
@@ -19,11 +20,13 @@ import { createMaskOverlay } from './resize-mask-overlay.js';
 import { createSizeHandlers } from './resize-size-handlers.js';
 import { createMaskEvents } from './resize-mask-events.js';
 import { createPreviewController } from './resize-preview-controller.js';
+import { syncSettingsUI } from '../../sync-ui.js';
 
 /**
  * Resize dialog controller.
  * Manages UI, preview, mask, and final image generation.
  */
+let colorSettingsUnsubscribe = null;
 let resizeContainer, resizeOverlay;
 let widthSlider, heightSlider, widthValue, heightValue, keepAspect;
 let paintWhiteToggle, paintTransparentToggle;
@@ -186,6 +189,79 @@ function showResizeDialog(processor, container, overlay) {
   });
 
   // Bind event handlers
+  const setupColorSettingsBindings = () => {
+    if (colorSettingsUnsubscribe) {
+      colorSettingsUnsubscribe();
+    }
+
+    const bindInput = (id, stateKey, transform = (v) => v, fromState = (v) => v) => {
+      const el = resizeContainer.querySelector(`#${id}`);
+      if (!el) return;
+
+      // UI → State
+      const handleChange = () => {
+        let value = el.value;
+        if (el.type === 'checkbox') value = el.checked;
+        state.updateColorSettings({ [stateKey]: transform(value) });
+      };
+
+      el.addEventListener('change', handleChange);
+
+      // State → UI
+      const handleStateChange = (updates) => {
+        if (updates[stateKey] !== undefined) {
+          const value = fromState(updates[stateKey]);
+          if (el.type === 'checkbox') {
+            el.checked = value;
+          } else {
+            el.value = value;
+          }
+        }
+      };
+
+      handleStateChange({ [stateKey]: state[stateKey] });
+
+      return () => {
+        el.removeEventListener('change', handleChange);
+      };
+    };
+
+    const unbinders = [
+      bindInput('colorAlgorithmSelect', 'colorMatchingAlgorithm'),
+      bindInput(
+        'enableChromaPenaltyToggle',
+        'enableChromaPenalty',
+        (v) => v,
+        (v) => v
+      ),
+      bindInput('chromaPenaltyWeightSlider', 'chromaPenaltyWeight', parseFloat),
+      bindInput('transparencyThresholdInput', 'customTransparencyThreshold', (v) => {
+        const num = parseInt(v, 10);
+        if (isNaN(num)) return state.customTransparencyThreshold;
+        return Math.min(255, Math.max(0, num));
+      }),
+      bindInput('whiteThresholdInput', 'customWhiteThreshold', (v) => {
+        const num = parseInt(v, 10);
+        if (isNaN(num)) return state.customWhiteThreshold;
+        return Math.min(255, Math.max(200, num));
+      }),
+    ];
+
+    const handleColorSettingsChange = (updates) => {
+      invalidateColorCache(updates);
+      previewController.updateResizePreview();
+      // todo check the other ui elements work in dialog
+      saveBotSettings();
+    };
+
+    colorSettingsUnsubscribe = () => {
+      unbinders.forEach((unbind) => unbind && unbind());
+      state._eventEmitter.off('colorSettingsChange', handleColorSettingsChange);
+    };
+
+    onColorSettingsChange(handleColorSettingsChange);
+  };
+  setupColorSettingsBindings();
   const unbindSize = sizeHandlers.bind();
   const unbindMask = maskEvents.bind();
 
@@ -347,6 +423,7 @@ function showResizeDialog(processor, container, overlay) {
     } catch {
       /* empty */
     }
+    colorSettingsUnsubscribe?.();
     unbindSize?.();
     unbindMask?.();
     previewController.destroy();
