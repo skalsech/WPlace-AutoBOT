@@ -7,13 +7,14 @@ import {
 } from '../src/js/core/settings-manager.js';
 import { createTestMask, encodeMask } from './helpers.js';
 import { DEFAULT_SETTINGS } from '../src/js/config/DEFAULT_SETTINGS.js';
+import { cloneDeep } from 'lodash';
 
 const getElementByIdMock = vi.fn();
 global.document = {
   getElementById: getElementByIdMock,
 };
 
-const initialState = structuredClone(state);
+const initialState = cloneDeep(state);
 
 beforeEach(() => {
   Object.keys(state).forEach((key) => delete state[key]);

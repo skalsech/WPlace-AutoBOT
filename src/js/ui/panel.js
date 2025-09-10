@@ -444,6 +444,4 @@ export async function createUI() {
   NotificationManager.syncFromState();
 
   container.style.display = 'block';
-
-  // const applySettingsBtn = settingsContainer.querySelector('#applySettingsBtn');
 }

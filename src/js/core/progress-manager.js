@@ -9,6 +9,7 @@ import {
   migrateProgressToV23,
 } from './migrations.js';
 
+// todo refactor progress and progress related state part
 export function buildProgressData() {
   return {
     timestamp: Date.now(),

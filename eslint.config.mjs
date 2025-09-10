@@ -15,6 +15,7 @@ const globalsUserscript = {
 
 export default [
   eslint.configs.recommended,
+  { ignores: ['**/node_modules/**', 'dist/**', 'build/**', 'coverage/**'] },
   {
     files: ['build/**/*.mjs', 'scripts/**/*.js'],
 
