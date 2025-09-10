@@ -12,3 +12,4 @@ staged_changes.diff
 .idea/
 /git_log.txt
 /staged_changes.diff
+!/coverage/
