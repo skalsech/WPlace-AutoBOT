@@ -1,38 +1,33 @@
 import { state } from './state.js';
-import {
-  ensureToken,
-  getTurnstileToken,
-  setTurnstileToken,
-} from '../security/turnstile-manager.js';
 
 export const WPlaceService = {
-  async paintPixelInRegion(regionX, regionY, pixelX, pixelY, color) {
-    try {
-      await ensureToken();
-      if (!getTurnstileToken) return 'token_error';
-      const payload = {
-        coords: [pixelX, pixelY],
-        colors: [color],
-        t: getTurnstileToken,
-      };
-      const res = await fetch(`https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-        credentials: 'include',
-        body: JSON.stringify(payload),
-      });
-      if (res.status === 403) {
-        console.error('❌ 403 Forbidden. Turnstile token might be invalid or expired.');
-        setTurnstileToken(null);
-        return 'token_error';
-      }
-      const data = await res.json();
-      return data?.painted === 1;
-    } catch (e) {
-      console.error('Paint request failed:', e);
-      return false;
-    }
-  },
+  // async paintPixelInRegion(regionX, regionY, pixelX, pixelY, color) {
+  //   try {
+  //     await ensureToken();
+  //     if (!getTurnstileToken) return 'token_error';
+  //     const payload = {
+  //       coords: [pixelX, pixelY],
+  //       colors: [color],
+  //       t: getTurnstileToken,
+  //     };
+  //     const res = await fetch(`https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`, {
+  //       method: 'POST',
+  //       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
+  //       credentials: 'include',
+  //       body: JSON.stringify(payload),
+  //     });
+  //     if (res.status === 403) {
+  //       console.error('❌ 403 Forbidden. Turnstile token might be invalid or expired.');
+  //       setTurnstileToken(null);
+  //       return 'token_error';
+  //     }
+  //     const data = await res.json();
+  //     return data?.painted === 1;
+  //   } catch (e) {
+  //     console.error('Paint request failed:', e);
+  //     return false;
+  //   }
+  // },
 
   async getCharges() {
     const defaultResult = {

@@ -1,19 +1,3 @@
-export const randStr = (
-  len,
-  chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-) => {
-  const getRandomIndex = () => {
-    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
-      const array = new Uint32Array(1);
-      crypto.getRandomValues(array);
-      return array[0] % chars.length;
-    }
-    return Math.floor(Math.random() * chars.length);
-  };
-
-  return [...Array(len)].map(() => chars[getRandomIndex()]).join('');
-};
-
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -49,7 +33,7 @@ export const dynamicSleep = async function (tickAndGetRemainingMs) {
   let remaining = Math.max(0, await tickAndGetRemainingMs());
   while (remaining > 0) {
     const interval = remaining > 5000 ? 2000 : remaining > 1000 ? 500 : 100;
-    await this.sleep(Math.min(interval, remaining));
+    await sleep(Math.min(interval, remaining));
     remaining = Math.max(0, await tickAndGetRemainingMs());
   }
 };

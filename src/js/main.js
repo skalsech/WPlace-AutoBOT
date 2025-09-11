@@ -4,8 +4,10 @@ import { cleanupTurnstile } from './security/turnstile.js';
 import { setupFetchInterceptor } from './core/fetch-interceptor.js';
 import { createDevReloadButton } from './utils/dev-utils.js';
 import { getFingerprint, initFingerprint } from './security/fingerprint.js';
+import { initPawtect } from './security/wasm-token.js';
 
 initFingerprint();
+initPawtect();
 setupFetchInterceptor();
 
 createUI().then(() => {
