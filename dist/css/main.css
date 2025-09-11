@@ -149,9 +149,9 @@
   padding: 0;
   z-index: 9998;
   animation: slide-in 0.4s ease-out;
-  overflow: hidden auto;
   transition: all 0.3s ease;
   user-select: none;
+  overflow: hidden;
   background: var(--wplace-primary);
   color: var(--wplace-text);
   border-radius: var(--wplace-radius);
@@ -256,6 +256,7 @@
   position: relative;
   z-index: 2;
   padding: 12px;
+  overflow: hidden auto;
 }
 .wplace-content.wplace-hidden {
   display: none;
@@ -294,11 +295,15 @@
 .wplace-cooldown-control {
   margin-top: 8px;
 }
-.wplace-section.collapsed .wplace-controls,
-.wplace-section.collapsed .wplace-cooldown-control {
+.wplace-section.collapsed > .wplace-controls,
+.wplace-section.collapsed > .wplace-cooldown-control {
   max-height: 0;
   opacity: 0;
   pointer-events: none;
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none;
+  overflow: hidden;
 }
 .wplace-row {
   display: grid;

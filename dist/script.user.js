@@ -5561,10 +5561,6 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
             bodyLen: bodyStr.length
           });
           const { mod, wasm } = await loadWasmModule();
-          if (typeof mod.getVersion === "function") {
-            const version = mod.getVersion();
-            console.log(`[WPlace-AutoBOT]: \u{1F4E6} Pawtect module version: ${version}`);
-          }
           try {
             const me = await fetch("https://backend.wplace.live/me", { credentials: "include" }).then(
               (r) => r.ok ? r.json() : null
