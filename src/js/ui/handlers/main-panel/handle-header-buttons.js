@@ -41,23 +41,18 @@ export function handleMinimizeClick() {
   const container = document.getElementById('wplace-image-bot-container');
   const content = container?.querySelector('.wplace-content');
   const btn = document.getElementById('minimizeBtn');
+  const icon = btn?.querySelector('i');
 
-  if (state.minimized) {
-    container.classList.add('wplace-minimized');
-    content.classList.add('wplace-hidden');
-    if (btn) {
-      btn.innerHTML = '<i class="fas fa-expand"></i>';
-      btn.title = t('restore');
-    }
-  } else {
-    container.classList.remove('wplace-minimized');
-    content.classList.remove('wplace-hidden');
-    if (btn) {
-      btn.innerHTML = '<i class="fas fa-minus"></i>';
-      btn.title = t('minimize');
-    }
+  container?.classList.toggle('wplace-minimized', state.minimized);
+  content?.classList.toggle('wplace-hidden', state.minimized);
+
+  if (icon) {
+    icon.classList.toggle('rotated', state.minimized);
   }
-  saveBotSettings();
+
+  if (btn) {
+    btn.title = state.minimized ? t('restore') : t('minimize');
+  }
 }
 
 export function handleCompactClick() {

@@ -216,7 +216,6 @@
 }
 
 #wplace-image-bot-container.wplace-minimized {
-  width: 200px;
   height: auto;
   overflow: hidden;
 }
@@ -909,6 +908,16 @@
   margin-right: 6px;
 }
 
+
+/* noinspection Stylelint */
+#minimizeBtn i {
+  transition: transform 0.3s ease;
+}
+
+/* noinspection Stylelint */
+#minimizeBtn i.rotated {
+  transform: rotate(180deg);
+}
 
 .wplace-speed-slider {
   flex: 1;

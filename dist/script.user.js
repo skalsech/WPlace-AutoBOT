@@ -647,7 +647,12 @@
       } else if (el.dataset.i18nAttr === "placeholder") {
         el.placeholder = newText;
       } else {
-        el.innerText = newText;
+        const textNodes = [...el.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE);
+        if (textNodes.length > 0) {
+          textNodes[textNodes.length - 1].textContent = newText;
+        } else {
+          el.innerText = newText;
+        }
       }
     });
   }
@@ -1104,7 +1109,7 @@
         <button id="minimizeBtn" class="wplace-header-btn" title="${t(
       "minimize"
     )}" data-i18n-key="minimize" data-i18n-attr="title">
-            <i class="fas fa-minus"></i>
+            <i class="fas fa-chevron-up"></i>
           </button>
         </div>
       </div>
@@ -1121,9 +1126,7 @@
 
         <!-- Image Section -->
         <div class="wplace-section">
-        <div class="wplace-section-title" data-i18n-key="imageManagement">${t(
-      "imageManagement"
-    )}</div>
+        <div class="wplace-section-title"><span data-i18n-key="imageManagement">${t("imageManagement")}</span></div>
           <div class="wplace-controls">
             <div class="wplace-row">
             <button id="uploadBtn" class="wplace-btn wplace-btn-upload" disabled title="${t(
@@ -1148,9 +1151,7 @@
 
         <!-- Control Section -->
         <div class="wplace-section">
-        <div class="wplace-section-title" data-i18n-key="paintingControl">${t(
-      "paintingControl"
-    )}</div>
+        <div class="wplace-section-title"><span data-i18n-key="paintingControl">${t("paintingControl")}</span></div>
           <div class="wplace-controls">
             <div class="wplace-row">
               <button id="startBtn" class="wplace-btn wplace-btn-start" disabled>
@@ -1173,9 +1174,7 @@
 
         <!-- Cooldown Section -->
         <div class="wplace-section">
-        <div class="wplace-section-title" data-i18n-key="cooldownSettings">${t(
-      "cooldownSettings"
-    )}</div>
+        <div class="wplace-section-title"><span data-i18n-key="cooldownSettings">${t("cooldownSettings")}</span></div>
             <div class="wplace-cooldown-control">
           <label id="cooldownLabel" data-i18n-key="waitCharges">${t("waitCharges")}:</label>
                 <div class="wplace-slider-container">
@@ -1187,9 +1186,7 @@
 
         <!-- Data Section -->
         <div class="wplace-section">
-        <div class="wplace-section-title" data-i18n-key="dataManagement">${t(
-      "dataManagement"
-    )}</div>
+        <div class="wplace-section-title"><span data-i18n-key="dataManagement">${t("dataManagement")}</span></div>
           <div class="wplace-controls">
             <div class="wplace-row">
               <button id="saveBtn" class="wplace-btn wplace-btn-primary" disabled>
@@ -6526,22 +6523,15 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
     const container = document.getElementById("wplace-image-bot-container");
     const content = container?.querySelector(".wplace-content");
     const btn = document.getElementById("minimizeBtn");
-    if (state.minimized) {
-      container.classList.add("wplace-minimized");
-      content.classList.add("wplace-hidden");
-      if (btn) {
-        btn.innerHTML = '<i class="fas fa-expand"></i>';
-        btn.title = t("restore");
-      }
-    } else {
-      container.classList.remove("wplace-minimized");
-      content.classList.remove("wplace-hidden");
-      if (btn) {
-        btn.innerHTML = '<i class="fas fa-minus"></i>';
-        btn.title = t("minimize");
-      }
+    const icon = btn?.querySelector("i");
+    container?.classList.toggle("wplace-minimized", state.minimized);
+    content?.classList.toggle("wplace-hidden", state.minimized);
+    if (icon) {
+      icon.classList.toggle("rotated", state.minimized);
     }
-    saveBotSettings();
+    if (btn) {
+      btn.title = state.minimized ? t("restore") : t("minimize");
+    }
   }
   function handleCompactClick() {
     const container = document.getElementById("wplace-image-bot-container");

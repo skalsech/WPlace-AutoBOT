@@ -164,15 +164,12 @@ export function updateTranslations() {
     } else if (el.dataset.i18nAttr === 'placeholder') {
       el.placeholder = newText;
     } else {
-      el.innerText = newText;
-      /*
-      const textNodes = [...el.childNodes].filter(node => node.nodeType === Node.TEXT_NODE);
+      const textNodes = [...el.childNodes].filter((node) => node.nodeType === Node.TEXT_NODE);
       if (textNodes.length > 0) {
         textNodes[textNodes.length - 1].textContent = newText;
       } else {
         el.innerText = newText;
       }
-      */
     }
   });
 }

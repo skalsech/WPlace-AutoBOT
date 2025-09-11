@@ -27,7 +27,7 @@ export function createMainContainer() {
         <button id="minimizeBtn" class="wplace-header-btn" title="${t(
           'minimize'
         )}" data-i18n-key="minimize" data-i18n-attr="title">
-            <i class="fas fa-minus"></i>
+            <i class="fas fa-chevron-up"></i>
           </button>
         </div>
       </div>
@@ -44,9 +44,7 @@ export function createMainContainer() {
 
         <!-- Image Section -->
         <div class="wplace-section">
-        <div class="wplace-section-title" data-i18n-key="imageManagement">${t(
-          'imageManagement'
-        )}</div>
+        <div class="wplace-section-title"><span data-i18n-key="imageManagement">${t('imageManagement')}</span></div>
           <div class="wplace-controls">
             <div class="wplace-row">
             <button id="uploadBtn" class="wplace-btn wplace-btn-upload" disabled title="${t(
@@ -71,9 +69,7 @@ export function createMainContainer() {
 
         <!-- Control Section -->
         <div class="wplace-section">
-        <div class="wplace-section-title" data-i18n-key="paintingControl">${t(
-          'paintingControl'
-        )}</div>
+        <div class="wplace-section-title"><span data-i18n-key="paintingControl">${t('paintingControl')}</span></div>
           <div class="wplace-controls">
             <div class="wplace-row">
               <button id="startBtn" class="wplace-btn wplace-btn-start" disabled>
@@ -96,9 +92,7 @@ export function createMainContainer() {
 
         <!-- Cooldown Section -->
         <div class="wplace-section">
-        <div class="wplace-section-title" data-i18n-key="cooldownSettings">${t(
-          'cooldownSettings'
-        )}</div>
+        <div class="wplace-section-title"><span data-i18n-key="cooldownSettings">${t('cooldownSettings')}</span></div>
             <div class="wplace-cooldown-control">
           <label id="cooldownLabel" data-i18n-key="waitCharges">${t('waitCharges')}:</label>
                 <div class="wplace-slider-container">
@@ -110,9 +104,7 @@ export function createMainContainer() {
 
         <!-- Data Section -->
         <div class="wplace-section">
-        <div class="wplace-section-title" data-i18n-key="dataManagement">${t(
-          'dataManagement'
-        )}</div>
+        <div class="wplace-section-title"><span data-i18n-key="dataManagement">${t('dataManagement')}</span></div>
           <div class="wplace-controls">
             <div class="wplace-row">
               <button id="saveBtn" class="wplace-btn wplace-btn-primary" disabled>
