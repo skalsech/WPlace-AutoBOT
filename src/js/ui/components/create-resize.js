@@ -42,12 +42,12 @@ export function createResizeContainer() {
         <button id="zoomFitBtn" class="wplace-btn resize-zoom-btn" title="${t(
           'fitToView'
         )}" data-i18n-key="fitToView" data-i18n-attr="title">
-          ${t('fit')}
+          ${t('fitToView')}
         </button>
         <button id="zoomActualBtn" class="wplace-btn resize-zoom-btn" title="${t(
           'actualSize'
         )}" data-i18n-key="actualSize" data-i18n-attr="title">
-          ${t('hundred')}
+          ${t('actualSize')}
         </button>
         <button id="panModeBtn" class="wplace-btn resize-zoom-btn" title="${t(
           'panMode'
@@ -96,8 +96,8 @@ export function createResizeContainer() {
             <button id="maskModeToggle" class="wplace-btn wplace-btn-primary resize-mode-btn">Toggle</button>
           </div>
         </div>
-        <button id="clearIgnoredBtn" class="wplace-btn resize-clear-btn" title="Clear all ignored pixels" data-i18n-key="clearAllIgnored" data-i18n-attr="title">Clear</button>
-        <button id="invertMaskBtn" class="wplace-btn resize-invert-btn" title="Invert mask" data-i18n-key="invertMask" data-i18n-attr="title">Invert</button>
+        <button id="clearIgnoredBtn" class="wplace-btn resize-clear-btn" title="Clear all ignored pixels" data-i18n-key="clearAllIgnored" data-i18n-attr="title">${t('clearAllIgnored')}</button>
+        <button id="invertMaskBtn" class="wplace-btn resize-invert-btn" title="Invert mask" data-i18n-key="invertMask" data-i18n-attr="title">${t('invertMask')}</button>
         <span class="resize-shortcut-help">Shift = Row • Alt = Column</span>
       </div>
     </div>
@@ -114,9 +114,9 @@ export function createResizeContainer() {
           </label>
         </div>
         <div class="wplace-row" style="display: flex;">
-          <button id="selectAllBtn" class="wplace-btn" style="flex: 1;" data-i18n-key="selectAll">Select All</button>
-          <button id="unselectAllBtn" class="wplace-btn" style="flex: 1;" data-i18n-key="unselectAll">Unselect All</button>
-          <button id="unselectPaidBtn" class="wplace-btn" data-i18n-key="unselectPaid">Unselect Paid</button>
+          <button id="selectAllBtn" class="wplace-btn" style="flex: 1;" data-i18n-key="selectAll">${t('selectAll')}</button>
+          <button id="unselectAllBtn" class="wplace-btn" style="flex: 1;" data-i18n-key="unselectAll">${t('unselectAll')}</button>
+          <button id="unselectPaidBtn" class="wplace-btn" data-i18n-key="unselectPaid">${t('unselectPaid')}</button>
         </div>
         <div id="colors-container" class="wplace-color-grid"></div>
       </div>
@@ -132,10 +132,10 @@ export function createResizeContainer() {
           <select id="colorAlgorithmSelect" class="resize-advanced-select">
             <option value="lab" ${
               state.colorMatchingAlgorithm === 'lab' ? 'selected' : ''
-            } data-i18n-key="perceptualLab">Perceptual (Lab)</option>
+            } data-i18n-key="perceptualLab">${t('perceptualLab')}</option>
             <option value="legacy" ${
               state.colorMatchingAlgorithm === 'legacy' ? 'selected' : ''
-            } data-i18n-key="legacyRgb">Legacy (RGB)</option>
+            } data-i18n-key="legacyRgb">${t('legacyRgb')}</option>
           </select>
         </label>
         <label class="resize-advanced-toggle">
@@ -173,7 +173,7 @@ export function createResizeContainer() {
             <input type="number" id="whiteThresholdInput" min="200" max="255" value="${state.customWhiteThreshold}" class="resize-threshold-input" />
           </label>
         </div>
-        <button id="resetAdvancedColorBtn" class="wplace-btn resize-reset-advanced-btn" data-i18n-key="resetAdvanced">Reset Advanced</button>
+        <button id="resetAdvancedColorBtn" class="wplace-btn resize-reset-advanced-btn" data-i18n-key="resetAdvanced">${t('resetAdvanced')}</button>
       </div>
     </div>
 

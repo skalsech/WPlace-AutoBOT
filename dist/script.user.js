@@ -669,9 +669,7 @@
             <i class="fas fa-cog wplace-settings-icon"></i>
           <span data-i18n-key="settings">${t("settings")}</span>
           </h3>
-        <button id="closeSettingsBtn" class="wplace-settings-close-btn" title="${t(
-      "close"
-    )}" data-i18n-key="close" data-i18n-attr="title">\u2715</button>
+        <button id="closeSettingsBtn" class="wplace-settings-close-btn" title="${t("close")}" data-i18n-key="close" data-i18n-attr="title">\u2715</button>
         </div>
       </div>
 
@@ -681,17 +679,15 @@
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-key wplace-icon-key"></i>
-          <span data-i18n-key="tokenSource">Token Source</span>
+          <span data-i18n-key="tokenSource">${t("tokenSource")}</span>
           </label>
           <div class="wplace-settings-section-wrapper">
             <select id="tokenSourceSelect" class="wplace-settings-select">
-            <option value="generator" ${DEFAULT_SETTINGS.tokenSource === "generator" ? "selected" : ""} data-i18n-key="tokenSourceGenerator" class="wplace-settings-option">\u{1F916} Automatic Token Generator (Recommended)</option>
-            <option value="hybrid" ${DEFAULT_SETTINGS.tokenSource === "hybrid" ? "selected" : ""} data-i18n-key="tokenSourceHybrid" class="wplace-settings-option">\u{1F504} Generator + Auto Fallback</option>
-            <option value="manual" ${DEFAULT_SETTINGS.tokenSource === "manual" ? "selected" : ""} data-i18n-key="tokenSourceManual" class="wplace-settings-option">\u{1F3AF} Manual Pixel Placement</option>
+            <option value="generator" ${DEFAULT_SETTINGS.tokenSource === "generator" ? "selected" : ""} data-i18n-key="tokenSourceGenerator" class="wplace-settings-option">${t("tokenSourceGenerator")}</option>
+            <option value="hybrid" ${DEFAULT_SETTINGS.tokenSource === "hybrid" ? "selected" : ""} data-i18n-key="tokenSourceHybrid" class="wplace-settings-option">${t("tokenSourceHybrid")}</option>
+            <option value="manual" ${DEFAULT_SETTINGS.tokenSource === "manual" ? "selected" : ""} data-i18n-key="tokenSourceManual" class="wplace-settings-option">${t("tokenSourceManual")}</option>
             </select>
-          <p class="wplace-settings-description" data-i18n-key="tokenSourceDescription">
-              Generator mode creates tokens automatically. Hybrid mode falls back to manual when generator fails. Manual mode only uses pixel placement.
-            </p>
+          <p class="wplace-settings-description" data-i18n-key="tokenSourceDescription">${t("tokenSourceDescription")}</p>
           </div>
         </div>
 
@@ -708,13 +704,13 @@
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-eye wplace-icon-eye"></i>
-          <span data-i18n-key="overlaySettings">Overlay Settings</span>
+          <span data-i18n-key="overlaySettings">${t("overlaySettings")}</span>
           </label>
           <div class="wplace-settings-section-wrapper wplace-overlay-wrapper">
               <!-- Opacity Slider -->
               <div class="wplace-overlay-opacity-control">
                 <div class="wplace-overlay-opacity-header">
-                 <span class="wplace-overlay-opacity-label" data-i18n-key="overlayOpacity">Overlay Opacity</span>
+                 <span class="wplace-overlay-opacity-label" data-i18n-key="overlayOpacity">${t("overlayOpacity")}</span>
                    <div id="overlayOpacityValue" class="wplace-overlay-opacity-value">
                     ${Math.round(DEFAULT_SETTINGS.overlayOpacity * 100)}%
                    </div>
@@ -724,8 +720,8 @@
               <!-- Blue Marble Toggle -->
               <label for="enableBlueMarbleToggle" class="wplace-settings-toggle">
                   <div>
-                    <span class="wplace-settings-toggle-title" data-i18n-key="blueMarbleEffect">Blue Marble Effect</span>
-                    <p class="wplace-settings-toggle-description" data-i18n-key="blueMarbleDescription">Renders a dithered "shredded" overlay.</p>
+                    <span class="wplace-settings-toggle-title" data-i18n-key="blueMarbleEffect">${t("blueMarbleEffect")}</span>
+                    <p class="wplace-settings-toggle-description" data-i18n-key="blueMarbleDescription">${t("blueMarbleDescription")}</p>
                   </div>
                 <input type="checkbox" id="enableBlueMarbleToggle" ${DEFAULT_SETTINGS.blueMarbleEnabled ? "checked" : ""} class="wplace-settings-checkbox"/>
               </label>
@@ -790,11 +786,11 @@
           <div class="wplace-mode-selection">
             <label class="wplace-mode-label">
               <i class="fas fa-dice wplace-icon-dice"></i>
-            <span data-i18n-key="batchMode">Batch Mode</span>
+            <span data-i18n-key="batchMode">${t("batchMode")}</span>
             </label>
             <select id="batchModeSelect" class="wplace-settings-select">
-              <option value="normal" data-i18n-key="batchModeNormal" class="wplace-settings-option">\u{1F4E6} Normal (Fixed Size)</option>
-              <option value="random" data-i18n-key="batchModeRandom" class="wplace-settings-option">\u{1F3B2} Random (Range)</option>
+              <option value="normal" data-i18n-key="batchModeNormal" class="wplace-settings-option">${t("batchModeNormal")}</option>
+              <option value="random" data-i18n-key="batchModeRandom" class="wplace-settings-option">${t("batchModeRandom")}</option>
             </select>
           </div>
           
@@ -816,19 +812,19 @@
               <div>
                 <label class="wplace-random-batch-label">
                   <i class="fas fa-arrow-down wplace-icon-min"></i>
-                <span data-i18n-key="minimumBatchSize">Minimum Batch Size</span>
+                <span data-i18n-key="minimumBatchSize">${t("minimumBatchSize")}</span>
                 </label>
                 <input type="number" id="randomBatchMin" min="1" max="1000" value="${DEFAULT_SETTINGS.randomBatchMin}" class="wplace-settings-number-input">
               </div>
               <div>
                 <label class="wplace-random-batch-label">
                   <i class="fas fa-arrow-up wplace-icon-max"></i>
-                <span data-i18n-key="maximumBatchSize">Maximum Batch Size</span>
+                <span data-i18n-key="maximumBatchSize">${t("maximumBatchSize")}</span>
                 </label>
                 <input type="number" id="randomBatchMax" min="1" max="1000" value="${DEFAULT_SETTINGS.randomBatchMax}" class="wplace-settings-number-input">
               </div>
             </div>
-          <p class="wplace-random-batch-description" data-i18n-key="randomBatchDescription">\u{1F3B2} Random batch size between min and max values</p>
+          <p class="wplace-random-batch-description" data-i18n-key="randomBatchDescription">${t("randomBatchDescription")}</p>
           </div>
           
           <!-- Speed Control Toggle -->
@@ -842,22 +838,22 @@
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-route wplace-icon-route"></i>
-          <span data-i18n-key="coordinateGeneration">Coordinate Generation</span>
+          <span data-i18n-key="coordinateGeneration">${t("coordinateGeneration")}</span>
           </label>
           
           <!-- Mode Selection -->
           <div class="wplace-mode-selection">
             <label class="wplace-mode-label">
               <i class="fas fa-th wplace-icon-table"></i>
-            <span data-i18n-key="generationMode">Generation Mode</span>
+            <span data-i18n-key="generationMode">${t("generationMode")}</span>
             </label>
             <select id="coordinateModeSelect" class="wplace-settings-select">
             <option value="rows" data-i18n-key="modeRows" class="wplace-settings-option">${t("modeRows")}</option>
-            <option value="columns" data-i18n-key="modeColumns" class="wplace-settings-option">\u{1F4D0} Columns (Vertical Lines)</option>
-            <option value="circle-out" data-i18n-key="modeCircleOut" class="wplace-settings-option">\u2B55 Circle Out (Center \u2192 Edges)</option>
-            <option value="circle-in" data-i18n-key="modeCircleIn" class="wplace-settings-option">\u2B55 Circle In (Edges \u2192 Center)</option>
-            <option value="blocks" data-i18n-key="modeBlocks" class="wplace-settings-option">\u{1F7EB} Blocks (Ordered)</option>
-            <option value="shuffle-blocks" data-i18n-key="modeShuffleBlocks" class="wplace-settings-option">\u{1F3B2} Shuffle Blocks (Random)</option>
+            <option value="columns" data-i18n-key="modeColumns" class="wplace-settings-option">${t("modeColumns")}</option>
+            <option value="circle-out" data-i18n-key="modeCircleOut" class="wplace-settings-option">${t("modeCircleOut")}</option>
+            <option value="circle-in" data-i18n-key="modeCircleIn" class="wplace-settings-option">${t("modeCircleIn")}</option>
+            <option value="blocks" data-i18n-key="modeBlocks" class="wplace-settings-option">${t("modeBlocks")}</option>
+            <option value="shuffle-blocks" data-i18n-key="modeShuffleBlocks" class="wplace-settings-option">${t("modeShuffleBlocks")}</option>
             </select>
           </div>
           
@@ -879,8 +875,8 @@
           <div id="snakeControls" class="wplace-snake-pattern-controls wplace-settings-section-wrapper">
             <label class="wplace-settings-toggle">
               <div>
-              <span class="wplace-settings-toggle-title" data-i18n-key="snakePattern">Snake Pattern</span>
-              <p class="wplace-settings-toggle-description" data-i18n-key="snakePatternDescription">Alternate direction for each row/column (zigzag pattern)</p>
+              <span class="wplace-settings-toggle-title" data-i18n-key="snakePattern">${t("snakePattern")}</span>
+              <p class="wplace-settings-toggle-description" data-i18n-key="snakePatternDescription">${t("snakePatternDescription")}</p>
               </div>
             <input type="checkbox" id="coordinateSnakeToggle" ${DEFAULT_SETTINGS.coordinateSnake ? "checked" : ""} class="wplace-settings-checkbox"/>
             </label>
@@ -892,19 +888,19 @@
               <div>
                 <label class="wplace-block-size-label">
                   <i class="fas fa-arrows-alt-h wplace-icon-width"></i>
-                <span data-i18n-key="blockWidth">Block Width</span>
+                <span data-i18n-key="blockWidth">${t("blockWidth")}</span>
                 </label>
                 <input type="number" id="blockWidthInput" min="1" max="50" value="6" class="wplace-settings-number-input">
               </div>
               <div>
                 <label style="display: block; color: rgba(255,255,255,0.8); font-size: 12px; margin-bottom: 8px;">
                   <i class="fas fa-arrows-alt-v wplace-icon-height"></i>
-                <span data-i18n-key="blockHeight">Block Height</span>
+                <span data-i18n-key="blockHeight">${t("blockHeight")}</span>
                 </label>
                 <input type="number" id="blockHeightInput" min="1" max="50" value="2" class="wplace-settings-number-input">
               </div>
             </div>
-          <p class="wplace-block-size-description" data-i18n-key="blockSizeDescription">\u{1F9F1} Block dimensions for block-based generation modes</p>
+          <p class="wplace-block-size-description" data-i18n-key="blockSizeDescription">${t("blockSizeDescription")}</p>
           </div>
         </div>
         
@@ -912,7 +908,7 @@
         <div class="wplace-settings-section">
           <label class="wplace-settings-section-label">
             <i class="fas fa-bell wplace-icon-bell"></i>
-          <span data-i18n-key="desktopNotifications">Desktop Notifications</span>
+          <span data-i18n-key="desktopNotifications">${t("desktopNotifications")}</span>
           </label>
           <div class="wplace-settings-section-wrapper wplace-notifications-wrapper">
             <label class="wplace-notification-toggle">
@@ -1314,12 +1310,12 @@
         <button id="zoomFitBtn" class="wplace-btn resize-zoom-btn" title="${t(
       "fitToView"
     )}" data-i18n-key="fitToView" data-i18n-attr="title">
-          ${t("fit")}
+          ${t("fitToView")}
         </button>
         <button id="zoomActualBtn" class="wplace-btn resize-zoom-btn" title="${t(
       "actualSize"
     )}" data-i18n-key="actualSize" data-i18n-attr="title">
-          ${t("hundred")}
+          ${t("actualSize")}
         </button>
         <button id="panModeBtn" class="wplace-btn resize-zoom-btn" title="${t(
       "panMode"
@@ -1368,8 +1364,8 @@
             <button id="maskModeToggle" class="wplace-btn wplace-btn-primary resize-mode-btn">Toggle</button>
           </div>
         </div>
-        <button id="clearIgnoredBtn" class="wplace-btn resize-clear-btn" title="Clear all ignored pixels" data-i18n-key="clearAllIgnored" data-i18n-attr="title">Clear</button>
-        <button id="invertMaskBtn" class="wplace-btn resize-invert-btn" title="Invert mask" data-i18n-key="invertMask" data-i18n-attr="title">Invert</button>
+        <button id="clearIgnoredBtn" class="wplace-btn resize-clear-btn" title="Clear all ignored pixels" data-i18n-key="clearAllIgnored" data-i18n-attr="title">${t("clearAllIgnored")}</button>
+        <button id="invertMaskBtn" class="wplace-btn resize-invert-btn" title="Invert mask" data-i18n-key="invertMask" data-i18n-attr="title">${t("invertMask")}</button>
         <span class="resize-shortcut-help">Shift = Row \u2022 Alt = Column</span>
       </div>
     </div>
@@ -1386,9 +1382,9 @@
           </label>
         </div>
         <div class="wplace-row" style="display: flex;">
-          <button id="selectAllBtn" class="wplace-btn" style="flex: 1;" data-i18n-key="selectAll">Select All</button>
-          <button id="unselectAllBtn" class="wplace-btn" style="flex: 1;" data-i18n-key="unselectAll">Unselect All</button>
-          <button id="unselectPaidBtn" class="wplace-btn" data-i18n-key="unselectPaid">Unselect Paid</button>
+          <button id="selectAllBtn" class="wplace-btn" style="flex: 1;" data-i18n-key="selectAll">${t("selectAll")}</button>
+          <button id="unselectAllBtn" class="wplace-btn" style="flex: 1;" data-i18n-key="unselectAll">${t("unselectAll")}</button>
+          <button id="unselectPaidBtn" class="wplace-btn" data-i18n-key="unselectPaid">${t("unselectPaid")}</button>
         </div>
         <div id="colors-container" class="wplace-color-grid"></div>
       </div>
@@ -1402,8 +1398,8 @@
         <label class="resize-advanced-label">
           <span class="resize-advanced-label-text">Algorithm</span>
           <select id="colorAlgorithmSelect" class="resize-advanced-select">
-            <option value="lab" ${state.colorMatchingAlgorithm === "lab" ? "selected" : ""} data-i18n-key="perceptualLab">Perceptual (Lab)</option>
-            <option value="legacy" ${state.colorMatchingAlgorithm === "legacy" ? "selected" : ""} data-i18n-key="legacyRgb">Legacy (RGB)</option>
+            <option value="lab" ${state.colorMatchingAlgorithm === "lab" ? "selected" : ""} data-i18n-key="perceptualLab">${t("perceptualLab")}</option>
+            <option value="legacy" ${state.colorMatchingAlgorithm === "legacy" ? "selected" : ""} data-i18n-key="legacyRgb">${t("legacyRgb")}</option>
           </select>
         </label>
         <label class="resize-advanced-toggle">
@@ -1437,7 +1433,7 @@
             <input type="number" id="whiteThresholdInput" min="200" max="255" value="${state.customWhiteThreshold}" class="resize-threshold-input" />
           </label>
         </div>
-        <button id="resetAdvancedColorBtn" class="wplace-btn resize-reset-advanced-btn" data-i18n-key="resetAdvanced">Reset Advanced</button>
+        <button id="resetAdvancedColorBtn" class="wplace-btn resize-reset-advanced-btn" data-i18n-key="resetAdvanced">${t("resetAdvanced")}</button>
       </div>
     </div>
 
