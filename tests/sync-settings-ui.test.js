@@ -5,10 +5,8 @@ import { createSettingsContainer } from '../src/js/ui/components/create-settings
 import { createResizeContainer } from '../src/js/ui/components/create-resize.js';
 import { updateCoordinateUI } from '../src/js/ui/coordinate-ui.js';
 import { cloneDeep } from 'lodash';
+import { handleCoordinateModeChange } from '../src/js/ui/handlers/settings/coordinate-handler.js';
 
-vi.mock('../src/js/ui/coordinate-ui.js', () => ({
-  updateCoordinateUI: vi.fn(),
-}));
 const initialState = cloneDeep(state);
 beforeEach(() => {
   document.body.append(createSettingsContainer());
@@ -93,22 +91,16 @@ describe('syncSettingsUI', () => {
     });
 
     it('should call updateCoordinateUI on coordinateMode change', () => {
-      state.coordinateMode = 'circle-in';
-
       const container = document.getElementById('wplace-settings-container');
       const directionControls = container.querySelector('#directionControls');
       const snakeControls = container.querySelector('#snakeControls');
       const blockControls = container.querySelector('#blockControls');
 
-      syncSettingsUI();
+      handleCoordinateModeChange({ target: { value: 'circle-in' } });
 
-      expect(updateCoordinateUI).toHaveBeenCalled();
-      const call = updateCoordinateUI.mock.calls[0][0];
-
-      expect(call.mode).toBe('circle-in');
-      expect(call.directionControls).toBe(directionControls);
-      expect(call.snakeControls).toBe(snakeControls);
-      expect(call.blockControls).toBe(blockControls);
+      expect(directionControls.style.display).toBe('none');
+      expect(snakeControls.style.display).toBe('none');
+      expect(blockControls.style.display).toBe('none');
     });
   });
 

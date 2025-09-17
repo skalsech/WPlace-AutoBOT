@@ -2342,9 +2342,9 @@
     state.coordinateMode = e.target.value;
     updateCoordinateUI({
       mode: state.coordinateMode,
-      directionControls: document.getElementById("#directionControls"),
-      snakeControls: document.getElementById("#snakeControls"),
-      blockControls: document.getElementById("#blockControls")
+      directionControls: document.getElementById("directionControls"),
+      snakeControls: document.getElementById("snakeControls"),
+      blockControls: document.getElementById("blockControls")
     });
     saveBotSettings();
     console.log(`\u{1F504} Coordinate mode changed to: ${state.coordinateMode}`);
