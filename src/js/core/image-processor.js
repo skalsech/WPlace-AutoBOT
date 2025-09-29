@@ -1,4 +1,6 @@
 // IMAGE PROCESSOR CLASS
+import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
+
 export class ImageProcessor {
   constructor(imageSrc) {
     this.imageSrc = imageSrc;
@@ -35,34 +37,28 @@ export class ImageProcessor {
     return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height).data;
   }
 
-  resize(newWidth, newHeight) {
-    const tempCanvas = document.createElement('canvas');
-    const tempCtx = tempCanvas.getContext('2d');
+  /**
+   * Counts color frequency in the uploaded art.
+   * Transparent pixels (a=0) are skipped if shouldSkipTransparent is true,
+   * otherwise replaced with APP_CONSTANTS.COLOR_MAP['0'].rgb.
+   * @param {boolean} shouldSkipTransparent - Whether to skip or replace transparent pixels.
+   * @returns {Record<string, number>} RGB color string (e.g., "255,255,255") → pixel count.
+   */
+  countColors(shouldSkipTransparent) {
+    const data = this.getPixelData();
+    const colorCounts = {};
+    const defaceColorObj = APP_CONSTANTS.COLOR_MAP['0'].rgb;
+    const defaceTransparentColor = [defaceColorObj.r, defaceColorObj.g, defaceColorObj.b].join(',');
 
-    tempCanvas.width = newWidth;
-    tempCanvas.height = newHeight;
+    for (let i = 0; i < data.length; i += 4) {
+      const [r, g, b, a] = data.slice(i, i + 4);
 
-    tempCtx.imageSmoothingEnabled = false;
-    tempCtx.drawImage(this.canvas, 0, 0, newWidth, newHeight);
+      if (a === 0 && shouldSkipTransparent) continue;
+      const key = a === 0 ? defaceTransparentColor : `${r},${g},${b}`;
 
-    this.canvas.width = newWidth;
-    this.canvas.height = newHeight;
-    this.ctx.imageSmoothingEnabled = false;
-    this.ctx.drawImage(tempCanvas, 0, 0);
+      colorCounts[key] = (colorCounts[key] || 0) + 1;
+    }
 
-    return this.ctx.getImageData(0, 0, newWidth, newHeight).data;
-  }
-
-  generatePreview(width, height) {
-    const previewCanvas = document.createElement('canvas');
-    const previewCtx = previewCanvas.getContext('2d');
-
-    previewCanvas.width = width;
-    previewCanvas.height = height;
-
-    previewCtx.imageSmoothingEnabled = false;
-    previewCtx.drawImage(this.img, 0, 0, width, height);
-
-    return previewCanvas.toDataURL();
+    return colorCounts;
   }
 }

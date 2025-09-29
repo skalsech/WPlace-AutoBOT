@@ -132,6 +132,7 @@ export function restoreProgress(savedData) {
         proc.canvas = canvas;
         proc.ctx = ctx;
         state.imageData.processor = proc;
+        state.artColorFrequency = proc.countColors(!state.paintTransparentPixels);
       } catch (e) {
         console.warn('Could not rebuild processor from saved image data:', e);
       }

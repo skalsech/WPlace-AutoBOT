@@ -58,20 +58,15 @@ export async function handleUploadClick() {
 
     const { width, height } = processor.getDimensions();
     const pixels = processor.getPixelData();
-
-    let totalValidPixels = 0;
-    for (let i = 0; i < pixels.length; i += 4) {
-      const shouldSkipTransparent =
-        !state.paintTransparentPixels && isTransparentPixel(pixels[i + 3]);
-      const shouldSkipWhite =
-        !state.paintWhitePixels && isWhitePixel(pixels[i], pixels[i + 1], pixels[i + 2]);
-      if (!shouldSkipTransparent && !shouldSkipWhite) {
-        totalValidPixels++;
-      }
-    }
+    const artColorFrequency = processor.countColors(!state.paintTransparentPixels);
+    const totalValidPixels = Object.values(artColorFrequency).reduce(
+      (sum, count) => sum + count,
+      0
+    );
 
     state.imageData = { width, height, pixels, totalPixels: totalValidPixels, processor };
     state.artTotalPixels = totalValidPixels;
+    state.artColorFrequency = artColorFrequency;
     state.userPaintedPixels = 0;
 
     state.resizeSettings = null;

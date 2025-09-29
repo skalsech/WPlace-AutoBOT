@@ -4,7 +4,7 @@ import { sendBatchWithRetry } from './pixel-batch.js';
 import { performSmartSave } from './auto-save.js';
 import { dynamicSleep, sleep } from '../utils/helpers.js';
 import {
-  findClosestPaletteColor,
+  findClosestColor,
   isTransparentPixel,
   isWhitePixel,
   resolveColor,
@@ -110,7 +110,7 @@ export async function processImage() {
     // Example: template requires "Slate", but we only have "Dark Gray" available
     //
     // If `state.paintUnavailablePixels` is enabled, null will be returned
-    // because "Slate" was not found.
+    // because "Slate" was not found in `availableColors`
     // → mappedTargetColor = null.
     //
     // Else, the template "Slate" is mapped to the closest available color (e.g., "Dark Gray"),
@@ -126,7 +126,7 @@ export async function processImage() {
       mappedTargetColor = APP_CONSTANTS.COLOR_MAP['0'];
     } else {
       mappedTargetColor = resolveColor(
-        findClosestPaletteColor(r, g, b, state.activeColorPalette),
+        findClosestColor(r, g, b, state.activeColorPalette),
         state.availableColors,
         !state.paintUnavailablePixels
       );

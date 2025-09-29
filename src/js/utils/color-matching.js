@@ -9,6 +9,39 @@ export const colorDistance = (a, b) => {
   Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
 };
 
+function calculateLegacyDistance(target, color) {
+  const [r, g, b] = target;
+  const [pr, pg, pb] = color;
+  const rmean = (pr + r) / 2;
+  const rdiff = pr - r;
+  const gdiff = pg - g;
+  const bdiff = pb - b;
+  return Math.sqrt(
+    (((512 + rmean) * rdiff * rdiff) >> 8) +
+      4 * gdiff * gdiff +
+      (((767 - rmean) * bdiff * bdiff) >> 8)
+  );
+}
+
+function calculateLabDistance(targetLab, colorLab, state) {
+  const [Lt, at, bt] = targetLab;
+  const [Lp, ap, bp] = colorLab;
+  const dL = Lt - Lp,
+    da = at - ap,
+    db = bt - bp;
+  let dist = dL * dL + da * da + db * db;
+
+  if (state.enableChromaPenalty) {
+    const targetChroma = Math.sqrt(at * at + bt * bt);
+    const candChroma = Math.sqrt(ap * ap + bp * bp);
+    if (targetChroma > 20 && candChroma < targetChroma) {
+      const chromaDiff = targetChroma - candChroma;
+      dist += chromaDiff * chromaDiff * state.chromaPenaltyWeight;
+    }
+  }
+  return dist;
+}
+
 export function _rgbToLab(r, g, b) {
   // sRGB -> linear
   const srgbToLinear = (v) => {
@@ -44,9 +77,29 @@ export function _lab(r, g, b) {
   return v;
 }
 
-export function findClosestPaletteColor(r, g, b, palette) {
-  if (!palette || palette.length === 0) {
-    palette = Object.values(APP_CONSTANTS.COLOR_MAP)
+/**
+ * Finds the color from the given list that is closest to the target color (r, g, b)
+ * using CIE Lab color space distance (with optional chroma penalty).
+ * If no colors list is provided, falls back to the application's default color set
+ * defined in APP_CONSTANTS.COLOR_MAP (filtered for valid RGB entries).
+ *
+ * @param {number} r - Red component (0-255)
+ * @param {number} g - Green component (0-255)
+ * @param {number} b - Blue component (0-255)
+ * @param {Array<Array<number>>} [colors] - Optional array of [r, g, b] color triplets.
+ *   If omitted or empty, uses default colors from APP_CONSTANTS.COLOR_MAP.
+ * @returns {Array<number>} [r, g, b, 255] of the closest color
+ *
+ * @example
+ * // Uses default app colors
+ * findClosestColor(255, 100, 50); // → picks from APP_CONSTANTS.COLOR_MAP
+ *
+ * // Uses custom list
+ * findClosestColor(255, 100, 50, [[255,0,0], [0,255,0], [0,0,255]]);
+ */
+export function findClosestColor(r, g, b, colors) {
+  if (!colors || colors.length === 0) {
+    colors = Object.values(APP_CONSTANTS.COLOR_MAP)
       .filter((c) => c.rgb)
       .map((c) => [c.rgb.r, c.rgb.g, c.rgb.b]);
   }
@@ -54,17 +107,9 @@ export function findClosestPaletteColor(r, g, b, palette) {
   if (state.colorMatchingAlgorithm === 'legacy') {
     let menorDist = Infinity;
     let cor = [0, 0, 0, 255];
-    for (let i = 0; i < palette.length; i++) {
-      const [pr, pg, pb] = palette[i];
-      const rmean = (pr + r) / 2;
-      const rdiff = pr - r;
-      const gdiff = pg - g;
-      const bdiff = pb - b;
-      const dist = Math.sqrt(
-        (((512 + rmean) * rdiff * rdiff) >> 8) +
-          4 * gdiff * gdiff +
-          (((767 - rmean) * bdiff * bdiff) >> 8)
-      );
+    for (let i = 0; i < colors.length; i++) {
+      const [pr, pg, pb] = colors[i];
+      const dist = calculateLegacyDistance([r, g, b], [pr, pg, pb]);
       if (dist < menorDist) {
         menorDist = dist;
         cor = [pr, pg, pb, 255];
@@ -74,24 +119,13 @@ export function findClosestPaletteColor(r, g, b, palette) {
   }
 
   // LAB algorithm
-  const [Lt, at, bt] = _lab(r, g, b);
-  const targetChroma = Math.sqrt(at * at + bt * bt);
   let best = null;
   let bestDist = Infinity;
-  for (let i = 0; i < palette.length; i++) {
-    const [pr, pg, pb] = palette[i];
-    const [Lp, ap, bp] = _lab(pr, pg, pb);
-    const dL = Lt - Lp;
-    const da = at - ap;
-    const db = bt - bp;
-    let dist = dL * dL + da * da + db * db;
-    if (state.enableChromaPenalty && targetChroma > 20) {
-      const candChroma = Math.sqrt(ap * ap + bp * bp);
-      if (candChroma < targetChroma) {
-        const chromaDiff = targetChroma - candChroma;
-        dist += chromaDiff * chromaDiff * state.chromaPenaltyWeight;
-      }
-    }
+  for (let i = 0; i < colors.length; i++) {
+    const [pr, pg, pb] = colors[i];
+    const targetLab = _lab(r, g, b);
+    const colorLab = _lab(pr, pg, pb);
+    const dist = calculateLabDistance(targetLab, colorLab, state);
     if (dist < bestDist) {
       bestDist = dist;
       best = [pr, pg, pb, 255];
@@ -221,16 +255,7 @@ export function resolveColor(targetRgba, availableColors, exactMatch = false) {
   if (state.colorMatchingAlgorithm === 'legacy') {
     for (let i = 0; i < availableColors.length; i++) {
       const c = availableColors[i];
-      const [r, g, b] = c.rgb;
-      const rmean = (r + targetRgb[0]) / 2;
-      const rdiff = r - targetRgb[0];
-      const gdiff = g - targetRgb[1];
-      const bdiff = b - targetRgb[2];
-      const dist = Math.sqrt(
-        (((512 + rmean) * rdiff * rdiff) >> 8) +
-          4 * gdiff * gdiff +
-          (((767 - rmean) * bdiff * bdiff) >> 8)
-      );
+      const dist = calculateLegacyDistance(c.rgb, [...c.rgb]);
       if (dist < bestScore) {
         bestScore = dist;
         bestId = c.id;
@@ -239,26 +264,12 @@ export function resolveColor(targetRgba, availableColors, exactMatch = false) {
       }
     }
   } else {
-    const [Lt, at, bt] = _lab(targetRgb[0], targetRgb[1], targetRgb[2]);
-    const targetChroma = Math.sqrt(at * at + bt * bt);
-    const penaltyWeight = state.enableChromaPenalty ? state.chromaPenaltyWeight || 0.15 : 0;
-
     for (let i = 0; i < availableColors.length; i++) {
       const c = availableColors[i];
       const [r, g, b] = c.rgb;
-      const [L2, a2, b2] = _lab(r, g, b);
-      const dL = Lt - L2,
-        da = at - a2,
-        db = bt - b2;
-      let dist = dL * dL + da * da + db * db;
-
-      if (penaltyWeight > 0 && targetChroma > 20) {
-        const candChroma = Math.sqrt(a2 * a2 + b2 * b2);
-        if (candChroma < targetChroma) {
-          const cd = targetChroma - candChroma;
-          dist += cd * cd * penaltyWeight;
-        }
-      }
+      const targetLab = _lab(targetRgb[0], targetRgb[1], targetRgb[2]);
+      const colorLab = _lab(r, g, b);
+      const dist = calculateLabDistance(targetLab, colorLab, state);
 
       if (dist < bestScore) {
         bestScore = dist;

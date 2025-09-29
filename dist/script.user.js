@@ -161,6 +161,7 @@
     running: false,
     processing: false,
     artTotalPixels: 0,
+    artColorFrequency: {},
     totalPaintedPixels: 0,
     userPaintedPixels: 0,
     availableColors: [],
@@ -1708,27 +1709,25 @@
     getPixelData() {
       return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height).data;
     }
-    resize(newWidth, newHeight) {
-      const tempCanvas = document.createElement("canvas");
-      const tempCtx = tempCanvas.getContext("2d");
-      tempCanvas.width = newWidth;
-      tempCanvas.height = newHeight;
-      tempCtx.imageSmoothingEnabled = false;
-      tempCtx.drawImage(this.canvas, 0, 0, newWidth, newHeight);
-      this.canvas.width = newWidth;
-      this.canvas.height = newHeight;
-      this.ctx.imageSmoothingEnabled = false;
-      this.ctx.drawImage(tempCanvas, 0, 0);
-      return this.ctx.getImageData(0, 0, newWidth, newHeight).data;
-    }
-    generatePreview(width, height) {
-      const previewCanvas = document.createElement("canvas");
-      const previewCtx = previewCanvas.getContext("2d");
-      previewCanvas.width = width;
-      previewCanvas.height = height;
-      previewCtx.imageSmoothingEnabled = false;
-      previewCtx.drawImage(this.img, 0, 0, width, height);
-      return previewCanvas.toDataURL();
+    /**
+     * Counts color frequency in the uploaded art.
+     * Transparent pixels (a=0) are skipped if shouldSkipTransparent is true,
+     * otherwise replaced with APP_CONSTANTS.COLOR_MAP['0'].rgb.
+     * @param {boolean} shouldSkipTransparent - Whether to skip or replace transparent pixels.
+     * @returns {Record<string, number>} RGB color string (e.g., "255,255,255") → pixel count.
+     */
+    countColors(shouldSkipTransparent) {
+      const data = this.getPixelData();
+      const colorCounts = {};
+      const defaceColorObj = APP_CONSTANTS.COLOR_MAP["0"].rgb;
+      const defaceTransparentColor = [defaceColorObj.r, defaceColorObj.g, defaceColorObj.b].join(",");
+      for (let i = 0; i < data.length; i += 4) {
+        const [r, g, b, a] = data.slice(i, i + 4);
+        if (a === 0 && shouldSkipTransparent) continue;
+        const key = a === 0 ? defaceTransparentColor : `${r},${g},${b}`;
+        colorCounts[key] = (colorCounts[key] || 0) + 1;
+      }
+      return colorCounts;
     }
   };
 
@@ -1943,6 +1942,7 @@
           proc.canvas = canvas;
           proc.ctx = ctx;
           state.imageData.processor = proc;
+          state.artColorFrequency = proc.countColors(!state.paintTransparentPixels);
         } catch (e) {
           console.warn("Could not rebuild processor from saved image data:", e);
         }
@@ -2118,6 +2118,32 @@
   // src/js/utils/color-matching.js
   var _labCache = /* @__PURE__ */ new Map();
   var colorCache = /* @__PURE__ */ new Map();
+  function calculateLegacyDistance(target, color) {
+    const [r, g, b] = target;
+    const [pr, pg, pb] = color;
+    const rmean = (pr + r) / 2;
+    const rdiff = pr - r;
+    const gdiff = pg - g;
+    const bdiff = pb - b;
+    return Math.sqrt(
+      ((512 + rmean) * rdiff * rdiff >> 8) + 4 * gdiff * gdiff + ((767 - rmean) * bdiff * bdiff >> 8)
+    );
+  }
+  function calculateLabDistance(targetLab, colorLab, state2) {
+    const [Lt, at, bt] = targetLab;
+    const [Lp, ap, bp] = colorLab;
+    const dL = Lt - Lp, da = at - ap, db = bt - bp;
+    let dist = dL * dL + da * da + db * db;
+    if (state2.enableChromaPenalty) {
+      const targetChroma = Math.sqrt(at * at + bt * bt);
+      const candChroma = Math.sqrt(ap * ap + bp * bp);
+      if (targetChroma > 20 && candChroma < targetChroma) {
+        const chromaDiff = targetChroma - candChroma;
+        dist += chromaDiff * chromaDiff * state2.chromaPenaltyWeight;
+      }
+    }
+    return dist;
+  }
   function _rgbToLab(r, g, b) {
     const srgbToLinear = (v) => {
       v /= 255;
@@ -2148,22 +2174,16 @@
     }
     return v;
   }
-  function findClosestPaletteColor(r, g, b, palette) {
-    if (!palette || palette.length === 0) {
-      palette = Object.values(APP_CONSTANTS.COLOR_MAP).filter((c) => c.rgb).map((c) => [c.rgb.r, c.rgb.g, c.rgb.b]);
+  function findClosestColor(r, g, b, colors) {
+    if (!colors || colors.length === 0) {
+      colors = Object.values(APP_CONSTANTS.COLOR_MAP).filter((c) => c.rgb).map((c) => [c.rgb.r, c.rgb.g, c.rgb.b]);
     }
     if (state.colorMatchingAlgorithm === "legacy") {
       let menorDist = Infinity;
       let cor = [0, 0, 0, 255];
-      for (let i = 0; i < palette.length; i++) {
-        const [pr, pg, pb] = palette[i];
-        const rmean = (pr + r) / 2;
-        const rdiff = pr - r;
-        const gdiff = pg - g;
-        const bdiff = pb - b;
-        const dist = Math.sqrt(
-          ((512 + rmean) * rdiff * rdiff >> 8) + 4 * gdiff * gdiff + ((767 - rmean) * bdiff * bdiff >> 8)
-        );
+      for (let i = 0; i < colors.length; i++) {
+        const [pr, pg, pb] = colors[i];
+        const dist = calculateLegacyDistance([r, g, b], [pr, pg, pb]);
         if (dist < menorDist) {
           menorDist = dist;
           cor = [pr, pg, pb, 255];
@@ -2171,24 +2191,13 @@
       }
       return cor;
     }
-    const [Lt, at, bt] = _lab(r, g, b);
-    const targetChroma = Math.sqrt(at * at + bt * bt);
     let best = null;
     let bestDist = Infinity;
-    for (let i = 0; i < palette.length; i++) {
-      const [pr, pg, pb] = palette[i];
-      const [Lp, ap, bp] = _lab(pr, pg, pb);
-      const dL = Lt - Lp;
-      const da = at - ap;
-      const db = bt - bp;
-      let dist = dL * dL + da * da + db * db;
-      if (state.enableChromaPenalty && targetChroma > 20) {
-        const candChroma = Math.sqrt(ap * ap + bp * bp);
-        if (candChroma < targetChroma) {
-          const chromaDiff = targetChroma - candChroma;
-          dist += chromaDiff * chromaDiff * state.chromaPenaltyWeight;
-        }
-      }
+    for (let i = 0; i < colors.length; i++) {
+      const [pr, pg, pb] = colors[i];
+      const targetLab = _lab(r, g, b);
+      const colorLab = _lab(pr, pg, pb);
+      const dist = calculateLabDistance(targetLab, colorLab, state);
       if (dist < bestDist) {
         bestDist = dist;
         best = [pr, pg, pb, 255];
@@ -2279,14 +2288,7 @@
     if (state.colorMatchingAlgorithm === "legacy") {
       for (let i = 0; i < availableColors.length; i++) {
         const c = availableColors[i];
-        const [r, g, b] = c.rgb;
-        const rmean = (r + targetRgb[0]) / 2;
-        const rdiff = r - targetRgb[0];
-        const gdiff = g - targetRgb[1];
-        const bdiff = b - targetRgb[2];
-        const dist = Math.sqrt(
-          ((512 + rmean) * rdiff * rdiff >> 8) + 4 * gdiff * gdiff + ((767 - rmean) * bdiff * bdiff >> 8)
-        );
+        const dist = calculateLegacyDistance(c.rgb, [...c.rgb]);
         if (dist < bestScore) {
           bestScore = dist;
           bestId = c.id;
@@ -2295,22 +2297,12 @@
         }
       }
     } else {
-      const [Lt, at, bt] = _lab(targetRgb[0], targetRgb[1], targetRgb[2]);
-      const targetChroma = Math.sqrt(at * at + bt * bt);
-      const penaltyWeight = state.enableChromaPenalty ? state.chromaPenaltyWeight || 0.15 : 0;
       for (let i = 0; i < availableColors.length; i++) {
         const c = availableColors[i];
         const [r, g, b] = c.rgb;
-        const [L2, a2, b2] = _lab(r, g, b);
-        const dL = Lt - L2, da = at - a2, db = bt - b2;
-        let dist = dL * dL + da * da + db * db;
-        if (penaltyWeight > 0 && targetChroma > 20) {
-          const candChroma = Math.sqrt(a2 * a2 + b2 * b2);
-          if (candChroma < targetChroma) {
-            const cd = targetChroma - candChroma;
-            dist += cd * cd * penaltyWeight;
-          }
-        }
+        const targetLab = _lab(targetRgb[0], targetRgb[1], targetRgb[2]);
+        const colorLab = _lab(r, g, b);
+        const dist = calculateLabDistance(targetLab, colorLab, state);
         if (dist < bestScore) {
           bestScore = dist;
           bestId = c.id;
@@ -3223,16 +3215,14 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
       await processor.load();
       const { width, height } = processor.getDimensions();
       const pixels = processor.getPixelData();
-      let totalValidPixels = 0;
-      for (let i = 0; i < pixels.length; i += 4) {
-        const shouldSkipTransparent = !state.paintTransparentPixels && isTransparentPixel(pixels[i + 3]);
-        const shouldSkipWhite = !state.paintWhitePixels && isWhitePixel(pixels[i], pixels[i + 1], pixels[i + 2]);
-        if (!shouldSkipTransparent && !shouldSkipWhite) {
-          totalValidPixels++;
-        }
-      }
+      const artColorFrequency = processor.countColors(!state.paintTransparentPixels);
+      const totalValidPixels = Object.values(artColorFrequency).reduce(
+        (sum, count) => sum + count,
+        0
+      );
       state.imageData = { width, height, pixels, totalPixels: totalValidPixels, processor };
       state.artTotalPixels = totalValidPixels;
+      state.artColorFrequency = artColorFrequency;
       state.userPaintedPixels = 0;
       state.resizeSettings = null;
       state.resizeIgnoreMask = null;
@@ -3411,7 +3401,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
     input,
     state: state2,
     mask,
-    findClosestPaletteColor: findClosestPaletteColor2,
+    findClosestColor: findClosestColor2,
     isTransparentPixel: isTransparentPixel2,
     isWhitePixel: isWhitePixel2,
     ensureBuffers,
@@ -3462,7 +3452,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
         const r0 = work[base];
         const g0 = work[base + 1];
         const b0 = work[base + 2];
-        const [nr, ng, nb] = findClosestPaletteColor2(r0, g0, b0, state2.activeColorPalette);
+        const [nr, ng, nb] = findClosestColor2(r0, g0, b0, state2.activeColorPalette);
         const i4 = idx * 4;
         data[i4] = nr;
         data[i4 + 1] = ng;
@@ -4178,7 +4168,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
     heightValue: heightValue2,
     ensureMaskSize,
     applyFloydSteinbergPreview: applyFloydSteinbergPreview2,
-    findClosestPaletteColor: findClosestPaletteColor2,
+    findClosestColor: findClosestColor2,
     isTransparentPixel: isTransparentPixel2,
     isWhitePixel: isWhitePixel2,
     ensureDitherBuffers,
@@ -4220,7 +4210,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
         applyFloydSteinbergPreview2({
           imageData: imgData,
           state: state2,
-          findClosestPaletteColor: findClosestPaletteColor2,
+          findClosestColor: findClosestColor2,
           isTransparentPixel: isTransparentPixel2,
           isWhitePixel: isWhitePixel2,
           ensureDitherBuffers
@@ -4235,7 +4225,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
           if (!state2.paintTransparentPixels && isTransparentPixel2(a) || !state2.paintWhitePixels && isWhitePixel2(r, g, b)) {
             data[i + 3] = 0;
           } else {
-            const [nr, ng, nb] = findClosestPaletteColor2(r, g, b, state2.activeColorPalette);
+            const [nr, ng, nb] = findClosestColor2(r, g, b, state2.activeColorPalette);
             data[i] = nr;
             data[i + 1] = ng;
             data[i + 2] = nb;
@@ -4554,7 +4544,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
       heightValue,
       ensureMaskSize: (w, h) => maskOverlay.ensureMaskSize(w, h),
       applyFloydSteinbergPreview,
-      findClosestPaletteColor,
+      findClosestColor,
       isTransparentPixel,
       isWhitePixel,
       ensureDitherBuffers: (n) => ditherBuffers.ensure(n),
@@ -4703,7 +4693,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
           height: newHeight,
           state,
           mask,
-          findClosestPaletteColor,
+          findClosestColor,
           isTransparentPixel,
           isWhitePixel,
           ensureDitherBuffers: (n) => ditherBuffers.ensure(n)
@@ -4720,7 +4710,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
             continue;
           }
           totalValidPixels++;
-          const [nr, ng, nb] = findClosestPaletteColor(r, g, b, state.activeColorPalette);
+          const [nr, ng, nb] = findClosestColor(r, g, b, state.activeColorPalette);
           data[i] = nr;
           data[i + 1] = ng;
           data[i + 2] = nb;
@@ -6245,7 +6235,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
         mappedTargetColor = APP_CONSTANTS.COLOR_MAP["0"];
       } else {
         mappedTargetColor = resolveColor(
-          findClosestPaletteColor(r, g, b, state.activeColorPalette),
+          findClosestColor(r, g, b, state.activeColorPalette),
           state.availableColors,
           !state.paintUnavailablePixels
         );

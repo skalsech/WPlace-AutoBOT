@@ -37,7 +37,7 @@ export function createDitherBuffers() {
  * @param {boolean} state.paintWhitePixels
  * @param {number[][]} state.activeColorPalette
  * @param {Uint8Array|null} mask - optional mask (for final only)
- * @param {Function} findClosestPaletteColor
+ * @param {Function} findClosestColor
  * @param {Function} isTransparentPixel
  * @param {Function} isWhitePixel
  * @param {(numPixels: number) => DitherBuffers} ensureBuffers
@@ -48,7 +48,7 @@ async function applyFloydSteinbergCore({
   input,
   state,
   mask,
-  findClosestPaletteColor,
+  findClosestColor,
   isTransparentPixel,
   isWhitePixel,
   ensureBuffers,
@@ -113,7 +113,7 @@ async function applyFloydSteinbergCore({
       const r0 = work[base];
       const g0 = work[base + 1];
       const b0 = work[base + 2];
-      const [nr, ng, nb] = findClosestPaletteColor(r0, g0, b0, state.activeColorPalette);
+      const [nr, ng, nb] = findClosestColor(r0, g0, b0, state.activeColorPalette);
       const i4 = idx * 4;
 
       data[i4] = nr;

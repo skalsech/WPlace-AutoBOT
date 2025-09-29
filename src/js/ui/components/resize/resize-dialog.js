@@ -1,7 +1,7 @@
 import { ImageProcessor } from '../../../core/image-processor.js';
 import { onColorSettingsChange, state } from '../../../core/state.js';
 import {
-  findClosestPaletteColor,
+  findClosestColor,
   invalidateColorCache,
   isTransparentPixel,
   isWhitePixel,
@@ -129,7 +129,7 @@ function showResizeDialog(processor, container, overlay) {
     heightValue,
     ensureMaskSize: (w, h) => maskOverlay.ensureMaskSize(w, h),
     applyFloydSteinbergPreview,
-    findClosestPaletteColor,
+    findClosestColor,
     isTransparentPixel,
     isWhitePixel,
     ensureDitherBuffers: (n) => ditherBuffers.ensure(n),
@@ -309,7 +309,7 @@ function showResizeDialog(processor, container, overlay) {
         height: newHeight,
         state,
         mask,
-        findClosestPaletteColor,
+        findClosestColor,
         isTransparentPixel,
         isWhitePixel,
         ensureDitherBuffers: (n) => ditherBuffers.ensure(n),
@@ -332,7 +332,7 @@ function showResizeDialog(processor, container, overlay) {
         }
 
         totalValidPixels++;
-        const [nr, ng, nb] = findClosestPaletteColor(r, g, b, state.activeColorPalette);
+        const [nr, ng, nb] = findClosestColor(r, g, b, state.activeColorPalette);
         data[i] = nr;
         data[i + 1] = ng;
         data[i + 2] = nb;

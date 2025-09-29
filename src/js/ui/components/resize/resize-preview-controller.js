@@ -17,7 +17,7 @@ export function createPreviewController({
   heightValue,
   ensureMaskSize,
   applyFloydSteinbergPreview,
-  findClosestPaletteColor,
+  findClosestColor,
   isTransparentPixel,
   isWhitePixel,
   ensureDitherBuffers,
@@ -74,7 +74,7 @@ export function createPreviewController({
       applyFloydSteinbergPreview({
         imageData: imgData,
         state,
-        findClosestPaletteColor,
+        findClosestColor,
         isTransparentPixel,
         isWhitePixel,
         ensureDitherBuffers,
@@ -93,7 +93,7 @@ export function createPreviewController({
         ) {
           data[i + 3] = 0;
         } else {
-          const [nr, ng, nb] = findClosestPaletteColor(r, g, b, state.activeColorPalette);
+          const [nr, ng, nb] = findClosestColor(r, g, b, state.activeColorPalette);
           data[i] = nr;
           data[i + 1] = ng;
           data[i + 2] = nb;
