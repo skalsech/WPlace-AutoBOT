@@ -1,5 +1,4 @@
 import { state } from '../core/state.js';
-import { getMsToTargetCharges } from './painting-helpers.js';
 
 export function formatTime(ms) {
   const seconds = Math.floor((ms / 1000) % 60);
@@ -16,7 +15,25 @@ export function formatTime(ms) {
   return result;
 }
 
-export function calculateEstimatedTime() {
-  const remainingPixels = state.artTotalPixels - state.userPaintedPixels;
-  return getMsToTargetCharges(state.preciseCurrentCharges, remainingPixels, state.cooldown);
+export function calculateEstimatedTime(
+  intervalMs = 0,
+  efficientAccountsCount = 1,
+  normalAccountsCount = 9
+) {
+  const totalAccounts = normalAccountsCount + efficientAccountsCount;
+
+  const remainingPixels =
+    state.artTotalPixels - state.currentPaintedPixels - state.preciseCurrentCharges * totalAccounts;
+
+  const efficiencyRatio = (normalAccountsCount + efficientAccountsCount * 0.9) / totalAccounts;
+  const totalChargeCost = efficiencyRatio * remainingPixels;
+
+  const result = (totalChargeCost * state.cooldown) / totalAccounts;
+
+  return Math.max(0, result - intervalMs);
+}
+
+export function getMsToTargetCharges(current, target, cooldown, intervalMs = 0) {
+  const remainingCharges = target - current;
+  return Math.max(0, remainingCharges * cooldown - intervalMs);
 }

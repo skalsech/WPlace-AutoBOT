@@ -21,28 +21,8 @@ export function setupFetchInterceptor() {
       const url = args[0] instanceof Request ? args[0].url : args[0];
 
       if (typeof url === 'string') {
-        // if (url.includes('https://backend.wplace.live/s0/pixel/')) {
-        //   try {
-        //     const payload = JSON.parse(args[1].body);
-        //     if (payload.t) {
-        //       console.log(
-        //         `🔍✅ Turnstile Token Captured - Type: ${typeof payload.t}, Value: ${
-        //           payload.t
-        //             ? typeof payload.t === 'string'
-        //               ? payload.t.length > 50
-        //                 ? payload.t.substring(0, 50) + '...'
-        //                 : payload.t
-        //               : JSON.stringify(payload.t)
-        //             : 'null/undefined'
-        //         }, Length: ${payload.t?.length || 0}`
-        //       );
-        //       window.postMessage({ source: 'turnstile-capture', token: payload.t }, '*');
-        //     }
-        //   } catch (_) {
-        //     /* ignore */
-        //   }
-        // }
-
+        // todo add timestamps, research how actual the saved map is, and
+        //  maybe add force tile load before painting
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('image/png') && url.includes('.png')) {
           const cloned = response.clone();

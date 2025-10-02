@@ -162,8 +162,8 @@
     processing: false,
     artTotalPixels: 0,
     artColorFrequency: {},
+    localPaintedOffset: 0,
     totalPaintedPixels: 0,
-    userPaintedPixels: 0,
     availableColors: [],
     activeColorPalette: [],
     // User-selected colors for conversion
@@ -198,6 +198,9 @@
     },
     get imageLoaded() {
       return !!this.imageData;
+    },
+    get currentPaintedPixels() {
+      return state.totalPaintedPixels + state.localPaintedOffset;
     },
     _eventEmitter: new EventEmitter(),
     update(updates) {
@@ -1932,15 +1935,29 @@
       return data;
     }
   }
+  function migrateProgressToV24(data) {
+    try {
+      const migrated = { ...data };
+      migrated.version = "2.4";
+      if (migrated.state) {
+        delete migrated.state.userPaintedPixels;
+        delete migrated.state.totalPaintedPixels;
+        delete migrated.state.availableColors;
+      }
+      return migrated;
+    } catch (e) {
+      console.warn("Migration to v2.4 failed, using original data:", e);
+      return data;
+    }
+  }
 
   // src/js/core/progress-manager.js
   function buildProgressData() {
     return {
       timestamp: Date.now(),
-      version: "2.3",
+      version: "2.4",
       state: {
         artTotalPixels: state.artTotalPixels,
-        userPaintedPixels: state.userPaintedPixels,
         startPosition: state.startPosition,
         region: state.region
       },
@@ -1967,6 +1984,9 @@
     }
     if (data.version === "2.2") {
       data = migrateProgressToV23(data);
+    }
+    if (data.version === "2.3") {
+      data = migrateProgressToV24(data);
     }
     return data;
   }
@@ -2053,11 +2073,33 @@
     }
   }
 
-  // src/js/utils/painting-helpers.js
+  // src/js/utils/time.js
+  function formatTime(ms) {
+    const seconds = Math.floor(ms / 1e3 % 60);
+    const minutes = Math.floor(ms / (1e3 * 60) % 60);
+    const hours = Math.floor(ms / (1e3 * 60 * 60) % 24);
+    const days = Math.floor(ms / (1e3 * 60 * 60 * 24));
+    let result = "";
+    if (days > 0) result += `${days}d `;
+    if (hours > 0 || days > 0) result += `${hours}h `;
+    if (minutes > 0 || hours > 0 || days > 0) result += `${minutes}m `;
+    result += `${seconds}s`;
+    return result;
+  }
+  function calculateEstimatedTime(intervalMs = 0, efficientAccountsCount = 1, normalAccountsCount = 9) {
+    const totalAccounts = normalAccountsCount + efficientAccountsCount;
+    const remainingPixels = state.artTotalPixels - state.currentPaintedPixels - state.preciseCurrentCharges * totalAccounts;
+    const efficiencyRatio = (normalAccountsCount + efficientAccountsCount * 0.9) / totalAccounts;
+    const totalChargeCost = efficiencyRatio * remainingPixels;
+    const result = totalChargeCost * state.cooldown / totalAccounts;
+    return Math.max(0, result - intervalMs);
+  }
   function getMsToTargetCharges(current, target, cooldown, intervalMs = 0) {
     const remainingCharges = target - current;
     return Math.max(0, remainingCharges * cooldown - intervalMs);
   }
+
+  // src/js/utils/painting-helpers.js
   function updateChargesThresholdUI(intervalMs) {
     if (state.stopFlag) return;
     const threshold = state.cooldownChargeThreshold;
@@ -2078,24 +2120,6 @@
       },
       true
     );
-  }
-
-  // src/js/utils/time.js
-  function formatTime(ms) {
-    const seconds = Math.floor(ms / 1e3 % 60);
-    const minutes = Math.floor(ms / (1e3 * 60) % 60);
-    const hours = Math.floor(ms / (1e3 * 60 * 60) % 24);
-    const days = Math.floor(ms / (1e3 * 60 * 60 * 24));
-    let result = "";
-    if (days > 0) result += `${days}d `;
-    if (hours > 0 || days > 0) result += `${hours}h `;
-    if (minutes > 0 || hours > 0 || days > 0) result += `${minutes}m `;
-    result += `${seconds}s`;
-    return result;
-  }
-  function calculateEstimatedTime() {
-    const remainingPixels = state.artTotalPixels - state.userPaintedPixels;
-    return getMsToTargetCharges(state.preciseCurrentCharges, remainingPixels, state.cooldown);
   }
 
   // src/js/utils/dom.js
@@ -2463,6 +2487,10 @@
       this.processPromise = null;
       this.lastProcessedHash = null;
       this.workerPool = null;
+      this.tileProgress = /* @__PURE__ */ new Map();
+      this.totalRequired = 0;
+      this.totalPainted = 0;
+      this.totalWrong = 0;
     }
     toggle() {
       this.isEnabled = !this.isEnabled;
@@ -2649,6 +2677,7 @@
                 h: originalBitmap.height,
                 data: new Uint8ClampedArray(imgData.data)
               });
+              await this._analyzeTileProgress(tileKey);
             } catch (e) {
               console.warn("OverlayManager: could not cache ImageData for", tileKey, e);
             }
@@ -2739,6 +2768,78 @@
       }
       return null;
     }
+    /**
+     * Analyze a single tile's progress by comparing template data with actual tile data.
+     * Updates this.tileProgress for the given tileKey.
+     * @param {string} tileKey - Key "tileX,tileY" of the tile to analyze.
+     */
+    async _analyzeTileProgress(tileKey) {
+      if (!this.imageBitmap || !this.startCoords) {
+        console.warn(`[OverlayManager] Cannot analyze progress: image or startCoords missing.`);
+        return;
+      }
+      const [tileX, tileY] = tileKey.split(",").map(Number);
+      const { x: startRegionX, y: startRegionY } = this.startCoords.region;
+      const { x: startPixelX, y: startPixelY } = this.startCoords.pixel;
+      const imgStartX = (tileX - startRegionX) * this.tileSize - startPixelX;
+      const imgStartY = (tileY - startRegionY) * this.tileSize - startPixelY;
+      const sX = Math.max(0, imgStartX);
+      const sY = Math.max(0, imgStartY);
+      const sW = Math.min(this.imageBitmap.width - sX, this.tileSize - (sX - imgStartX));
+      const sH = Math.min(this.imageBitmap.height - sY, this.tileSize - (sY - imgStartY));
+      if (sW <= 0 || sH <= 0) {
+        this.tileProgress.delete(tileKey);
+        return;
+      }
+      const tempCanvas = new OffscreenCanvas(this.tileSize, this.tileSize);
+      const tempCtx = tempCanvas.getContext("2d");
+      tempCtx.imageSmoothingEnabled = false;
+      tempCtx.drawImage(this.imageBitmap, sX, sY, sW, sH, 0, 0, sW, sH);
+      const templateData = tempCtx.getImageData(0, 0, sW, sH).data;
+      const tileData = this.originalTilesData.get(tileKey);
+      if (!tileData) {
+        console.warn(`[OverlayManager] No cached ImageData for tile ${tileKey}.`);
+        this.tileProgress.delete(tileKey);
+        return;
+      }
+      const actualData = tileData.data;
+      const actualWidth = tileData.w;
+      const actualHeight = tileData.h;
+      let painted = 0;
+      let required = 0;
+      let wrong = 0;
+      const dX = Math.max(0, -imgStartX);
+      const dY = Math.max(0, -imgStartY);
+      for (let ty = 0; ty < sH; ty++) {
+        for (let tx = 0; tx < sW; tx++) {
+          const templateIdx = (ty * sW + tx) * 4;
+          const tr = templateData[templateIdx];
+          const tg = templateData[templateIdx + 1];
+          const tb = templateData[templateIdx + 2];
+          const ta = templateData[templateIdx + 3];
+          if (ta < 64) continue;
+          required++;
+          const actualTx = dX + tx;
+          const actualTy = dY + ty;
+          if (actualTx >= actualWidth || actualTy >= actualHeight) continue;
+          const actualIdx = (actualTy * actualWidth + actualTx) * 4;
+          const ar = actualData[actualIdx];
+          const ag = actualData[actualIdx + 1];
+          const ab = actualData[actualIdx + 2];
+          const aa = actualData[actualIdx + 3];
+          if (ar === tr && ag === tg && ab === tb && aa === ta) {
+            painted++;
+          } else if (aa > 0) {
+            wrong++;
+          }
+        }
+      }
+      this.tileProgress.set(tileKey, { painted, required, wrong });
+      state.localPaintedOffset = 0;
+      console.log(
+        `[OverlayManager] Analyzed tile ${tileKey}: painted=${painted}, required=${required}, wrong=${wrong}`
+      );
+    }
     async _compositeTileOptimized(originalBlob, overlayBitmap) {
       const originalBitmap = await createImageBitmap(originalBlob);
       const canvas = new OffscreenCanvas(originalBitmap.width, originalBitmap.height);
@@ -2798,6 +2899,33 @@
       console.warn(`\u274C Timeout waiting for tiles: ${requiredTiles.length} required, 
         ${requiredTiles.filter((k) => this.originalTiles.has(k)).length} loaded`);
       return false;
+    }
+    /**
+     * Calculates overall progress statistics based on cached tile data.
+     * @returns {Object} { painted: number, required: number, wrong: number, percentage: number }
+     */
+    getOverallProgress() {
+      let totalPainted = 0;
+      let totalRequired = 0;
+      let totalWrong = 0;
+      for (const stats of this.tileProgress.values()) {
+        totalPainted += stats.painted;
+        totalRequired += stats.required;
+        totalWrong += stats.wrong;
+      }
+      this.totalPainted = totalPainted;
+      this.totalRequired = totalRequired;
+      this.totalWrong = totalWrong;
+      const percentage = totalRequired > 0 ? totalPainted / totalRequired * 100 : 0;
+      return {
+        painted: totalPainted,
+        required: totalRequired,
+        wrong: totalWrong,
+        percentage: parseFloat(percentage.toFixed(2))
+      };
+    }
+    getTileProgress(tileKey) {
+      return this.tileProgress.get(tileKey) || { painted: 0, required: 0, wrong: 0 };
     }
   };
   async function restoreOverlayFromData() {
@@ -3147,7 +3275,7 @@
       `${t("savedDataFound")}
 
 Saved: ${new Date(savedData.timestamp).toLocaleString()}
-Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels} pixels`
+Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels} pixels`
     );
     if (confirmLoad) {
       const success = restoreProgress(savedData);
@@ -3260,7 +3388,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
       };
       state.artTotalPixels = totalValidPixels;
       state.artColorFrequency = artColorFrequency;
-      state.userPaintedPixels = 0;
+      state.totalPaintedPixels = 0;
       state.resizeSettings = null;
       state.resizeIgnoreMask = null;
       state.originalImage = { dataUrl: imageSrc, width, height };
@@ -4762,7 +4890,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
         totalPixels: totalValidPixels
       };
       state.artTotalPixels = totalValidPixels;
-      state.userPaintedPixels = 0;
+      state.totalPaintedPixels = 0;
       state.resizeSettings = {
         baseWidth: width,
         baseHeight: height,
@@ -4851,7 +4979,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
     const stopBtn = document.getElementById("stopBtn");
     if (stopBtn) stopBtn.disabled = true;
     updateUI("paintingStoppedByUser", "warning");
-    if (state.imageLoaded && state.userPaintedPixels > 0) {
+    if (state.imageLoaded && state.totalPaintedPixels > 0) {
       saveProgress();
       showAlert(t("autoSaved"), "success");
     }
@@ -6041,7 +6169,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
   // src/js/core/auto-save.js
   function shouldAutoSave() {
     const now = Date.now();
-    const pixelsSinceLastSave = state.userPaintedPixels - state._lastSavePixelCount;
+    const pixelsSinceLastSave = state.currentPaintedPixels - state._lastSavePixelCount;
     const timeSinceLastSave = now - state._lastSaveTime;
     return !state._saveInProgress && pixelsSinceLastSave >= 25 && timeSinceLastSave >= 3e4;
   }
@@ -6050,9 +6178,9 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
     state._saveInProgress = true;
     const success = saveProgress();
     if (success) {
-      state._lastSavePixelCount = state.userPaintedPixels;
+      state._lastSavePixelCount = state.currentPaintedPixels;
       state._lastSaveTime = Date.now();
-      console.log(`\u{1F4BE} Auto-saved at ${state.userPaintedPixels} pixels`);
+      console.log(`\u{1F4BE} Auto-saved at ${state.currentPaintedPixels} pixels`);
     }
     state._saveInProgress = false;
     return success;
@@ -6200,14 +6328,14 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
     );
     const success = await sendBatchWithRetry(batch.pixels, batch.regionX, batch.regionY);
     if (success) {
-      state.userPaintedPixels += batchSize;
+      state.localPaintedOffset += batchSize;
       state.fullChargeData = {
         ...state.fullChargeData,
         spentSinceShot: state.fullChargeData.spentSinceShot + batchSize
       };
       await updateStats();
       updateUI("paintingProgress", "default", {
-        painted: state.userPaintedPixels,
+        painted: state.currentPaintedPixels,
         total: state.artTotalPixels
       });
       performSmartSave();
@@ -6429,7 +6557,7 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
     if (state.stopFlag) {
       saveProgress();
     } else {
-      updateUI("paintingComplete", "success", { count: state.userPaintedPixels });
+      updateUI("paintingComplete", "success", { count: state.currentPaintedPixels });
       saveProgress();
       overlayManager.clear();
       const toggleOverlayBtn2 = document.getElementById("toggleOverlayBtn");
@@ -6439,13 +6567,13 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
       }
     }
     console.log(`\u{1F4CA} Pixel Statistics:`);
-    console.log(`   Painted: ${state.userPaintedPixels}`);
+    console.log(`   Painted: ${state.currentPaintedPixels}`);
     console.log(`   Skipped - Transparent: ${skippedPixels.transparent}`);
     console.log(`   Skipped - White (disabled): ${skippedPixels.white}`);
     console.log(`   Skipped - Already painted: ${skippedPixels.alreadyPainted}`);
     console.log(`   Skipped - Color Unavailable: ${skippedPixels.colorUnavailable}`);
     console.log(
-      `   Total processed: ${state.userPaintedPixels + skippedPixels.transparent + skippedPixels.white + skippedPixels.alreadyPainted + skippedPixels.colorUnavailable}`
+      `   Total processed: ${state.currentPaintedPixels + skippedPixels.transparent + skippedPixels.white + skippedPixels.alreadyPainted + skippedPixels.colorUnavailable}`
     );
     updateStats();
   }
@@ -6819,26 +6947,25 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
         fullChargeEl.innerHTML = newFullText;
       }
     }
-    if (state.imageLoaded) {
-      const estimatedEl = document.getElementById("wplace-stat-estimated");
-      if (!estimatedEl) return;
-      state.estimatedTime = calculateEstimatedTime();
-      const newText = formatTime(state.estimatedTime);
-      if (estimatedEl.textContent !== newText) {
-        estimatedEl.textContent = newText;
-      }
-    }
   }
-  function updateImageStats() {
+  function updateImageStats(intervalMs) {
     if (!state.imageLoaded) return;
     const container = document.getElementById("wplace-image-bot-container");
     const progressBar = container.querySelector("#progressBar");
-    const progress = state.artTotalPixels > 0 ? Math.round(state.userPaintedPixels / state.artTotalPixels * 100) : 0;
-    state.estimatedTime = calculateEstimatedTime();
-    progressBar.style.width = `${progress}%`;
-    document.getElementById("wplace-stat-progress").textContent = `${progress}%`;
-    document.getElementById("wplace-stat-pixels").textContent = `${state.userPaintedPixels}/${state.artTotalPixels}`;
-    document.getElementById("wplace-stat-estimated").textContent = formatTime(state.estimatedTime);
+    const progress = overlayManager.getOverallProgress();
+    state.totalPaintedPixels = progress.painted;
+    state.estimatedTime = calculateEstimatedTime(intervalMs);
+    const newWidth = `${progress.percentage}%`;
+    if (progressBar.style.width !== newWidth) progressBar.style.width = newWidth;
+    const updates = [
+      { el: "wplace-stat-progress", text: `${progress.percentage}%` },
+      { el: "wplace-stat-pixels", text: `${state.currentPaintedPixels}/${state.artTotalPixels}` },
+      { el: "wplace-stat-estimated", text: formatTime(state.estimatedTime) }
+    ];
+    updates.forEach(({ el, text }) => {
+      const elem = document.getElementById(el);
+      if (elem && elem.textContent !== text) elem.textContent = text;
+    });
   }
   function updateColorSwatches() {
     if (!state.hasAvailableColors) return;
@@ -6883,7 +7010,10 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
       state.fullChargeInterval = null;
     }
     const intervalMs = 1e3;
-    state.fullChargeInterval = setInterval(() => updateChargeStatsDisplay(intervalMs), intervalMs);
+    state.fullChargeInterval = setInterval(() => {
+      updateImageStats(intervalMs);
+      updateChargeStatsDisplay(intervalMs);
+    }, intervalMs);
     const container = document.getElementById("wplace-image-bot-container");
     const cooldownSlider = container.querySelector("#cooldownSlider");
     if (cooldownSlider.max !== state.maxCharges) {
@@ -6911,23 +7041,23 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
     if (state.imageLoaded) lastEl = ensureImageStats(lastEl);
     if (state.fullChargeData) lastEl = ensureChargeStats(lastEl);
     if (state.hasAvailableColors) lastEl = ensureColorSwatches(lastEl);
-    updateImageStats();
+    updateImageStats(intervalMs);
     updateChargeStatsDisplay(intervalMs);
     updateColorSwatches();
     tryRemoveStatsInitMessage();
   }
   var checkSavedProgress = () => {
     const savedData = loadProgress();
-    if (savedData && savedData.state.userPaintedPixels > 0) {
+    if (savedData && savedData.state.totalPaintedPixels > 0) {
       const savedDate = new Date(savedData.timestamp).toLocaleString();
       const progress = Math.round(
-        savedData.state.userPaintedPixels / savedData.state.artTotalPixels * 100
+        savedData.state.totalPaintedPixels / savedData.state.artTotalPixels * 100
       );
       showAlert(
         `${t("savedDataFound")}
 
 Saved: ${savedDate}
-Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels} pixels (${progress}%)
+Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels} pixels (${progress}%)
 ${t("clickLoadToContinue")}`,
         "info"
       );

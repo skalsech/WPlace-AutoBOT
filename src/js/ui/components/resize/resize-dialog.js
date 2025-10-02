@@ -350,7 +350,7 @@ function showResizeDialog(processor, container, overlay) {
       totalPixels: totalValidPixels,
     };
     state.artTotalPixels = totalValidPixels;
-    state.userPaintedPixels = 0;
+    state.totalPaintedPixels = 0;
     state.resizeSettings = {
       baseWidth: width,
       baseHeight: height,

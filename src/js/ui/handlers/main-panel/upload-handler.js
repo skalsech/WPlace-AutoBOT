@@ -49,7 +49,7 @@ export async function handleUploadClick() {
     };
     state.artTotalPixels = totalValidPixels;
     state.artColorFrequency = artColorFrequency;
-    state.userPaintedPixels = 0;
+    state.totalPaintedPixels = 0;
 
     state.resizeSettings = null;
     state.resizeIgnoreMask = null;

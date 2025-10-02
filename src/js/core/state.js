@@ -8,8 +8,8 @@ import { EventEmitter } from '../utils/EventEmitter.js';
  *   processing: boolean,
  *   artTotalPixels: number,
  *   artColorFrequency: Record<string, number>,
+ *   localPaintedOffset: number,
  *   totalPaintedPixels: number,
- *   userPaintedPixels: number,
  *   availableColors: any[],
  *   activeColorPalette: any[],
  *   fullChargeData: any,
@@ -36,6 +36,7 @@ import { EventEmitter } from '../utils/EventEmitter.js';
  *   paintedMap: any,
  *   hasAvailableColors: boolean,
  *   imageLoaded: boolean
+ *   currentPaintedPixels: number
  *   _eventEmitter: EventEmitter
  *   update: (updates: object) => void,
  *   updateColorSettings: (updates: object) => void
@@ -54,8 +55,8 @@ export const state = {
   processing: false,
   artTotalPixels: 0,
   artColorFrequency: {},
+  localPaintedOffset: 0,
   totalPaintedPixels: 0,
-  userPaintedPixels: 0,
   availableColors: [],
   activeColorPalette: [], // User-selected colors for conversion
   fullChargeData: null,
@@ -88,6 +89,9 @@ export const state = {
   },
   get imageLoaded() {
     return !!this.imageData;
+  },
+  get currentPaintedPixels() {
+    return state.totalPaintedPixels + state.localPaintedOffset;
   },
 
   _eventEmitter: new EventEmitter(),

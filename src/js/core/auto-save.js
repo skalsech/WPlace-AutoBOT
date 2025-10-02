@@ -4,7 +4,7 @@ import { saveProgress } from './progress-manager.js';
 
 function shouldAutoSave() {
   const now = Date.now();
-  const pixelsSinceLastSave = state.userPaintedPixels - state._lastSavePixelCount;
+  const pixelsSinceLastSave = state.currentPaintedPixels - state._lastSavePixelCount;
   const timeSinceLastSave = now - state._lastSaveTime;
 
   // Save conditions:
@@ -21,9 +21,9 @@ export function performSmartSave() {
   const success = saveProgress();
 
   if (success) {
-    state._lastSavePixelCount = state.userPaintedPixels;
+    state._lastSavePixelCount = state.currentPaintedPixels;
     state._lastSaveTime = Date.now();
-    console.log(`💾 Auto-saved at ${state.userPaintedPixels} pixels`);
+    console.log(`💾 Auto-saved at ${state.currentPaintedPixels} pixels`);
   }
 
   state._saveInProgress = false;

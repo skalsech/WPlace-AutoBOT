@@ -30,7 +30,7 @@ export function handleStopClick() {
 
   updateUI('paintingStoppedByUser', 'warning');
 
-  if (state.imageLoaded && state.userPaintedPixels > 0) {
+  if (state.imageLoaded && state.totalPaintedPixels > 0) {
     saveProgress();
     showAlert(t('autoSaved'), 'success');
   }

@@ -6,22 +6,49 @@ import { isTransparentPixel } from '../utils/color-matching.js';
 class OverlayManager {
   constructor() {
     this.isEnabled = false;
-    // { region: {x, y}, pixel: {x, y} }
+
+    /** @type {{ region: {x: number, y: number}, pixel: {x: number, y: number} } | null} */
     this.startCoords = null;
+
+    /** @type {ImageBitmap | null} */
     this.imageBitmap = null;
-    // Map<"tileX,tileY", ImageBitmap>
+
+    /** @type {Map<string, ImageBitmap>}
+     * Key "tileX,tileY"
+     */
     this.chunkedTiles = new Map();
-    // Map<"tileX,tileY", ImageBitmap> store latest original tile bitmaps
+
+    /** @type {Map<string, ImageBitmap>}
+     * Key "tileX,tileY"
+     */
     this.originalTiles = new Map();
-    // Map<"tileX,tileY", {w,h,data:Uint8ClampedArray}> cache full ImageData for fast pixel reads
+
+    /** @type {Map<string, {w: number, h: number, data: Uint8ClampedArray}>}
+     * Key "tileX,tileY"
+     */
     this.originalTilesData = new Map();
+
+    /** @type {number} */
     this.tileSize = 1000;
-    // Track ongoing processing
+
+    /** @type {Promise<any> | null} */
     this.processPromise = null;
-    // Cache invalidation
+
+    /** @type {string | null} */
     this.lastProcessedHash = null;
-    // Web worker pool for heavy processing
+
+    /** @type {any} */
     this.workerPool = null;
+
+    /**
+     * @type {Map<string, {painted: number, required: number, wrong: number}>}
+     * Key "tileX,tileY"
+     */
+    this.tileProgress = new Map();
+
+    this.totalRequired = 0;
+    this.totalPainted = 0;
+    this.totalWrong = 0;
   }
 
   toggle() {
@@ -268,6 +295,8 @@ class OverlayManager {
               h: originalBitmap.height,
               data: new Uint8ClampedArray(imgData.data),
             });
+
+            await this._analyzeTileProgress(tileKey);
           } catch (e) {
             // If ImageData extraction fails, still keep the bitmap as fallback
             console.warn('OverlayManager: could not cache ImageData for', tileKey, e);
@@ -377,6 +406,105 @@ class OverlayManager {
     return null;
   }
 
+  /**
+   * Analyze a single tile's progress by comparing template data with actual tile data.
+   * Updates this.tileProgress for the given tileKey.
+   * @param {string} tileKey - Key "tileX,tileY" of the tile to analyze.
+   */
+  async _analyzeTileProgress(tileKey) {
+    if (!this.imageBitmap || !this.startCoords) {
+      console.warn(`[OverlayManager] Cannot analyze progress: image or startCoords missing.`);
+      return;
+    }
+
+    const [tileX, tileY] = tileKey.split(',').map(Number);
+    const { x: startRegionX, y: startRegionY } = this.startCoords.region;
+    const { x: startPixelX, y: startPixelY } = this.startCoords.pixel;
+
+    // Compute template area inside this tile
+    const imgStartX = (tileX - startRegionX) * this.tileSize - startPixelX;
+    const imgStartY = (tileY - startRegionY) * this.tileSize - startPixelY;
+
+    const sX = Math.max(0, imgStartX);
+    const sY = Math.max(0, imgStartY);
+    const sW = Math.min(this.imageBitmap.width - sX, this.tileSize - (sX - imgStartX));
+    const sH = Math.min(this.imageBitmap.height - sY, this.tileSize - (sY - imgStartY));
+
+    if (sW <= 0 || sH <= 0) {
+      // Tile does not intersect with template, clear progress
+      this.tileProgress.delete(tileKey);
+      return;
+    }
+
+    // Draw template section onto offscreen canvas
+    const tempCanvas = new OffscreenCanvas(this.tileSize, this.tileSize);
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.imageSmoothingEnabled = false;
+    tempCtx.drawImage(this.imageBitmap, sX, sY, sW, sH, 0, 0, sW, sH);
+
+    const templateData = tempCtx.getImageData(0, 0, sW, sH).data;
+
+    // Get original tile data from cache
+    const tileData = this.originalTilesData.get(tileKey);
+    if (!tileData) {
+      console.warn(`[OverlayManager] No cached ImageData for tile ${tileKey}.`);
+      this.tileProgress.delete(tileKey);
+      return;
+    }
+
+    const actualData = tileData.data;
+    const actualWidth = tileData.w;
+    const actualHeight = tileData.h;
+
+    let painted = 0;
+    let required = 0;
+    let wrong = 0;
+
+    // Offset inside tile where template starts
+    const dX = Math.max(0, -imgStartX);
+    const dY = Math.max(0, -imgStartY);
+
+    for (let ty = 0; ty < sH; ty++) {
+      for (let tx = 0; tx < sW; tx++) {
+        const templateIdx = (ty * sW + tx) * 4;
+        const tr = templateData[templateIdx];
+        const tg = templateData[templateIdx + 1];
+        const tb = templateData[templateIdx + 2];
+        const ta = templateData[templateIdx + 3];
+
+        if (ta < 64) continue; // Skip transparent template pixels
+
+        required++;
+
+        const actualTx = dX + tx;
+        const actualTy = dY + ty;
+
+        if (actualTx >= actualWidth || actualTy >= actualHeight) continue;
+
+        const actualIdx = (actualTy * actualWidth + actualTx) * 4;
+        const ar = actualData[actualIdx];
+        const ag = actualData[actualIdx + 1];
+        const ab = actualData[actualIdx + 2];
+        const aa = actualData[actualIdx + 3];
+
+        // Compare colors
+        if (ar === tr && ag === tg && ab === tb && aa === ta) {
+          painted++;
+        } else if (aa > 0) {
+          wrong++;
+        }
+        // Transparent actual pixels are ignored
+      }
+    }
+
+    this.tileProgress.set(tileKey, { painted, required, wrong });
+    state.localPaintedOffset = 0;
+
+    console.log(
+      `[OverlayManager] Analyzed tile ${tileKey}: painted=${painted}, required=${required}, wrong=${wrong}`
+    );
+  }
+
   async _compositeTileOptimized(originalBlob, overlayBitmap) {
     const originalBitmap = await createImageBitmap(originalBlob);
     const canvas = new OffscreenCanvas(originalBitmap.width, originalBitmap.height);
@@ -460,6 +588,39 @@ class OverlayManager {
         ${requiredTiles.filter((k) => this.originalTiles.has(k)).length} loaded`);
     return false;
   }
+
+  /**
+   * Calculates overall progress statistics based on cached tile data.
+   * @returns {Object} { painted: number, required: number, wrong: number, percentage: number }
+   */
+  getOverallProgress() {
+    let totalPainted = 0;
+    let totalRequired = 0;
+    let totalWrong = 0;
+
+    for (const stats of this.tileProgress.values()) {
+      totalPainted += stats.painted;
+      totalRequired += stats.required;
+      totalWrong += stats.wrong;
+    }
+
+    this.totalPainted = totalPainted;
+    this.totalRequired = totalRequired;
+    this.totalWrong = totalWrong;
+
+    const percentage = totalRequired > 0 ? (totalPainted / totalRequired) * 100 : 0;
+
+    return {
+      painted: totalPainted,
+      required: totalRequired,
+      wrong: totalWrong,
+      percentage: parseFloat(percentage.toFixed(2)),
+    };
+  }
+
+  getTileProgress(tileKey) {
+    return this.tileProgress.get(tileKey) || { painted: 0, required: 0, wrong: 0 };
+  }
 }
 
 export async function restoreOverlayFromData() {
@@ -499,4 +660,5 @@ export async function restoreOverlayFromData() {
     return false;
   }
 }
+
 export const overlayManager = new OverlayManager();

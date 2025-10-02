@@ -7,16 +7,16 @@ import {
   migrateProgressToV21,
   migrateProgressToV22,
   migrateProgressToV23,
+  migrateProgressToV24,
 } from './migrations.js';
 
 // todo refactor progress and progress related state part
 export function buildProgressData() {
   return {
     timestamp: Date.now(),
-    version: '2.3',
+    version: '2.4',
     state: {
       artTotalPixels: state.artTotalPixels,
-      userPaintedPixels: state.userPaintedPixels,
       startPosition: state.startPosition,
       region: state.region,
     },
@@ -42,22 +42,22 @@ export function migrateProgress(saved) {
     data = migrateProgressToV2(data);
   }
 
-  // If still older than v2.1 → migrate to 2.1
   if (data.version === '2' || data.version === '2.0') {
     data = migrateProgressToV21(data);
   }
 
-  // If still older than v2.2 → migrate to 2.2
   if (data.version === '2.1') {
     data = migrateProgressToV22(data);
   }
 
-  // If still older than v2.3 → migrate to 2.3
   if (data.version === '2.2') {
     data = migrateProgressToV23(data);
   }
 
-  // Now data is guaranteed to be the latest version
+  if (data.version === '2.3') {
+    data = migrateProgressToV24(data);
+  }
+
   return data;
 }
 

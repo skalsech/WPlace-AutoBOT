@@ -10,8 +10,8 @@ import { showAlert } from './alerts.js';
 import { initializeTranslations, t } from '../i18n/i18.js';
 import { loadProgress } from '../core/progress-manager.js';
 import { wplaceService } from '../core/api-service.js';
-import { calculateEstimatedTime, formatTime } from '../utils/time.js';
-import { getMsToTargetCharges, updateChargesThresholdUI } from '../utils/painting-helpers.js';
+import { calculateEstimatedTime, formatTime, getMsToTargetCharges } from '../utils/time.js';
+import { updateChargesThresholdUI } from '../utils/painting-helpers.js';
 import { getAvailableColors } from '../utils/dom.js';
 import { colorsChanged, invalidateColorCache } from '../utils/color-matching.js';
 import { setupSettingsListeners } from './listeners/settings.js';
@@ -19,6 +19,7 @@ import { setupStatsListeners } from './listeners/stats.js';
 import { setupMainPanelListeners } from './listeners/main-panel.js';
 import { updateDataButtons } from './handlers/main-panel/handle-data-buttons.js';
 import { syncSettingsUI } from './sync-ui.js';
+import { overlayManager } from '../overlay/overlay-manager.js';
 
 function cleanupExistingUI() {
   const ids = ['wplace-image-bot-container', 'wplace-settings-container', 'wplace-stats-container'];
@@ -257,36 +258,29 @@ function updateChargeStatsDisplay(intervalMs) {
       fullChargeEl.innerHTML = newFullText;
     }
   }
-
-  if (state.imageLoaded) {
-    const estimatedEl = document.getElementById('wplace-stat-estimated');
-    if (!estimatedEl) return;
-    state.estimatedTime = calculateEstimatedTime();
-    const newText = formatTime(state.estimatedTime);
-    if (estimatedEl.textContent !== newText) {
-      estimatedEl.textContent = newText;
-    }
-  }
 }
 
-function updateImageStats() {
+function updateImageStats(intervalMs) {
   if (!state.imageLoaded) return;
   const container = document.getElementById('wplace-image-bot-container');
   const progressBar = container.querySelector('#progressBar');
+  const progress = overlayManager.getOverallProgress();
+  state.totalPaintedPixels = progress.painted;
+  state.estimatedTime = calculateEstimatedTime(intervalMs);
 
-  const progress =
-    state.artTotalPixels > 0
-      ? Math.round((state.userPaintedPixels / state.artTotalPixels) * 100)
-      : 0;
+  const newWidth = `${progress.percentage}%`;
+  if (progressBar.style.width !== newWidth) progressBar.style.width = newWidth;
 
-  state.estimatedTime = calculateEstimatedTime();
+  const updates = [
+    { el: 'wplace-stat-progress', text: `${progress.percentage}%` },
+    { el: 'wplace-stat-pixels', text: `${state.currentPaintedPixels}/${state.artTotalPixels}` },
+    { el: 'wplace-stat-estimated', text: formatTime(state.estimatedTime) },
+  ];
 
-  progressBar.style.width = `${progress}%`;
-
-  document.getElementById('wplace-stat-progress').textContent = `${progress}%`;
-  document.getElementById('wplace-stat-pixels').textContent =
-    `${state.userPaintedPixels}/${state.artTotalPixels}`;
-  document.getElementById('wplace-stat-estimated').textContent = formatTime(state.estimatedTime);
+  updates.forEach(({ el, text }) => {
+    const elem = document.getElementById(el);
+    if (elem && elem.textContent !== text) elem.textContent = text;
+  });
 }
 
 function updateColorSwatches() {
@@ -346,7 +340,10 @@ export async function updateStats(isManualRefresh = false) {
     state.fullChargeInterval = null;
   }
   const intervalMs = 1000;
-  state.fullChargeInterval = setInterval(() => updateChargeStatsDisplay(intervalMs), intervalMs);
+  state.fullChargeInterval = setInterval(() => {
+    updateImageStats(intervalMs);
+    updateChargeStatsDisplay(intervalMs);
+  }, intervalMs);
   const container = document.getElementById('wplace-image-bot-container');
   const cooldownSlider = container.querySelector('#cooldownSlider');
 
@@ -382,7 +379,7 @@ export async function updateStats(isManualRefresh = false) {
   if (state.fullChargeData) lastEl = ensureChargeStats(lastEl);
   if (state.hasAvailableColors) lastEl = ensureColorSwatches(lastEl);
 
-  updateImageStats();
+  updateImageStats(intervalMs);
   updateChargeStatsDisplay(intervalMs);
   updateColorSwatches();
   tryRemoveStatsInitMessage();
@@ -390,16 +387,16 @@ export async function updateStats(isManualRefresh = false) {
 
 const checkSavedProgress = () => {
   const savedData = loadProgress();
-  if (savedData && savedData.state.userPaintedPixels > 0) {
+  if (savedData && savedData.state.totalPaintedPixels > 0) {
     const savedDate = new Date(savedData.timestamp).toLocaleString();
     const progress = Math.round(
-      (savedData.state.userPaintedPixels / savedData.state.artTotalPixels) * 100
+      (savedData.state.totalPaintedPixels / savedData.state.artTotalPixels) * 100
     );
 
     showAlert(
       `${t('savedDataFound')}\n\n` +
         `Saved: ${savedDate}\n` +
-        `Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels} pixels (${progress}%)\n` +
+        `Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels} pixels (${progress}%)\n` +
         `${t('clickLoadToContinue')}`,
       'info'
     );

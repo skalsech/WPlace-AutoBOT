@@ -52,7 +52,7 @@ export async function handleLoadClick() {
   const confirmLoad = confirm(
     `${t('savedDataFound')}\n\n` +
       `Saved: ${new Date(savedData.timestamp).toLocaleString()}\n` +
-      `Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels} pixels`
+      `Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels} pixels`
   );
 
   if (confirmLoad) {

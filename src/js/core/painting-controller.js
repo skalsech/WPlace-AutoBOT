@@ -10,11 +10,11 @@ import {
   resolveColor,
 } from '../utils/color-matching.js';
 import { generateCoordinates } from './coordinate-generator.js';
-import { getMsToTargetCharges } from '../utils/painting-helpers.js';
 import { NotificationManager } from './notification-manager.js';
 import { saveProgress } from './progress-manager.js';
 import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 import { overlayManager } from '../overlay/overlay-manager.js';
+import { getMsToTargetCharges } from '../utils/time.js';
 
 async function flushPixelBatch(batch) {
   if (!batch || batch.pixels.length === 0) return true;
@@ -25,14 +25,14 @@ async function flushPixelBatch(batch) {
   );
   const success = await sendBatchWithRetry(batch.pixels, batch.regionX, batch.regionY);
   if (success) {
-    state.userPaintedPixels += batchSize;
+    state.localPaintedOffset += batchSize;
     state.fullChargeData = {
       ...state.fullChargeData,
       spentSinceShot: state.fullChargeData.spentSinceShot + batchSize,
     };
     await updateStats();
     updateUI('paintingProgress', 'default', {
-      painted: state.userPaintedPixels,
+      painted: state.currentPaintedPixels,
       total: state.artTotalPixels,
     });
     performSmartSave();
@@ -330,7 +330,7 @@ export async function processImage() {
     // Save progress when stopped to preserve painted map
     saveProgress();
   } else {
-    updateUI('paintingComplete', 'success', { count: state.userPaintedPixels });
+    updateUI('paintingComplete', 'success', { count: state.currentPaintedPixels });
 
     saveProgress();
     overlayManager.clear();
@@ -343,14 +343,14 @@ export async function processImage() {
 
   // Log skip statistics
   console.log(`📊 Pixel Statistics:`);
-  console.log(`   Painted: ${state.userPaintedPixels}`);
+  console.log(`   Painted: ${state.currentPaintedPixels}`);
   console.log(`   Skipped - Transparent: ${skippedPixels.transparent}`);
   console.log(`   Skipped - White (disabled): ${skippedPixels.white}`);
   console.log(`   Skipped - Already painted: ${skippedPixels.alreadyPainted}`);
   console.log(`   Skipped - Color Unavailable: ${skippedPixels.colorUnavailable}`);
   console.log(
     `   Total processed: ${
-      state.userPaintedPixels +
+      state.currentPaintedPixels +
       skippedPixels.transparent +
       skippedPixels.white +
       skippedPixels.alreadyPainted +

@@ -1,11 +1,7 @@
 import { state } from '../core/state.js';
 import { msToTimeText } from './helpers.js';
 import { updateUI } from '../ui/panel.js';
-
-export function getMsToTargetCharges(current, target, cooldown, intervalMs = 0) {
-  const remainingCharges = target - current;
-  return Math.max(0, remainingCharges * cooldown - intervalMs);
-}
+import { getMsToTargetCharges } from './time.js';
 
 export function updateChargesThresholdUI(intervalMs) {
   if (state.stopFlag) return;

@@ -1,5 +1,4 @@
 import { state } from '../../../core/state.js';
-import { saveBotSettings } from '../../../core/settings-manager.js';
 import { t } from '../../../i18n/i18.js';
 
 export function handleSettingsClick() {

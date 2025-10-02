@@ -1,6 +1,5 @@
 import { DEFAULT_SETTINGS } from '../config/DEFAULT_SETTINGS.js';
 import { packPaintedMapToBase64 } from '../utils/data-packing.js';
-import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 
 export function migrateProgressToV2(saved) {
   if (!saved) return saved;
@@ -107,6 +106,24 @@ export function migrateProgressToV23(data) {
     return migrated;
   } catch (e) {
     console.warn('Migration to v2.3 failed, using original data:', e);
+    return data;
+  }
+}
+
+export function migrateProgressToV24(data) {
+  try {
+    const migrated = { ...data };
+    migrated.version = '2.4';
+
+    if (migrated.state) {
+      delete migrated.state.userPaintedPixels;
+      delete migrated.state.totalPaintedPixels;
+      delete migrated.state.availableColors;
+    }
+
+    return migrated;
+  } catch (e) {
+    console.warn('Migration to v2.4 failed, using original data:', e);
     return data;
   }
 }
