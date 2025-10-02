@@ -19,7 +19,6 @@ export function buildProgressData() {
       userPaintedPixels: state.userPaintedPixels,
       startPosition: state.startPosition,
       region: state.region,
-      availableColors: state.availableColors,
     },
     imageData: state.imageData
       ? {

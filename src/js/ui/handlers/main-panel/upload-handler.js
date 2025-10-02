@@ -1,45 +1,21 @@
-// src/ui/handlers/main/handle-upload.js
 import { state } from '../../../core/state.js';
 import { showAlert } from '../../alerts.js';
 import { saveBotSettings } from '../../../core/settings-manager.js';
 import { t } from '../../../i18n/i18.js';
 import { updateStats, updateUI } from '../../panel.js';
-import {
-  colorsChanged,
-  invalidateColorCache,
-  isTransparentPixel,
-  isWhitePixel,
-} from '../../../utils/color-matching.js';
 import { createImageUploader } from '../../../utils/files.js';
 import { ImageProcessor } from '../../../core/image-processor.js';
 import { overlayManager } from '../../../overlay/overlay-manager.js';
-import { extractColors } from '../../../utils/dom.js';
 import { updateDataButtons } from './handle-data-buttons.js';
 
 export async function handleUploadClick() {
-  if (!state.hasAvailableColors) {
-    const { availableColors } = extractColors();
-    const newColorsCount = Array.isArray(availableColors) ? availableColors.length : 0;
+  await updateStats(true);
 
-    if (newColorsCount === 0) {
-      updateUI('noColorsKnown', 'error');
-      showAlert(t('noColorsKnown'), 'error');
-      return;
-    } else if (newColorsCount > 0 && colorsChanged(state.availableColors, availableColors)) {
-      const oldCount = state.availableColors.length;
-      showAlert(
-        t('colorsUpdated', {
-          oldCount,
-          newCount: newColorsCount,
-          diffCount: newColorsCount - oldCount,
-        }),
-        'success'
-      );
-      state.availableColors = availableColors;
-      invalidateColorCache({ availableColors: true });
-    }
+  if (!state.hasAvailableColors) {
+    updateUI('noColorsKnown', 'error');
+    showAlert(t('noColorsKnown'), 'error');
+    return;
   }
-  await updateStats();
 
   const selectPosBtn = document.getElementById('selectPosBtn');
   const resizeBtn = document.getElementById('resizeBtn');
@@ -64,7 +40,13 @@ export async function handleUploadClick() {
       0
     );
 
-    state.imageData = { width, height, pixels, totalPixels: totalValidPixels, processor };
+    state.imageData = {
+      width,
+      height,
+      pixels,
+      totalPixels: totalValidPixels,
+      processor,
+    };
     state.artTotalPixels = totalValidPixels;
     state.artColorFrequency = artColorFrequency;
     state.userPaintedPixels = 0;

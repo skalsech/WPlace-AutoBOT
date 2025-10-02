@@ -1479,60 +1479,137 @@
   }
 
   // src/js/core/api-service.js
-  var WPlaceService = {
-    // async paintPixelInRegion(regionX, regionY, pixelX, pixelY, color) {
-    //   try {
-    //     await ensureToken();
-    //     if (!getTurnstileToken) return 'token_error';
-    //     const payload = {
-    //       coords: [pixelX, pixelY],
-    //       colors: [color],
-    //       t: getTurnstileToken,
-    //     };
-    //     const res = await fetch(`https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`, {
-    //       method: 'POST',
-    //       headers: { 'Content-Type': 'text/plain;charset=UTF-8' },
-    //       credentials: 'include',
-    //       body: JSON.stringify(payload),
-    //     });
-    //     if (res.status === 403) {
-    //       console.error('❌ 403 Forbidden. Turnstile token might be invalid or expired.');
-    //       setTurnstileToken(null);
-    //       return 'token_error';
-    //     }
-    //     const data = await res.json();
-    //     return data?.painted === 1;
-    //   } catch (e) {
-    //     console.error('Paint request failed:', e);
-    //     return false;
-    //   }
-    // },
-    async getCharges() {
-      const defaultResult = {
-        charges: 0,
-        max: 1,
-        cooldown: state.cooldown
-      };
+  var WPlaceService = class {
+    constructor() {
+      this.cache = null;
+      this.cacheTimestamp = 0;
+      this.minUpdateInterval = 6e4;
+      this.maxUpdateInterval = 9e4;
+    }
+    _generateRandomTTL() {
+      return this.minUpdateInterval + Math.random() * (this.maxUpdateInterval - this.minUpdateInterval);
+    }
+    /**
+     * Fetches user data from the server or returns cached data based on TTL.
+     *
+     * This method implements a randomized time-to-live (TTL) caching strategy:
+     * - On first call or when the cache expires, it makes a fresh request to `/me`.
+     * - If the cache is still valid (within the randomized TTL window), it returns the cached data.
+     * - The TTL is randomly generated between `minUpdateInterval` and `maxUpdateInterval` (60s–90s).
+     *
+     * The returned object includes a `fromCache` flag to distinguish between
+     * fresh server responses and cached responses. This allows calling code
+     * (e.g., `updateStats`) to decide whether to update the local state (like `startTime`)
+     * based on the source of the data.
+     *
+     * @returns {Promise<{ data: UserData, fromCache: boolean }>}
+     *   - `data`: The parsed user data object from `/me` (same shape as API response).
+     *   - `fromCache`: `true` if data was served from the internal cache (not fetched from server).
+     *                  `false` if a fresh network request was made.
+     *
+     * @example
+     * const result = await wplaceService.getUserData();
+     * if (!result.fromCache) {
+     *   // Update local state (e.g., startTime) because this is a fresh server snapshot
+     *   state.fullChargeData = {
+     *     current: result.data.charges.count,
+     *     max: result.data.charges.max,
+     *     cooldownMs: result.data.charges.cooldownMs,
+     *     startTime: Date.now(), // ← Only update here!
+     *     spentSinceShot: 0
+     *   };
+     * }
+     * // Use result.data for display or other logic regardless of source
+     */
+    async getUserData() {
+      const now = Date.now();
+      if (!this.cache) {
+        return { data: await this.fetchAndCache(), fromCache: false };
+      }
+      const randomThreshold = this._generateRandomTTL();
+      if (now - this.cacheTimestamp >= randomThreshold) {
+        return { data: await this.fetchAndCache(), fromCache: false };
+      }
+      return { data: this.cache, fromCache: true };
+    }
+    async fetchAndCache() {
       try {
         const res = await fetch("https://backend.wplace.live/me", {
           credentials: "include"
         });
-        if (!res.ok) {
-          console.error(`Failed to get charges: HTTP ${res.status}`);
-          return defaultResult;
-        }
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-        return {
-          charges: data.charges?.count ?? 0,
-          max: data.charges?.max ?? 1,
-          cooldown: data.charges?.cooldownMs ?? state.cooldown
-        };
-      } catch (e) {
-        console.error("Failed to get charges:", e);
-        return defaultResult;
+        this.cache = data;
+        this.cacheTimestamp = Date.now();
+        return data;
+      } catch (error) {
+        console.error("Failed to fetch user data:", error);
+        throw error;
       }
     }
+    invalidateCache() {
+      this.cache = null;
+      this.cacheTimestamp = 0;
+      console.log("WPlaceService cache invalidated manually");
+    }
+    getCharges() {
+      return this.getUserData().then((result) => ({
+        count: result.data.charges?.count ?? 0,
+        max: result.data.charges?.max ?? 1,
+        cooldown: result.data.charges?.cooldownMs ?? state.cooldown,
+        fromCache: result.fromCache
+      }));
+    }
+    getDroplets() {
+      return this.getUserData().then((result) => ({
+        value: result.data.droplets ?? 0,
+        fromCache: result.fromCache
+      }));
+    }
+    getExtraColorsBitmap() {
+      return this.getUserData().then((result) => ({
+        value: result.data.extraColorsBitmap ?? 0,
+        fromCache: result.fromCache
+      }));
+    }
+    getEquippedFlag() {
+      return this.getUserData().then((result) => ({
+        value: result.data.equippedFlag ?? 0,
+        fromCache: result.fromCache
+      }));
+    }
+    getCountry() {
+      return this.getUserData().then((result) => ({
+        value: result.data.country ?? "",
+        fromCache: result.fromCache
+      }));
+    }
+    getName() {
+      return this.getUserData().then((result) => ({
+        value: result.data.name ?? "",
+        fromCache: result.fromCache
+      }));
+    }
+    getLevel() {
+      return this.getUserData().then((result) => ({
+        value: result.data.level ?? 0,
+        fromCache: result.fromCache
+      }));
+    }
+    getTimeoutUntil() {
+      return this.getUserData().then((result) => ({
+        value: result.data.timeoutUntil ?? "1970-01-01T00:00:00Z",
+        fromCache: result.fromCache
+      }));
+    }
+    getAll() {
+      return this.getUserData().then((result) => ({
+        data: result.data,
+        fromCache: result.fromCache
+      }));
+    }
   };
+  var wplaceService = new WPlaceService();
 
   // src/js/core/notification-manager.js
   var NotificationManager = {
@@ -1606,7 +1683,7 @@
       if (!state.notificationsEnabled || !state.notifyOnChargesReached) return;
       this.pollTimer = setInterval(async () => {
         try {
-          const { charges, cooldown, max } = await WPlaceService.getCharges();
+          const { charges, cooldown, max } = await wplaceService.getCharges();
           state.displayCharges = Math.floor(charges);
           state.cooldown = cooldown;
           state.maxCharges = Math.max(1, Math.floor(max));
@@ -1865,8 +1942,7 @@
         artTotalPixels: state.artTotalPixels,
         userPaintedPixels: state.userPaintedPixels,
         startPosition: state.startPosition,
-        region: state.region,
-        availableColors: state.availableColors
+        region: state.region
       },
       imageData: state.imageData ? {
         width: state.imageData.width,
@@ -2049,67 +2125,38 @@
     }
     return element;
   }
-  function extractColors() {
-    const availableColors = [];
-    const unavailableColors = [];
-    const colorElements = document.querySelectorAll('.tooltip button[id^="color-"]');
-    if (colorElements.length === 0) {
-      console.log("\u274C No color elements found on page");
-      return { availableColors, unavailableColors };
+  function hasColor(colorId, extraColorsBitmap) {
+    if (colorId < 32) {
+      return true;
     }
-    function parseColorElement(el) {
-      const id = Number(el.id.replace("color-", ""));
-      const rgbMatch = el.style.backgroundColor.match(/\d+/g);
-      if (!rgbMatch || rgbMatch.length < 3) {
-        if (id !== 0) {
-          console.warn(`Skipping color element ${el.id} \u2014 cannot parse RGB`);
-          return null;
-        } else {
-          const configTransparent = APP_CONSTANTS.COLOR_MAP[id];
-          if (!configTransparent) return null;
-          return {
-            id: configTransparent.id,
-            name: configTransparent.name,
-            rgb: Object.values(configTransparent.rgb),
-            isAvailable: true
-          };
+    const bitPosition = colorId - 32;
+    return (extraColorsBitmap & 1 << bitPosition) !== 0;
+  }
+  function getAvailableColors(extraColorsBitmap) {
+    const available = [];
+    for (const colorIdStr of Object.keys(APP_CONSTANTS.COLOR_MAP)) {
+      const colorId = Number(colorIdStr);
+      if (isNaN(colorId) || colorId < 0 || colorId > 63) {
+        console.warn(`Invalid color id in COLOR_MAP: ${colorId}`);
+        continue;
+      }
+      if (hasColor(colorId, extraColorsBitmap)) {
+        const color = APP_CONSTANTS.COLOR_MAP[colorId];
+        if (color && color.id === colorId) {
+          available.push({
+            id: color.id,
+            name: color.name,
+            rgb: [color.rgb.r, color.rgb.g, color.rgb.b]
+          });
+        } else if (color) {
+          console.warn(
+            `COLOR_MAP[${colorId}] has an invalid id: ${color.id}. Expected ${colorId}.`,
+            color
+          );
         }
       }
-      const rgb = rgbMatch.map(Number);
-      const colorInfo = APP_CONSTANTS.COLOR_MAP[id];
-      const name = colorInfo ? colorInfo.name : `Unknown Color ${id}`;
-      if (!colorInfo) console.warn(`Color id ${id} not found in known colors`);
-      const isAvailable = !el.querySelector("svg");
-      return { id, name, rgb, isAvailable };
     }
-    for (const el of colorElements) {
-      const colorData = parseColorElement(el);
-      if (!colorData) continue;
-      if (colorData.isAvailable) availableColors.push(colorData);
-      else unavailableColors.push(colorData);
-    }
-    console.log("=== CAPTURED COLORS STATUS ===");
-    console.log(`Total available colors: ${availableColors.length}`);
-    console.log(`Total unavailable colors: ${unavailableColors.length}`);
-    console.log(`Total colors scanned: ${availableColors.length + unavailableColors.length}`);
-    if (availableColors.length > 0) {
-      console.log("\n--- AVAILABLE COLORS ---");
-      availableColors.forEach((color, index) => {
-        console.log(
-          `${index + 1}. ID: ${color.id}, Name: "${color.name}", RGB: (${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`
-        );
-      });
-    }
-    if (unavailableColors.length > 0) {
-      console.log("\n--- UNAVAILABLE COLORS ---");
-      unavailableColors.forEach((color, index) => {
-        console.log(
-          `${index + 1}. ID: ${color.id}, Name: "${color.name}", RGB: (${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]}) [LOCKED]`
-        );
-      });
-    }
-    console.log("=== END COLOR STATUS ===");
-    return { availableColors, unavailableColors };
+    return available;
   }
   function safeOn(el, event, handler) {
     if (el) el.addEventListener(event, handler);
@@ -3179,28 +3226,12 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
 
   // src/js/ui/handlers/main-panel/upload-handler.js
   async function handleUploadClick() {
+    await updateStats(true);
     if (!state.hasAvailableColors) {
-      const { availableColors } = extractColors();
-      const newColorsCount = Array.isArray(availableColors) ? availableColors.length : 0;
-      if (newColorsCount === 0) {
-        updateUI("noColorsKnown", "error");
-        showAlert(t("noColorsKnown"), "error");
-        return;
-      } else if (newColorsCount > 0 && colorsChanged(state.availableColors, availableColors)) {
-        const oldCount = state.availableColors.length;
-        showAlert(
-          t("colorsUpdated", {
-            oldCount,
-            newCount: newColorsCount,
-            diffCount: newColorsCount - oldCount
-          }),
-          "success"
-        );
-        state.availableColors = availableColors;
-        invalidateColorCache({ availableColors: true });
-      }
+      updateUI("noColorsKnown", "error");
+      showAlert(t("noColorsKnown"), "error");
+      return;
     }
-    await updateStats();
     const selectPosBtn = document.getElementById("selectPosBtn");
     const resizeBtn = document.getElementById("resizeBtn");
     if (selectPosBtn) selectPosBtn.disabled = false;
@@ -3220,7 +3251,13 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
         (sum, count) => sum + count,
         0
       );
-      state.imageData = { width, height, pixels, totalPixels: totalValidPixels, processor };
+      state.imageData = {
+        width,
+        height,
+        pixels,
+        totalPixels: totalValidPixels,
+        processor
+      };
       state.artTotalPixels = totalValidPixels;
       state.artColorFrequency = artColorFrequency;
       state.userPaintedPixels = 0;
@@ -6823,20 +6860,17 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
   }
   async function updateStats(isManualRefresh = false) {
     const isFirstCheck = !state.fullChargeData?.startTime;
-    const minUpdateInterval = 6e4;
-    const maxUpdateInterval = 9e4;
-    const randomUpdateThreshold = minUpdateInterval + Math.random() * (maxUpdateInterval - minUpdateInterval);
-    const timeSinceLastUpdate = Date.now() - (state.fullChargeData?.startTime || 0);
-    const isTimeToUpdate = timeSinceLastUpdate >= randomUpdateThreshold;
-    const shouldCallApi = isManualRefresh || isFirstCheck || isTimeToUpdate;
-    if (shouldCallApi) {
-      const { charges, max, cooldown } = await WPlaceService.getCharges();
-      state.displayCharges = Math.floor(charges);
-      state.preciseCurrentCharges = charges;
+    if (isManualRefresh || isFirstCheck) {
+      wplaceService.invalidateCache();
+    }
+    const { count, max, cooldown, fromCache: chargesFromCache } = await wplaceService.getCharges();
+    if (!chargesFromCache) {
+      state.displayCharges = Math.floor(count);
+      state.preciseCurrentCharges = count;
       state.cooldown = cooldown;
       state.maxCharges = Math.floor(max) > 1 ? Math.floor(max) : state.maxCharges;
       state.fullChargeData = {
-        current: charges,
+        current: count,
         max,
         cooldownMs: cooldown,
         startTime: Date.now(),
@@ -6855,21 +6889,22 @@ Progress: ${savedData.state.userPaintedPixels}/${savedData.state.artTotalPixels}
     if (cooldownSlider.max !== state.maxCharges) {
       cooldownSlider.max = state.maxCharges;
     }
-    const { availableColors } = extractColors();
-    const newCount = Array.isArray(availableColors) ? availableColors.length : 0;
-    if (newCount === 0 && isManualRefresh) {
+    const { value: colorsBitmap } = await wplaceService.getExtraColorsBitmap();
+    const newAvailableColors = getAvailableColors(colorsBitmap);
+    const foundColorsCount = Array.isArray(newAvailableColors) ? newAvailableColors.length : 0;
+    if (foundColorsCount === 0 && isManualRefresh) {
       showAlert(t("noColorsFound"), "warning");
-    } else if (newCount > 0 && colorsChanged(state.availableColors, availableColors)) {
+    } else if (foundColorsCount > 0 && colorsChanged(state.availableColors, newAvailableColors)) {
       const oldCount = state.availableColors.length;
       showAlert(
         t("colorsUpdated", {
           oldCount,
-          newCount,
-          diffCount: newCount - oldCount
+          newCount: foundColorsCount,
+          diffCount: foundColorsCount - oldCount
         }),
         "success"
       );
-      state.availableColors = availableColors;
+      state.availableColors = newAvailableColors;
       invalidateColorCache({ availableColors: true });
     }
     let lastEl = document.getElementById("wplace-init-msg");

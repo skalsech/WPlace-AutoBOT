@@ -9,10 +9,10 @@ import { state } from '../core/state.js';
 import { showAlert } from './alerts.js';
 import { initializeTranslations, t } from '../i18n/i18.js';
 import { loadProgress } from '../core/progress-manager.js';
-import { WPlaceService } from '../core/api-service.js';
+import { wplaceService } from '../core/api-service.js';
 import { calculateEstimatedTime, formatTime } from '../utils/time.js';
 import { getMsToTargetCharges, updateChargesThresholdUI } from '../utils/painting-helpers.js';
-import { extractColors } from '../utils/dom.js';
+import { getAvailableColors } from '../utils/dom.js';
 import { colorsChanged, invalidateColorCache } from '../utils/color-matching.js';
 import { setupSettingsListeners } from './listeners/settings.js';
 import { setupStatsListeners } from './listeners/stats.js';
@@ -319,24 +319,19 @@ function updateColorSwatches() {
 export async function updateStats(isManualRefresh = false) {
   const isFirstCheck = !state.fullChargeData?.startTime;
 
-  const minUpdateInterval = 60_000;
-  const maxUpdateInterval = 90_000;
-  const randomUpdateThreshold =
-    minUpdateInterval + Math.random() * (maxUpdateInterval - minUpdateInterval);
-  const timeSinceLastUpdate = Date.now() - (state.fullChargeData?.startTime || 0);
-  const isTimeToUpdate = timeSinceLastUpdate >= randomUpdateThreshold;
+  if (isManualRefresh || isFirstCheck) {
+    wplaceService.invalidateCache();
+  }
+  const { count, max, cooldown, fromCache: chargesFromCache } = await wplaceService.getCharges();
 
-  const shouldCallApi = isManualRefresh || isFirstCheck || isTimeToUpdate;
-
-  if (shouldCallApi) {
-    const { charges, max, cooldown } = await WPlaceService.getCharges();
-    state.displayCharges = Math.floor(charges);
-    state.preciseCurrentCharges = charges;
+  if (!chargesFromCache) {
+    state.displayCharges = Math.floor(count);
+    state.preciseCurrentCharges = count;
     state.cooldown = cooldown;
     state.maxCharges = Math.floor(max) > 1 ? Math.floor(max) : state.maxCharges;
 
     state.fullChargeData = {
-      current: charges,
+      current: count,
       max,
       cooldownMs: cooldown,
       startTime: Date.now(),
@@ -359,24 +354,26 @@ export async function updateStats(isManualRefresh = false) {
     cooldownSlider.max = state.maxCharges;
   }
 
-  const { availableColors } = extractColors();
-  const newCount = Array.isArray(availableColors) ? availableColors.length : 0;
+  const { value: colorsBitmap } = await wplaceService.getExtraColorsBitmap();
 
-  if (newCount === 0 && isManualRefresh) {
+  const newAvailableColors = getAvailableColors(colorsBitmap);
+  const foundColorsCount = Array.isArray(newAvailableColors) ? newAvailableColors.length : 0;
+
+  if (foundColorsCount === 0 && isManualRefresh) {
     showAlert(t('noColorsFound'), 'warning');
-  } else if (newCount > 0 && colorsChanged(state.availableColors, availableColors)) {
+  } else if (foundColorsCount > 0 && colorsChanged(state.availableColors, newAvailableColors)) {
     const oldCount = state.availableColors.length;
 
     showAlert(
       t('colorsUpdated', {
         oldCount,
-        newCount,
-        diffCount: newCount - oldCount,
+        newCount: foundColorsCount,
+        diffCount: foundColorsCount - oldCount,
       }),
       'success'
     );
 
-    state.availableColors = availableColors;
+    state.availableColors = newAvailableColors;
     invalidateColorCache({ availableColors: true });
   }
 

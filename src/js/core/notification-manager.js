@@ -2,7 +2,7 @@
 import { showAlert } from '../ui/alerts.js';
 import { t } from '../i18n/i18.js';
 import { state } from './state.js';
-import { WPlaceService } from './api-service.js';
+import { wplaceService } from './api-service.js';
 
 export const NotificationManager = {
   pollTimer: null,
@@ -81,7 +81,7 @@ export const NotificationManager = {
     // lightweight background polling
     this.pollTimer = setInterval(async () => {
       try {
-        const { charges, cooldown, max } = await WPlaceService.getCharges();
+        const { charges, cooldown, max } = await wplaceService.getCharges();
         state.displayCharges = Math.floor(charges);
         state.cooldown = cooldown;
         state.maxCharges = Math.max(1, Math.floor(max));

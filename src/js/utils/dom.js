@@ -30,84 +30,61 @@ export function createElement(tag, props = {}, children = []) {
   return element;
 }
 
-export function extractColors() {
-  const availableColors = [];
-  const unavailableColors = [];
-
-  const colorElements = document.querySelectorAll('.tooltip button[id^="color-"]');
-  if (colorElements.length === 0) {
-    console.log('❌ No color elements found on page');
-    return { availableColors, unavailableColors };
+/**
+ * Checks if a color with the given index is available.
+ * Free colors (0–31) are always available.
+ * Paid colors (32–63) are available if their bit is set in extraColorsBitmap.
+ *
+ * @param {number} colorId color index (0–63)
+ * @param {number} extraColorsBitmap bitmask from /me API
+ * @returns {boolean} true if the color is available, otherwise false
+ */
+export function hasColor(colorId, extraColorsBitmap) {
+  if (colorId < 32) {
+    return true;
   }
 
-  function parseColorElement(el) {
-    const id = Number(el.id.replace('color-', ''));
+  const bitPosition = colorId - 32;
+  return (extraColorsBitmap & (1 << bitPosition)) !== 0;
+}
 
-    const rgbMatch = el.style.backgroundColor.match(/\d+/g);
-    if (!rgbMatch || rgbMatch.length < 3) {
-      if (id !== 0) {
-        console.warn(`Skipping color element ${el.id} — cannot parse RGB`);
-        return null;
-      } else {
-        const configTransparent = APP_CONSTANTS.COLOR_MAP[id];
-        if (!configTransparent) return null;
-        return {
-          id: configTransparent.id,
-          name: configTransparent.name,
-          rgb: Object.values(configTransparent.rgb),
-          isAvailable: true,
-        };
-      }
+/**
+ * Returns an array of color objects available to the user.
+ * Free colors (0–31) are always available.
+ * Paid colors (32–63) are available if their bit is set in extraColorsBitmap.
+ *
+ * @param {number} extraColorsBitmap bitmask from /me API
+ * @returns {Array<{id: number, name: string, rgb: [number, number, number]}>}
+ */
+export function getAvailableColors(extraColorsBitmap) {
+  const available = [];
+
+  for (const colorIdStr of Object.keys(APP_CONSTANTS.COLOR_MAP)) {
+    const colorId = Number(colorIdStr);
+
+    if (isNaN(colorId) || colorId < 0 || colorId > 63) {
+      console.warn(`Invalid color id in COLOR_MAP: ${colorId}`);
+      continue;
     }
 
-    const rgb = rgbMatch.map(Number);
-    const colorInfo = APP_CONSTANTS.COLOR_MAP[id];
-    const name = colorInfo ? colorInfo.name : `Unknown Color ${id}`;
-    if (!colorInfo) console.warn(`Color id ${id} not found in known colors`);
-
-    const isAvailable = !el.querySelector('svg');
-    return { id, name, rgb, isAvailable };
+    if (hasColor(colorId, extraColorsBitmap)) {
+      const color = APP_CONSTANTS.COLOR_MAP[colorId];
+      if (color && color.id === colorId) {
+        available.push({
+          id: color.id,
+          name: color.name,
+          rgb: [color.rgb.r, color.rgb.g, color.rgb.b],
+        });
+      } else if (color) {
+        console.warn(
+          `COLOR_MAP[${colorId}] has an invalid id: ${color.id}. Expected ${colorId}.`,
+          color
+        );
+      }
+    }
   }
 
-  for (const el of colorElements) {
-    const colorData = parseColorElement(el);
-    if (!colorData) continue;
-
-    if (colorData.isAvailable) availableColors.push(colorData);
-    else unavailableColors.push(colorData);
-  }
-
-  // Console log detailed color information
-  console.log('=== CAPTURED COLORS STATUS ===');
-  console.log(`Total available colors: ${availableColors.length}`);
-  console.log(`Total unavailable colors: ${unavailableColors.length}`);
-  console.log(`Total colors scanned: ${availableColors.length + unavailableColors.length}`);
-
-  if (availableColors.length > 0) {
-    console.log('\n--- AVAILABLE COLORS ---');
-    availableColors.forEach((color, index) => {
-      console.log(
-        `${
-          index + 1
-        }. ID: ${color.id}, Name: "${color.name}", RGB: (${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]})`
-      );
-    });
-  }
-
-  if (unavailableColors.length > 0) {
-    console.log('\n--- UNAVAILABLE COLORS ---');
-    unavailableColors.forEach((color, index) => {
-      console.log(
-        `${
-          index + 1
-        }. ID: ${color.id}, Name: "${color.name}", RGB: (${color.rgb[0]}, ${color.rgb[1]}, ${color.rgb[2]}) [LOCKED]`
-      );
-    });
-  }
-
-  console.log('=== END COLOR STATUS ===');
-
-  return { availableColors, unavailableColors };
+  return available;
 }
 
 export function safeOn(el, event, handler) {
