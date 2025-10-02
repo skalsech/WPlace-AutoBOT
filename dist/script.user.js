@@ -7006,23 +7006,11 @@ ${t("clickLoadToContinue")}`,
     try {
       console.log("\u{1F527} Initializing Turnstile token generator...");
       updateUI("initializingToken", "default");
-      console.log("Attempting to load Turnstile script...");
       await loadTurnstile();
-      console.log("Turnstile script loaded. Attempting to generate token...");
-      const token = await handleCaptchaWithRetry();
-      if (token) {
-        setTurnstileToken(token);
-        console.log("\u2705 Startup token generated successfully");
-        updateUI("tokenReady", "success");
-        showAlert(t("tokenGeneratorReady"), "success");
-        enableFileOperations();
-      } else {
-        console.warn(
-          "\u26A0\uFE0F Startup token generation failed (no token received), will retry when needed"
-        );
-        updateUI("tokenRetryLater", "warning");
-        enableFileOperations();
-      }
+      console.log("Turnstile script loaded.");
+      updateUI("tokenReady", "success");
+      showAlert(t("tokenGeneratorReady"), "success");
+      enableFileOperations();
     } catch (error) {
       console.error("\u274C Critical error during Turnstile initialization:", error);
       updateUI("tokenRetryLater", "warning");

@@ -1,8 +1,4 @@
-import {
-  handleCaptchaWithRetry,
-  isTokenValid,
-  setTurnstileToken,
-} from '../security/turnstile-manager.js';
+import { isTokenValid } from '../security/turnstile-manager.js';
 import { updateUI } from '../ui/panel.js';
 import { showAlert } from '../ui/alerts.js';
 import { t } from '../i18n/i18.js';
@@ -65,26 +61,11 @@ export async function initializeTokenGenerator() {
     console.log('🔧 Initializing Turnstile token generator...');
     updateUI('initializingToken', 'default');
 
-    console.log('Attempting to load Turnstile script...');
     await loadTurnstile();
-    console.log('Turnstile script loaded. Attempting to generate token...');
-
-    const token = await handleCaptchaWithRetry();
-    if (token) {
-      setTurnstileToken(token);
-      console.log('✅ Startup token generated successfully');
-      updateUI('tokenReady', 'success');
-      showAlert(t('tokenGeneratorReady'), 'success');
-      enableFileOperations(); // Enable file operations since initial setup is complete
-    } else {
-      console.warn(
-        '⚠️ Startup token generation failed (no token received), will retry when needed'
-      );
-      updateUI('tokenRetryLater', 'warning');
-      // Still enable file operations even if initial token generation fails
-      // Users can load progress and use manual/hybrid modes
-      enableFileOperations();
-    }
+    console.log('Turnstile script loaded.');
+    updateUI('tokenReady', 'success');
+    showAlert(t('tokenGeneratorReady'), 'success');
+    enableFileOperations();
   } catch (error) {
     console.error('❌ Critical error during Turnstile initialization:', error); // More specific error
     updateUI('tokenRetryLater', 'warning');
