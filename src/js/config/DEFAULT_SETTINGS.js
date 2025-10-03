@@ -19,6 +19,7 @@ import { deepFreeze } from '../utils/helpers.js';
  * @property {boolean} coordinateSnake
  * @property {number} blockWidth
  * @property {number} blockHeight
+ * @property {boolean} sortCoordinateByFrequency
  * @property {boolean} notificationsEnabled
  * @property {boolean} notifyOnChargesReached
  * @property {boolean} notifyOnlyWhenUnfocused
@@ -65,6 +66,7 @@ export const DEFAULT_SETTINGS = deepFreeze({
   coordinateSnake: true,
   blockWidth: 6,
   blockHeight: 2,
+  sortCoordinateByFrequency: true, // todo add to ui
 
   // notifications
   notificationsEnabled: false,

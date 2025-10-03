@@ -110,6 +110,8 @@
     coordinateSnake: true,
     blockWidth: 6,
     blockHeight: 2,
+    sortCoordinateByFrequency: true,
+    // todo add to ui
     // notifications
     notificationsEnabled: false,
     notifyOnChargesReached: true,
@@ -161,7 +163,7 @@
     running: false,
     processing: false,
     artTotalPixels: 0,
-    artColorFrequency: {},
+    artColorFrequency: /* @__PURE__ */ new Map(),
     localPaintedOffset: 0,
     totalPaintedPixels: 0,
     availableColors: [],
@@ -1794,18 +1796,18 @@
      * Transparent pixels (a=0) are skipped if shouldSkipTransparent is true,
      * otherwise replaced with APP_CONSTANTS.COLOR_MAP['0'].rgb.
      * @param {boolean} shouldSkipTransparent - Whether to skip or replace transparent pixels.
-     * @returns {Record<string, number>} RGB color string (e.g., "255,255,255") → pixel count.
+     * @returns {Map<string, number>} RGB color string (e.g., "255,255,255") → pixel count.
      */
     countColors(shouldSkipTransparent) {
       const data = this.getPixelData();
-      const colorCounts = {};
+      const colorCounts = /* @__PURE__ */ new Map();
       const defaceColorObj = APP_CONSTANTS.COLOR_MAP["0"].rgb;
       const defaceTransparentColor = [defaceColorObj.r, defaceColorObj.g, defaceColorObj.b].join(",");
       for (let i = 0; i < data.length; i += 4) {
         const [r, g, b, a] = data.slice(i, i + 4);
         if (a === 0 && shouldSkipTransparent) continue;
         const key = a === 0 ? defaceTransparentColor : `${r},${g},${b}`;
-        colorCounts[key] = (colorCounts[key] || 0) + 1;
+        colorCounts.set(key, (colorCounts.get(key) || 0) + 1);
       }
       return colorCounts;
     }
@@ -6187,7 +6189,7 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
   }
 
   // src/js/core/coordinate-generator.js
-  function generateCoordinates(width, height, mode, direction, snake, blockWidth, blockHeight) {
+  async function generateCoordinates(width, height, mode, direction, snake, blockWidth, blockHeight, sortByFrequency, pixels) {
     const coords = [];
     console.log(
       "Generating coordinates with \n  mode:",
@@ -6271,7 +6273,11 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
         for (let y = cy - r; y <= cy + r; y++) {
           for (let x = cx - r; x <= cx + r; x++) {
             if (x >= 0 && x < width && y >= 0 && y < height) {
-              const dist = Math.max(Math.abs(x - cx), Math.abs(y - cy));
+              const dx = x - cx;
+              const dy = y - cy;
+              const absX = dx < 0 ? -dx : dx;
+              const absY = dy < 0 ? -dy : dy;
+              const dist = absX > absY ? absX : absY;
               if (dist === r) coords.push([x, y]);
             }
           }
@@ -6285,7 +6291,11 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
         for (let y = cy - r; y <= cy + r; y++) {
           for (let x = cx - r; x <= cx + r; x++) {
             if (x >= 0 && x < width && y >= 0 && y < height) {
-              const dist = Math.max(Math.abs(x - cx), Math.abs(y - cy));
+              const dx = x - cx;
+              const dy = y - cy;
+              const absX = dx < 0 ? -dx : dx;
+              const absY = dy < 0 ? -dy : dy;
+              const dist = absX > absY ? absX : absY;
               if (dist === r) coords.push([x, y]);
             }
           }
@@ -6311,10 +6321,49 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
         }
       }
       for (const block of blocks) {
-        coords.push(...block);
+        for (const coord of block) {
+          coords.push(coord);
+        }
       }
     } else {
       throw new Error(`Unknown mode: ${mode}`);
+    }
+    if (sortByFrequency) {
+      if (!overlayManager || state.artColorFrequency.size === 0) {
+        throw new Error(
+          "overlayManager and artColorFrequency must be provided for option sort-by-color-frequency"
+        );
+      }
+      const enrichedCoords = coords.map(([x, y], index) => {
+        const idx = (y * width + x) * 4;
+        const r = pixels[idx];
+        const g = pixels[idx + 1];
+        const b = pixels[idx + 2];
+        const a = pixels[idx + 3];
+        if (!state.paintTransparentPixels && isTransparentPixel(a)) return null;
+        const colorStr = `${r},${g},${b}`;
+        const frequency = state.artColorFrequency.get(colorStr) || 0;
+        return { coord: [x, y], frequency, index };
+      });
+      const validCoords = enrichedCoords.filter(Boolean);
+      const groupedByFreq = /* @__PURE__ */ new Map();
+      for (const item of validCoords) {
+        const freq = item.frequency;
+        if (!groupedByFreq.has(freq)) {
+          groupedByFreq.set(freq, []);
+        }
+        groupedByFreq.get(freq).push(item);
+      }
+      const sortedFreqs = [...groupedByFreq.keys()].sort((a, b) => a - b);
+      const result = [];
+      for (const freq of sortedFreqs) {
+        const group = groupedByFreq.get(freq);
+        group.sort((a, b) => a.index - b.index);
+        for (const item of group) {
+          result.push(item);
+        }
+      }
+      return result.map((item) => item.coord);
     }
     return coords;
   }
@@ -6420,19 +6469,20 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
     }
     function skipPixel(reason, id, rgb, x, y) {
       if (reason !== "transparent") {
-        console.log(`Skipped pixel for ${reason} (id: ${id}, (${rgb.join(", ")})) at (${x}, ${y})`);
       }
       skippedPixels[reason]++;
     }
     try {
-      const coords = generateCoordinates(
+      const coords = await generateCoordinates(
         width,
         height,
         state.coordinateMode,
         state.coordinateDirection,
         state.coordinateSnake,
         state.blockWidth,
-        state.blockHeight
+        state.blockHeight,
+        state.sortCoordinateByFrequency,
+        pixels
       );
       outerLoop: for (const [x, y] of coords) {
         if (state.stopFlag) {
@@ -6550,9 +6600,14 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
           }
         }
       }
-    } finally {
-      if (window._chargesInterval) clearInterval(window._chargesInterval);
-      window._chargesInterval = null;
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      console.groupCollapsed(`Error: ${err.message}`);
+      console.log("time:", (/* @__PURE__ */ new Date()).toISOString());
+      console.log("name:", err.name);
+      console.log("message:", err.message);
+      if (err.stack) console.log("stack:", err.stack);
+      console.groupEnd();
     }
     if (state.stopFlag) {
       saveProgress();
@@ -6567,7 +6622,6 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
       }
     }
     console.log(`\u{1F4CA} Pixel Statistics:`);
-    console.log(`   Painted: ${state.currentPaintedPixels}`);
     console.log(`   Skipped - Transparent: ${skippedPixels.transparent}`);
     console.log(`   Skipped - White (disabled): ${skippedPixels.white}`);
     console.log(`   Skipped - Already painted: ${skippedPixels.alreadyPainted}`);

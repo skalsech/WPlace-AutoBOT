@@ -152,20 +152,22 @@ export async function processImage() {
 
   function skipPixel(reason, id, rgb, x, y) {
     if (reason !== 'transparent') {
-      console.log(`Skipped pixel for ${reason} (id: ${id}, (${rgb.join(', ')})) at (${x}, ${y})`);
+      //console.log(`Skipped pixel for ${reason} (id: ${id}, (${rgb.join(', ')})) at (${x}, ${y})`);
     }
     skippedPixels[reason]++;
   }
 
   try {
-    const coords = generateCoordinates(
+    const coords = await generateCoordinates(
       width,
       height,
       state.coordinateMode,
       state.coordinateDirection,
       state.coordinateSnake,
       state.blockWidth,
-      state.blockHeight
+      state.blockHeight,
+      state.sortCoordinateByFrequency,
+      pixels
     );
 
     outerLoop: for (const [x, y] of coords) {
@@ -321,9 +323,16 @@ export async function processImage() {
         }
       }
     }
-  } finally {
-    if (window._chargesInterval) clearInterval(window._chargesInterval);
-    window._chargesInterval = null;
+  } catch (e) {
+    const err = e instanceof Error ? e : new Error(String(e));
+    console.groupCollapsed(`Error: ${err.message}`);
+    console.log('time:', new Date().toISOString());
+    console.log('name:', err.name);
+    console.log('message:', err.message);
+    if (err.stack) console.log('stack:', err.stack);
+    // useful context:
+    // console.log('context:', { userId, input });
+    console.groupEnd();
   }
 
   if (state.stopFlag) {
@@ -343,7 +352,6 @@ export async function processImage() {
 
   // Log skip statistics
   console.log(`📊 Pixel Statistics:`);
-  console.log(`   Painted: ${state.currentPaintedPixels}`);
   console.log(`   Skipped - Transparent: ${skippedPixels.transparent}`);
   console.log(`   Skipped - White (disabled): ${skippedPixels.white}`);
   console.log(`   Skipped - Already painted: ${skippedPixels.alreadyPainted}`);

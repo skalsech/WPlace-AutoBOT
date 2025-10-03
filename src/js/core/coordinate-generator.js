@@ -1,11 +1,32 @@
-export function generateCoordinates(
+import { overlayManager } from '../overlay/overlay-manager.js';
+import { state } from './state.js';
+import { isTransparentPixel } from '../utils/color-matching.js';
+/**
+ * @typedef {{ coord: [number, number], frequency: number, index: number } | null} EnrichedCoord
+ */
+
+/**
+ * @param {number} width
+ * @param {number} height
+ * @param {'rows'|'columns'|'circle-out'|'circle-in'|'blocks'|'shuffle-blocks'} mode
+ * @param {'top-left'|'top-right'|'bottom-left'|'bottom-right'} direction
+ * @param {boolean} snake
+ * @param {number} blockWidth
+ * @param {number} blockHeight
+ * @param {boolean} sortByFrequency
+ * @param {Uint8ClampedArray} pixels
+ * @returns {Promise<[number, number][]>}
+ */
+export async function generateCoordinates(
   width,
   height,
   mode,
   direction,
   snake,
   blockWidth,
-  blockHeight
+  blockHeight,
+  sortByFrequency,
+  pixels
 ) {
   const coords = [];
   console.log(
@@ -94,7 +115,11 @@ export function generateCoordinates(
       for (let y = cy - r; y <= cy + r; y++) {
         for (let x = cx - r; x <= cx + r; x++) {
           if (x >= 0 && x < width && y >= 0 && y < height) {
-            const dist = Math.max(Math.abs(x - cx), Math.abs(y - cy));
+            const dx = x - cx;
+            const dy = y - cy;
+            const absX = dx < 0 ? -dx : dx;
+            const absY = dy < 0 ? -dy : dy;
+            const dist = absX > absY ? absX : absY;
             if (dist === r) coords.push([x, y]);
           }
         }
@@ -109,7 +134,11 @@ export function generateCoordinates(
       for (let y = cy - r; y <= cy + r; y++) {
         for (let x = cx - r; x <= cx + r; x++) {
           if (x >= 0 && x < width && y >= 0 && y < height) {
-            const dist = Math.max(Math.abs(x - cx), Math.abs(y - cy));
+            const dx = x - cx;
+            const dy = y - cy;
+            const absX = dx < 0 ? -dx : dx;
+            const absY = dy < 0 ? -dy : dy;
+            const dist = absX > absY ? absX : absY;
             if (dist === r) coords.push([x, y]);
           }
         }
@@ -139,10 +168,64 @@ export function generateCoordinates(
 
     // Concatenate all blocks
     for (const block of blocks) {
-      coords.push(...block);
+      for (const coord of block) {
+        coords.push(coord);
+      }
     }
   } else {
     throw new Error(`Unknown mode: ${mode}`);
+  }
+
+  if (sortByFrequency) {
+    if (!overlayManager || state.artColorFrequency.size === 0) {
+      throw new Error(
+        'overlayManager and artColorFrequency must be provided for option sort-by-color-frequency'
+      );
+    }
+
+    /** @type {EnrichedCoord[]} */
+    const enrichedCoords = coords.map(([x, y], index) => {
+      const idx = (y * width + x) * 4;
+      const r = pixels[idx];
+      const g = pixels[idx + 1];
+      const b = pixels[idx + 2];
+      const a = pixels[idx + 3];
+
+      if (!state.paintTransparentPixels && isTransparentPixel(a)) return null;
+
+      const colorStr = `${r},${g},${b}`;
+      const frequency = state.artColorFrequency.get(colorStr) || 0;
+
+      return { coord: [x, y], frequency, index };
+    });
+
+    /** @type {EnrichedCoord[]} */
+    const validCoords = enrichedCoords.filter(Boolean);
+
+    /** @type {Map<number, EnrichedCoord[]>} */
+    const groupedByFreq = new Map();
+
+    for (const item of validCoords) {
+      const freq = item.frequency;
+      if (!groupedByFreq.has(freq)) {
+        groupedByFreq.set(freq, []);
+      }
+      groupedByFreq.get(freq).push(item);
+    }
+
+    const sortedFreqs = [...groupedByFreq.keys()].sort((a, b) => a - b);
+
+    const result = [];
+    for (const freq of sortedFreqs) {
+      const group = groupedByFreq.get(freq);
+
+      group.sort((a, b) => a.index - b.index);
+      for (const item of group) {
+        result.push(item);
+      }
+    }
+
+    return result.map((item) => item.coord);
   }
 
   return coords;

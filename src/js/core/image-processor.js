@@ -42,11 +42,11 @@ export class ImageProcessor {
    * Transparent pixels (a=0) are skipped if shouldSkipTransparent is true,
    * otherwise replaced with APP_CONSTANTS.COLOR_MAP['0'].rgb.
    * @param {boolean} shouldSkipTransparent - Whether to skip or replace transparent pixels.
-   * @returns {Record<string, number>} RGB color string (e.g., "255,255,255") → pixel count.
+   * @returns {Map<string, number>} RGB color string (e.g., "255,255,255") → pixel count.
    */
   countColors(shouldSkipTransparent) {
     const data = this.getPixelData();
-    const colorCounts = {};
+    const colorCounts = new Map();
     const defaceColorObj = APP_CONSTANTS.COLOR_MAP['0'].rgb;
     const defaceTransparentColor = [defaceColorObj.r, defaceColorObj.g, defaceColorObj.b].join(',');
 
@@ -56,7 +56,7 @@ export class ImageProcessor {
       if (a === 0 && shouldSkipTransparent) continue;
       const key = a === 0 ? defaceTransparentColor : `${r},${g},${b}`;
 
-      colorCounts[key] = (colorCounts[key] || 0) + 1;
+      colorCounts.set(key, (colorCounts.get(key) || 0) + 1);
     }
 
     return colorCounts;
