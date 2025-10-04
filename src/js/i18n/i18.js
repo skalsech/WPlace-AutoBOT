@@ -144,12 +144,8 @@ export function t(key, params = {}) {
     }
   }
 
-  Object.keys(params).forEach((param) => {
-    const escapeRegExp = (str) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    text = text.replace(new RegExp(`\\{${escapeRegExp(param)}\\}`, 'g'), params[param]);
-  });
-
-  return text;
+  const formatter = new window.IntlMessageFormat.IntlMessageFormat(text, state.languageKey);
+  return formatter.format(params);
 }
 
 export function updateTranslations() {

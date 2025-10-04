@@ -1,5 +1,3 @@
-import { t } from '../../i18n/i18.js';
-
 export function createStatsContainer() {
   const statsContainer = document.createElement('div');
   statsContainer.id = 'wplace-stats-container';
@@ -9,17 +7,13 @@ export function createStatsContainer() {
     <div class="wplace-header">
       <div class="wplace-header-title">
         <i class="fas fa-chart-bar"></i>
-        <span data-i18n-key="paintingStats">${t('paintingStats')}</span>
+        <span data-i18n-key="paintingStats"></span>
       </div>
       <div class="wplace-header-controls">
-        <button id="refreshChargesBtn" class="wplace-header-btn" title="${t(
-          'refreshCharges'
-        )}" data-i18n-key="refreshCharges" data-i18n-attr="title">
+        <button id="refreshChargesBtn" class="wplace-header-btn" title="" data-i18n-key="refreshCharges" data-i18n-attr="title">
           <i class="fas fa-sync"></i>
         </button>
-        <button id="closeStatsBtn" class="wplace-header-btn" title="${t(
-          'closeStats'
-        )}" data-i18n-key="closeStats" data-i18n-attr="title">
+        <button id="closeStatsBtn" class="wplace-header-btn" title="" data-i18n-key="closeStats" data-i18n-attr="title">
           <i class="fas fa-times"></i>
         </button>
       </div>
@@ -30,7 +24,7 @@ export function createStatsContainer() {
           <div id="wplace-init-msg" class="wplace-stat-item">
             <div class="wplace-stat-label">
               <i class="fas fa-info-circle"></i>
-              <span data-i18n-key="initMessage">${t('initMessage')}</span>
+              <span data-i18n-key="initMessage"></span>
             </div>
           </div>
         </div>

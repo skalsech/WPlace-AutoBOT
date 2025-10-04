@@ -14,6 +14,11 @@ export const UI_BINDINGS = [
     selector: '#coordinateSnakeToggle',
     prop: 'checked',
   },
+  {
+    key: 'sortCoordinateByFrequency',
+    selector: '#sortCoordinateByFrequencyToggle',
+    prop: 'checked',
+  },
 
   // Paint Filters
   {

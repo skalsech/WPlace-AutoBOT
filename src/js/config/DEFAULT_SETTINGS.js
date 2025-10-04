@@ -66,7 +66,7 @@ export const DEFAULT_SETTINGS = deepFreeze({
   coordinateSnake: true,
   blockWidth: 6,
   blockHeight: 2,
-  sortCoordinateByFrequency: true, // todo add to ui
+  sortCoordinateByFrequency: true,
 
   // notifications
   notificationsEnabled: false,

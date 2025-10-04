@@ -45,7 +45,6 @@ export function loadBotSettings() {
     // special cases
     function parseResizeIgnoreMask(mask, current) {
       if (!mask?.data) {
-        console.debug('[Settings] parseResizeIgnoreMask: no mask.data');
         return null;
       }
 

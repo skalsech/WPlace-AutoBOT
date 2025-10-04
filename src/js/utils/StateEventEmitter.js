@@ -1,4 +1,4 @@
-export class EventEmitter {
+export class StateEventEmitter {
   constructor() {
     this.events = new Map();
   }

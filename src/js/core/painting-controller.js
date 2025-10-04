@@ -336,7 +336,6 @@ export async function processImage() {
   }
 
   if (state.stopFlag) {
-    // Save progress when stopped to preserve painted map
     saveProgress();
   } else {
     updateUI('paintingComplete', 'success', { count: state.currentPaintedPixels });
@@ -366,7 +365,7 @@ export async function processImage() {
     }`
   );
 
-  updateStats();
+  await updateStats();
 }
 
 // Helper function to calculate batch size based on mode

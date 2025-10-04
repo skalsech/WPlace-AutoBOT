@@ -13,7 +13,7 @@ export function setupStatsListeners() {
   safeOn(closeStatsBtn, 'click', () => {
     container.style.display = 'none';
     statsBtn.innerHTML = '<i class="fas fa-chart-bar"></i>';
-    statsBtn.title = t('showStats');
+    statsBtn.title = t('hideStats');
   });
 
   safeOn(refreshChargesBtn, 'click', async () => {

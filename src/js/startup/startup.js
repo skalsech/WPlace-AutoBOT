@@ -1,13 +1,8 @@
 import { isTokenValid } from '../security/turnstile-manager.js';
 import { updateUI } from '../ui/panel.js';
-import { showAlert } from '../ui/alerts.js';
-import { t } from '../i18n/i18.js';
 import { loadTurnstile } from '../security/turnstile.js';
-import { state } from '../core/state.js';
 
-function enableFileOperations() {
-  state.initialSetupComplete = true;
-
+export function enableFileOperations() {
   const loadBtn = document.querySelector('#loadBtn');
   const loadFromFileBtn = document.querySelector('#loadFromFileBtn');
   const uploadBtn = document.querySelector('#uploadBtn');
@@ -15,7 +10,7 @@ function enableFileOperations() {
   if (loadBtn) {
     loadBtn.disabled = false;
     loadBtn.title = '';
-    // Add a subtle animation to indicate the button is now available
+
     loadBtn.style.animation = 'pulse 0.6s ease-in-out';
     setTimeout(() => {
       if (loadBtn) loadBtn.style.animation = '';
@@ -25,7 +20,7 @@ function enableFileOperations() {
   if (loadFromFileBtn) {
     loadFromFileBtn.disabled = false;
     loadFromFileBtn.title = '';
-    // Add a subtle animation to indicate the button is now available
+
     loadFromFileBtn.style.animation = 'pulse 0.6s ease-in-out';
     setTimeout(() => {
       if (loadFromFileBtn) loadFromFileBtn.style.animation = '';
@@ -35,7 +30,7 @@ function enableFileOperations() {
   if (uploadBtn) {
     uploadBtn.disabled = false;
     uploadBtn.title = '';
-    // Add a subtle animation to indicate the button is now available
+
     uploadBtn.style.animation = 'pulse 0.6s ease-in-out';
     setTimeout(() => {
       if (uploadBtn) uploadBtn.style.animation = '';
@@ -45,30 +40,21 @@ function enableFileOperations() {
   console.log('✅ File operations (Load/Upload) are now available!');
 }
 
-// Optimized token initialization with better timing and error handling
 export async function initializeTokenGenerator() {
-  // Skip if already have valid token
   if (isTokenValid()) {
     console.log('✅ Valid token already available, skipping initialization');
     updateUI('tokenReady', 'success');
-    enableFileOperations(); // Enable file operations since initial setup is complete
     return;
   }
 
   try {
-    console.log('🔧 Initializing Turnstile token generator...');
     updateUI('initializingToken', 'default');
 
     await loadTurnstile();
-    console.log('Turnstile script loaded.');
+    console.log('🔧 Turnstile token generator initialized.');
     updateUI('tokenReady', 'success');
-    enableFileOperations();
   } catch (error) {
-    console.error('❌ Critical error during Turnstile initialization:', error); // More specific error
+    console.error('❌ Critical error during Turnstile initialization:', error);
     updateUI('tokenRetryLater', 'warning');
-    // Still enable file operations even if initial setup fails
-    // Users can load progress and use manual/hybrid modes
-    enableFileOperations();
-    // Don't show error alert for initialization failures, just log them
   }
 }

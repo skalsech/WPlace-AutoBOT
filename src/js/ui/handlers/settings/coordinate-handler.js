@@ -34,6 +34,16 @@ export function handleCoordinateSnakeChange(e) {
   showAlert(t(state.coordinateSnake ? 'snakeEnabled' : 'snakeDisabled'), 'success');
 }
 
+export function handleSortCoordinateByFrequencyChange(e) {
+  state.sortCoordinateByFrequency = e.target.checked;
+  saveBotSettings();
+  console.log(`SortCoordinateByFrequency ${e.target.checked ? 'enabled' : 'disabled'}`);
+  showAlert(
+    t(e.target.checked ? 'SortCoordinateByFrequencyEnabled' : 'SortCoordinateByFrequencyDisabled'),
+    'success'
+  );
+}
+
 export function handleBlockWidthInput(e) {
   const width = parseInt(e.target.value, 10);
   if (width >= 1 && width <= 50) {

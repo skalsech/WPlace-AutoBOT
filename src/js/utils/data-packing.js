@@ -86,7 +86,7 @@ export function unpackPaintedMapFromBase64(base64, width, height) {
 }
 
 export function buildPaintedMapPacked() {
-  if (state.paintedMap && state.imageData) {
+  if (state.paintedMap && state.imageLoaded) {
     const data = packPaintedMapToBase64(
       state.paintedMap,
       state.imageData.width,

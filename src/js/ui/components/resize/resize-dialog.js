@@ -367,7 +367,7 @@ function showResizeDialog(processor, container, overlay) {
     toggleOverlayBtn.classList.add('active');
     toggleOverlayBtn.setAttribute('aria-pressed', 'true');
 
-    updateStats();
+    await updateStats();
     updateUI('resizeSuccess', 'success', { width: newWidth, height: newHeight });
     closeResizeDialog();
   };

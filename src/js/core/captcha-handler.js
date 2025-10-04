@@ -1,11 +1,6 @@
 import { state } from './state.js';
-import {
-  getTurnstileToken,
-  handleCaptchaFallback,
-  isTokenValid,
-  setTurnstileToken,
-} from '../security/turnstile-manager.js';
-import { executeTurnstile, loadTurnstile, obtainSitekeyAndToken } from '../security/turnstile.js';
+import { handleCaptchaFallback, setTurnstileToken } from '../security/turnstile-manager.js';
+import { executeTurnstile, loadTurnstile, obtainSitekey } from '../security/turnstile.js';
 
 export async function handleCaptcha() {
   const startTime = performance.now();
@@ -16,10 +11,9 @@ export async function handleCaptcha() {
     return await handleCaptchaFallback();
   }
 
-  // Generator mode (pure) or Hybrid mode - try generator first
+  // Generator mode (pure) or Hybrid mode - always generate fresh token
   try {
-    // Use optimized token generation with automatic sitekey detection
-    const { sitekey, token: preGeneratedToken } = await obtainSitekeyAndToken();
+    const sitekey = await obtainSitekey();
 
     if (!sitekey) {
       throw new Error('No valid sitekey found');
@@ -33,51 +27,26 @@ export async function handleCaptcha() {
       navigator.platform
     );
 
-    // Add additional checks before token generation
     if (!window.turnstile) {
       await loadTurnstile();
     }
 
-    let token = null;
+    console.log('🔐 Generating fresh Turnstile token');
+    const token = await executeTurnstile(sitekey, 'paint');
 
-    // ✅ Reuse pre-generated token if available and valid
-    if (
-      preGeneratedToken &&
-      typeof preGeneratedToken === 'string' &&
-      preGeneratedToken.length > 20
-    ) {
-      console.log('♻️ Reusing pre-generated token from sitekey detection phase');
-      token = preGeneratedToken;
-    }
-    // ✅ Or use globally cached token if still valid
-    else if (isTokenValid()) {
-      console.log('♻️ Using existing cached token (from previous operation)');
-      token = getTurnstileToken();
-    }
-    // ✅ Otherwise generate a new one
-    else {
-      console.log('🔐 No valid pre-generated or cached token, creating new one...');
-      token = await executeTurnstile(sitekey, 'paint');
-      if (token) {
-        setTurnstileToken(token);
-      }
+    if (!token || typeof token !== 'string' || token.length < 20) {
+      throw new Error(`Invalid token received: ${JSON.stringify(token)}`);
     }
 
-    // 📊 Debug log
-    console.log(
+    setTurnstileToken(token);
+
+    console.debug(
       `🔍 Token received - Type: ${typeof token}, Value: ${
-        token
-          ? typeof token === 'string'
-            ? token.length > 50
-              ? token.substring(0, 50) + '...'
-              : token
-            : JSON.stringify(token)
-          : 'null/undefined'
-      }, Length: ${token?.length || 0}`
+        token.length > 50 ? token.substring(0, 50) + '...' : token
+      }, Length: ${token.length}`
     );
 
-    // ✅ Final validation
-    if (typeof token === 'string' && token.length > 20) {
+    if (token.length > 20) {
       const duration = Math.round(performance.now() - startTime);
       console.log(`✅ Turnstile token generated successfully in ${duration}ms`);
       return token;
@@ -92,15 +61,12 @@ export async function handleCaptcha() {
     const duration = Math.round(performance.now() - startTime);
     console.error(`❌ Turnstile token generation failed after ${duration}ms:`, error);
 
-    // Fallback to manual pixel placement for hybrid mode
     if (state.tokenSource === 'hybrid') {
       console.log(
         '🔄 Hybrid mode: Generator failed, automatically switching to manual pixel placement...'
       );
-      const fbToken = await handleCaptchaFallback();
-      return fbToken;
+      return await handleCaptchaFallback();
     } else {
-      // Pure generator mode - don't fallback, just fail
       throw error;
     }
   }

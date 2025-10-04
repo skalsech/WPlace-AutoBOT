@@ -64,7 +64,7 @@ export const NotificationManager = {
       if (shouldEdge || shouldRepeat) {
         const msg = t('chargesReadyMessage', {
           current: state.displayCharges,
-          max: state.maxCharges,
+          max: state.fullChargeData.max,
           threshold: state.cooldownChargeThreshold,
         });
         this.notify(t('chargesReadyNotification'), msg, 'wplace-notify-charges');
@@ -81,10 +81,10 @@ export const NotificationManager = {
     // lightweight background polling
     this.pollTimer = setInterval(async () => {
       try {
-        const { charges, cooldown, max } = await wplaceService.getCharges();
+        const { charges, cooldown } = await wplaceService.getCharges();
         state.displayCharges = Math.floor(charges);
         state.cooldown = cooldown;
-        state.maxCharges = Math.max(1, Math.floor(max));
+
         this.maybeNotifyChargesReached();
       } catch {
         /* ignore */

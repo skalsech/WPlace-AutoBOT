@@ -209,6 +209,8 @@
   "bottomRight": "↘️ Bottom-right",
   "snakePattern": "🐍 Snake pattern",
   "snakePatternDescription": "Fill row → reverse direction in next row (like a snake)",
+  "sortCoordinateByFrequency": "Sort by color frequency",
+  "sortCoordinateByFrequencyDescription": "When, enabled, coordinates are sorted by frequency (least frequent first), but within the same frequency group, the original order defined by Coordinate Generation Mode settings is preserved.",
   "blockWidth": "Block width (px)",
   "blockHeight": "Block height (px)",
   "blockSizeDescription": "🧱 Set custom block dimensions for block-based placement modes",

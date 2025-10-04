@@ -4,7 +4,7 @@ import { handleCaptcha } from './captcha-handler.js';
 import { sleep } from '../utils/helpers.js';
 import { getTurnstileToken, setTurnstileToken } from '../security/turnstile-manager.js';
 import { computePawtectToken } from '../security/wasm-token.js';
-import { getFingerprint } from '../security/fingerprint.js';
+import { getFingerprint } from '../lib/fingerprint.js';
 
 /**
  * Sends a batch of pixels with retry logic and exponential backoff
@@ -39,11 +39,11 @@ export async function sendBatchWithRetry(pixels, regionX, regionY, maxRetries = 
       } catch (e) {
         console.error(`❌ Token regeneration failed on attempt ${attempt}:`, e);
         updateUI('captchaFailed', 'error');
-        await sleep(5000); // Wait longer after token failure
+        await sleep(5000);
       }
     } else {
       console.warn(`⚠️ Batch failed on attempt ${attempt}, retrying...`);
-      // Exponential backoff with jitter
+
       const baseDelay = Math.min(1000 * Math.pow(2, attempt - 1), 30000); // Max 30s
       const jitter = Math.random() * 1000; // Add up to 1s random delay
       await sleep(baseDelay + jitter);
@@ -69,12 +69,19 @@ export async function sendBatchWithRetry(pixels, regionX, regionY, maxRetries = 
  * @returns {Promise<boolean|string>} true on success, false on network/error, 'token_error' on auth failure
  */
 async function sendPixelBatch(pixelBatch, regionX, regionY) {
-  const fingerprint = (await getFingerprint()).visitorId;
-  const url = `https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`; // Fixed URL
+  const fingerprint = await getFingerprint();
+  const url = `https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`;
+
+  if (!fingerprint) {
+    throw new Error(
+      'FingerprintJS failed to generate a visitor ID. ' +
+        'This is required for pixel painting. Check if FingerprintJS loaded properly, ' +
+        'or if the user is blocking scripts (adblock, privacy mode, etc.).'
+    );
+  }
 
   let token = getTurnstileToken();
 
-  // Generate fresh Turnstile token if not available
   if (!token) {
     try {
       console.log('🔑 Generating Turnstile token for pixel batch...');

@@ -1,8 +1,8 @@
 import { sleep, waitForSelector } from '../utils/helpers.js';
-import { executeTurnstile, obtainSitekeyAndToken } from './turnstile.js';
+import { executeTurnstile, obtainSitekey } from './turnstile.js';
 
-// 🔁 Mutable state object (single source of truth)
 const TurnstileState = {
+  /** @type {string | null} */
   token: null,
   expiryTime: 0,
   generationInProgress: false,
@@ -10,14 +10,12 @@ const TurnstileState = {
   tokenPromise: null,
 };
 
-// Initialize promise
 TurnstileState.tokenPromise = new Promise((resolve) => {
   TurnstileState.resolveToken = resolve;
 });
 
-const TOKEN_LIFETIME = 240000; // 4 minutes
+const TOKEN_LIFETIME = 240000;
 
-// ✅ Exported getters and setters
 export function setTurnstileToken(token) {
   if (TurnstileState.resolveToken) {
     TurnstileState.resolveToken(token);
@@ -25,7 +23,7 @@ export function setTurnstileToken(token) {
   }
   TurnstileState.token = token;
   TurnstileState.expiryTime = Date.now() + TOKEN_LIFETIME;
-  console.log('✅ Turnstile token set successfully');
+  console.log('✅ Turnstile token cached successfully');
 }
 
 export function getTurnstileToken() {
@@ -60,9 +58,8 @@ export async function ensureToken(forceRefresh = false) {
   try {
     console.log('🔄 Token expired or missing, generating new one...');
     const token = await handleCaptchaWithRetry();
-    if (token && token.length > 20) {
+    if (token) {
       setTurnstileToken(token);
-      console.log('✅ Token captured and cached successfully');
       return token;
     }
 
@@ -85,42 +82,14 @@ export async function handleCaptchaWithRetry() {
   const startTime = performance.now();
 
   try {
-    const { sitekey, token: preGeneratedToken } = await obtainSitekeyAndToken();
+    const sitekey = await obtainSitekey();
 
     if (!sitekey) {
       throw new Error('No valid sitekey found');
     }
 
-    console.log('🔑 Using sitekey:', sitekey);
-
-    if (typeof window !== 'undefined' && window.navigator) {
-      console.log(
-        '🧭 UA:',
-        window.navigator.userAgent.substring(0, 50) + '...',
-        'Platform:',
-        window.navigator.platform
-      );
-    }
-
-    let token;
-
-    if (
-      preGeneratedToken &&
-      typeof preGeneratedToken === 'string' &&
-      preGeneratedToken.length > 20
-    ) {
-      console.log('♻️ Reusing pre-generated Turnstile token');
-      token = preGeneratedToken;
-    } else {
-      if (isTokenValid()) {
-        console.log('♻️ Using existing cached token (from previous session)');
-        token = TurnstileState.token;
-      } else {
-        console.log('🔐 Generating new token with executeTurnstile...');
-        token = await executeTurnstile(sitekey, 'paint');
-        if (token) setTurnstileToken(token);
-      }
-    }
+    console.log('🔐 Generating fresh Turnstile token');
+    const token = await executeTurnstile(sitekey, 'paint');
 
     if (token && typeof token === 'string' && token.length > 20) {
       const elapsed = Math.round(performance.now() - startTime);

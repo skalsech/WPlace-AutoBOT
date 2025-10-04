@@ -7,7 +7,6 @@ import { saveProgress } from '../../../core/progress-manager.js';
 import { overlayManager } from '../../../overlay/overlay-manager.js';
 import { NotificationManager } from '../../../core/notification-manager.js';
 import { saveBotSettings } from '../../../core/settings-manager.js';
-import { createResizeContainer } from '../../components/create-resize.js';
 
 export function handleResizeClick(e) {
   e?.preventDefault();

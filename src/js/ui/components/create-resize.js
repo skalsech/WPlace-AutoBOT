@@ -1,11 +1,10 @@
-import { t } from '../../i18n/i18.js';
 import { state } from '../../core/state.js';
 
 export function createResizeContainer() {
   const resizeContainer = document.createElement('div');
   resizeContainer.className = 'resize-container';
   resizeContainer.innerHTML = `
-    <h3 class="resize-dialog-title" data-i18n-key="resizeImage">${t('resizeImage')}</h3>
+    <h3 class="resize-dialog-title" data-i18n-key="resizeImage"></h3>
     <div class="resize-controls">
       <label class="resize-control-label">
         Width: <span id="widthValue">0</span>px
@@ -17,41 +16,31 @@ export function createResizeContainer() {
       </label>
       <label class="resize-checkbox-label">
         <input type="checkbox" id="keepAspect" checked>
-        <span data-i18n-key="keepAspectRatio">${t('keepAspectRatio')}</span>
+        <span data-i18n-key="keepAspectRatio"></span>
       </label>
       <label class="resize-checkbox-label">
         <input type="checkbox" id="paintWhiteToggle" checked>
-        <span data-i18n-key="paintWhitePixels">${t('paintWhitePixels')}</span>
+        <span data-i18n-key="paintWhitePixels"></span>
       </label>
       <label class="resize-checkbox-label">
         <input type="checkbox" id="paintTransparentToggle" checked>
-        <span data-i18n-key="paintTransparentPixels">${t('paintTransparentPixels')}</span>
+        <span data-i18n-key="paintTransparentPixels"></span>
       </label>
       <div class="resize-zoom-controls">
-        <button id="zoomOutBtn" class="wplace-btn resize-zoom-btn" title="${t(
-          'zoomOut'
-        )}" data-i18n-key="zoomOut" data-i18n-attr="title">
+        <button id="zoomOutBtn" class="wplace-btn resize-zoom-btn" title="" data-i18n-key="zoomOut" data-i18n-attr="title">
           <i class="fas fa-search-minus"></i>
         </button>
         <input type="range" id="zoomSlider" class="resize-slider resize-zoom-slider" min="0.1" max="20" value="1" step="0.05">
-        <button id="zoomInBtn" class="wplace-btn resize-zoom-btn" title="${t(
-          'zoomIn'
-        )}" data-i18n-key="zoomIn" data-i18n-attr="title">
+        <button id="zoomInBtn" class="wplace-btn resize-zoom-btn" title="" data-i18n-key="zoomIn" data-i18n-attr="title">
           <i class="fas fa-search-plus"></i>
         </button>
-        <button id="zoomFitBtn" class="wplace-btn resize-zoom-btn" title="${t(
-          'fitToView'
-        )}" data-i18n-key="fitToView" data-i18n-attr="title">
-          ${t('fitToView')}
+        <button id="zoomFitBtn" class="wplace-btn resize-zoom-btn" title="" data-i18n-key="fitToView" data-i18n-attr="title">
+          
         </button>
-        <button id="zoomActualBtn" class="wplace-btn resize-zoom-btn" title="${t(
-          'actualSize'
-        )}" data-i18n-key="actualSize" data-i18n-attr="title">
-          ${t('actualSize')}
+        <button id="zoomActualBtn" class="wplace-btn resize-zoom-btn" title="" data-i18n-key="actualSize" data-i18n-attr="title">
+          
         </button>
-        <button id="panModeBtn" class="wplace-btn resize-zoom-btn" title="${t(
-          'panMode'
-        )}" data-i18n-key="panMode" data-i18n-attr="title">
+        <button id="panModeBtn" class="wplace-btn resize-zoom-btn" title="" data-i18n-key="panMode" data-i18n-attr="title">
           <i class="fas fa-hand-paper"></i>
         </button>
         <span id="zoomValue" class="resize-zoom-value">100%</span>
@@ -96,8 +85,8 @@ export function createResizeContainer() {
             <button id="maskModeToggle" class="wplace-btn wplace-btn-primary resize-mode-btn">Toggle</button>
           </div>
         </div>
-        <button id="clearIgnoredBtn" class="wplace-btn resize-clear-btn" title="Clear all ignored pixels" data-i18n-key="clearAllIgnored" data-i18n-attr="title">${t('clearAllIgnored')}</button>
-        <button id="invertMaskBtn" class="wplace-btn resize-invert-btn" title="Invert mask" data-i18n-key="invertMask" data-i18n-attr="title">${t('invertMask')}</button>
+        <button id="clearIgnoredBtn" class="wplace-btn resize-clear-btn" title="Clear all ignored pixels" data-i18n-key="clearAllIgnored" data-i18n-attr="title"></button>
+        <button id="invertMaskBtn" class="wplace-btn resize-invert-btn" title="Invert mask" data-i18n-key="invertMask" data-i18n-attr="title"></button>
         <span class="resize-shortcut-help">Shift = Row • Alt = Column</span>
       </div>
     </div>
@@ -110,13 +99,13 @@ export function createResizeContainer() {
         <div class="wplace-row single">
           <label class="resize-color-toggle-label">
             <input type="checkbox" id="showAllColorsToggle" class="resize-color-checkbox">
-            <span data-i18n-key="showAllColorsIncluding">${t('showAllColorsIncluding')}</span>
+            <span data-i18n-key="showAllColorsIncluding"></span>
           </label>
         </div>
         <div class="wplace-row" style="display: flex;">
-          <button id="selectAllBtn" class="wplace-btn" style="flex: 1;" data-i18n-key="selectAll">${t('selectAll')}</button>
-          <button id="unselectAllBtn" class="wplace-btn" style="flex: 1;" data-i18n-key="unselectAll">${t('unselectAll')}</button>
-          <button id="unselectPaidBtn" class="wplace-btn" data-i18n-key="unselectPaid">${t('unselectPaid')}</button>
+          <button id="selectAllBtn" class="wplace-btn" style="flex: 1;" data-i18n-key="selectAll"></button>
+          <button id="unselectAllBtn" class="wplace-btn" style="flex: 1;" data-i18n-key="unselectAll"></button>
+          <button id="unselectPaidBtn" class="wplace-btn" data-i18n-key="unselectPaid"></button>
         </div>
         <div id="colors-container" class="wplace-color-grid"></div>
       </div>
@@ -132,10 +121,10 @@ export function createResizeContainer() {
           <select id="colorAlgorithmSelect" class="resize-advanced-select">
             <option value="lab" ${
               state.colorMatchingAlgorithm === 'lab' ? 'selected' : ''
-            } data-i18n-key="perceptualLab">${t('perceptualLab')}</option>
+            } data-i18n-key="perceptualLab"></option>
             <option value="legacy" ${
               state.colorMatchingAlgorithm === 'legacy' ? 'selected' : ''
-            } data-i18n-key="legacyRgb">${t('legacyRgb')}</option>
+            } data-i18n-key="legacyRgb"></option>
           </select>
         </label>
         <label class="resize-advanced-toggle">
@@ -149,7 +138,7 @@ export function createResizeContainer() {
         </label>
         <div class="resize-chroma-weight-control">
           <div class="resize-chroma-weight-header">
-            <span data-i18n-key="chromaWeight">${t('chromaWeight')}</span>
+            <span data-i18n-key="chromaWeight"></span>
             <span id="chromaWeightValue" class="resize-chroma-weight-value">${state.chromaPenaltyWeight}</span>
           </div>
           <input type="range" id="chromaPenaltyWeightSlider" min="0" max="0.5" step="0.01" value="${state.chromaPenaltyWeight}" class="resize-chroma-weight-slider" />
@@ -173,22 +162,22 @@ export function createResizeContainer() {
             <input type="number" id="whiteThresholdInput" min="200" max="255" value="${state.customWhiteThreshold}" class="resize-threshold-input" />
           </label>
         </div>
-        <button id="resetAdvancedColorBtn" class="wplace-btn resize-reset-advanced-btn" data-i18n-key="resetAdvanced">${t('resetAdvanced')}</button>
+        <button id="resetAdvancedColorBtn" class="wplace-btn resize-reset-advanced-btn" data-i18n-key="resetAdvanced"></button>
       </div>
     </div>
 
     <div class="resize-buttons">
       <button id="downloadPreviewBtn" class="wplace-btn wplace-btn-primary">
         <i class="fas fa-download"></i>
-        <span data-i18n-key="downloadPreview">${t('downloadPreview')}</span>
+        <span data-i18n-key="downloadPreview"></span>
       </button>
       <button id="confirmResize" class="wplace-btn wplace-btn-start">
         <i class="fas fa-check"></i>
-        <span data-i18n-key="confirm">${t('confirm')}</span>
+        <span data-i18n-key="confirm"></span>
       </button>
       <button id="cancelResize" class="wplace-btn wplace-btn-stop">
         <i class="fas fa-times"></i>
-        <span data-i18n-key="cancel">${t('cancel')}</span>
+        <span data-i18n-key="cancel"></span>
       </button>
     </div>
   `;

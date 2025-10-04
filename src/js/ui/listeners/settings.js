@@ -4,6 +4,7 @@ import {
   handleCoordinateDirectionChange,
   handleCoordinateModeChange,
   handleCoordinateSnakeChange,
+  handleSortCoordinateByFrequencyChange,
 } from '../handlers/settings/coordinate-handler.js';
 import { safeOn } from '../../utils/dom.js';
 import {
@@ -78,11 +79,15 @@ export function setupSettingsListeners() {
   const coordinateModeSelect = container.querySelector('#coordinateModeSelect');
   const coordinateDirectionSelect = container.querySelector('#coordinateDirectionSelect');
   const coordinateSnakeToggle = container.querySelector('#coordinateSnakeToggle');
+  const sortCoordinateByFrequencyToggle = container.querySelector(
+    '#sortCoordinateByFrequencyToggle'
+  );
   const blockWidthInput = container.querySelector('#blockWidthInput');
   const blockHeightInput = container.querySelector('#blockHeightInput');
   safeOn(coordinateModeSelect, 'change', handleCoordinateModeChange);
   safeOn(coordinateDirectionSelect, 'change', handleCoordinateDirectionChange);
   safeOn(coordinateSnakeToggle, 'change', handleCoordinateSnakeChange);
+  safeOn(sortCoordinateByFrequencyToggle, 'change', handleSortCoordinateByFrequencyChange);
   safeOn(blockWidthInput, 'input', handleBlockWidthInput);
   safeOn(blockHeightInput, 'input', handleBlockHeightInput);
 

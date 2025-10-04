@@ -131,9 +131,9 @@ export const handlePaintSpeedToggle = createCheckboxHandler(
   'paintSpeedLimitDisabled'
 );
 
-export function handleThemeChange(e) {
+export async function handleThemeChange(e) {
   const newThemeKey = e.target.value;
-  switchTheme(newThemeKey);
+  await switchTheme(newThemeKey);
   state.themeKey = newThemeKey;
   saveBotSettings();
 }

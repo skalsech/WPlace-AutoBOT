@@ -20,7 +20,7 @@ export function buildProgressData() {
       startPosition: state.startPosition,
       region: state.region,
     },
-    imageData: state.imageData
+    imageData: state.imageLoaded
       ? {
           width: state.imageData.width,
           height: state.imageData.height,

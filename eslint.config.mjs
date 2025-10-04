@@ -69,6 +69,8 @@ export default [
         ...globals.browser,
         ...globalsUserscript,
         __DEV__: 'readonly',
+        IntlMessageFormat: 'readonly',
+        FingerprintJS: 'readonly',
       },
       parserOptions: {
         ecmaVersion: 'latest',

@@ -16,7 +16,7 @@ export function updateDataButtons() {
   const saveToFileBtn = container.querySelector('#saveToFileBtn');
   const saveBtn = container.querySelector('#saveBtn');
 
-  const hasImageData = state.imageLoaded && state.imageData;
+  const hasImageData = state.imageLoaded;
   saveBtn.disabled = !hasImageData;
   saveToFileBtn.disabled = !hasImageData;
 }
@@ -37,22 +37,21 @@ export function handleSaveClick() {
 }
 
 export async function handleLoadClick() {
-  if (!state.initialSetupComplete) {
-    showAlert(t('pleaseWaitInitialSetup'), 'warning');
-    return;
-  }
-
   const savedData = loadProgress();
   if (!savedData) {
     updateUI('noSavedData', 'warning');
     showAlert(t('noSavedData'), 'warning');
     return;
   }
+  const savedDate = new Date(savedData.timestamp).toLocaleString();
 
   const confirmLoad = confirm(
     `${t('savedDataFound')}\n\n` +
-      `Saved: ${new Date(savedData.timestamp).toLocaleString()}\n` +
-      `Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels} pixels`
+      `Timestamp: ${savedDate}\n` +
+      `Art size: ${savedData.imageData.width} × ${savedData.imageData.height}\n` +
+      `Start position (x, y): ${savedData.state.startPosition.x}, ${savedData.state.startPosition.y}\n` +
+      `Region (x, y): ${savedData.state.region.x}, ${savedData.state.region.y}\n` +
+      `Total: ${savedData.state.artTotalPixels} pixels`
   );
 
   if (confirmLoad) {
@@ -97,11 +96,6 @@ export function handleSaveToFileClick() {
 }
 
 export async function handleLoadFromFileClick() {
-  if (!state.initialSetupComplete) {
-    showAlert(t('pleaseWaitFileSetup'), 'warning');
-    return;
-  }
-
   try {
     const success = await loadProgressFromFile();
     if (success) {

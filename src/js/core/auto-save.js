@@ -1,16 +1,13 @@
-// Smart save - only save if significant changes
 import { state } from './state.js';
 import { saveProgress } from './progress-manager.js';
 
 function shouldAutoSave() {
+  return false;
+  // eslint-disable-next-line no-unreachable
   const now = Date.now();
   const pixelsSinceLastSave = state.currentPaintedPixels - state._lastSavePixelCount;
   const timeSinceLastSave = now - state._lastSaveTime;
 
-  // Save conditions:
-  // 1. Every 25 pixels (reduced from 50 for more frequent saves)
-  // 2. At least 30 seconds since last save (prevent spam)
-  // 3. Not already saving
   return !state._saveInProgress && pixelsSinceLastSave >= 25 && timeSinceLastSave >= 30000;
 }
 

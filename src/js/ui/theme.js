@@ -1,4 +1,4 @@
-import { appendLinkOnce } from '../utils/helpers.js';
+import { appendResourceOnce } from '../utils/helpers.js';
 import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 
 function applyThemeWithKey(themeKey) {
@@ -19,14 +19,17 @@ function applyThemeWithKey(themeKey) {
   root.classList.add(theme.cssClass);
 }
 
-export const switchTheme = (themeKey) => {
+export const switchTheme = async (themeKey) => {
   if (!APP_CONSTANTS.THEMES[themeKey]) {
     console.warn(`Theme not found: ${themeKey}`);
     return;
   }
 
   if (themeKey === 'neon-retro') {
-    appendLinkOnce('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+    await appendResourceOnce(
+      'https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap',
+      { type: 'link' }
+    );
   }
   applyThemeWithKey(themeKey);
 };

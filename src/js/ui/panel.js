@@ -1,5 +1,5 @@
 import { createSettingsContainer } from './components/create-settings.js';
-import { appendLinkOnce, msToTimeText } from '../utils/helpers.js';
+import { appendResourceOnce, msToTimeText } from '../utils/helpers.js';
 import { createMainContainer } from './components/create-panel.js';
 import { createStatsContainer, tryRemoveStatsInitMessage } from './components/create-stats.js';
 import { createResizeContainer } from './components/create-resize.js';
@@ -33,12 +33,22 @@ function cleanupExistingUI() {
 }
 
 async function initializeDependencies() {
-  await initializeTranslations();
-  appendLinkOnce('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+  await appendResourceOnce(
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+    {
+      type: 'link',
+    }
+  );
 
-  appendLinkOnce('https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css/main.css', {
-    'data-wplace-theme': 'true',
-  });
+  await appendResourceOnce(
+    'https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css/main.css',
+    {
+      type: 'link',
+      attributes: {
+        'data-wplace-theme': 'true',
+      },
+    }
+  );
 }
 
 function makeDraggable(element) {
@@ -134,13 +144,11 @@ function ensureChargeStats(afterEl = null) {
     el.id = 'wplace-charge-stats';
     el.innerHTML = `
       <div class="wplace-stat-item">
-        <div class="wplace-stat-label"><i class="fas fa-bolt"></i> ${t('charges')}</div>
+        <div class="wplace-stat-label" data-i18n-key="charges"><i class="fas fa-bolt"></i>${t('charges')}</div>
         <div class="wplace-stat-value" id="wplace-stat-charges-value">0/0</div>
       </div>
       <div class="wplace-stat-item">
-        <div class="wplace-stat-label"><i class="fas fa-battery-half"></i> ${t(
-          'fullChargeIn'
-        )}</div>
+        <div class="wplace-stat-label" data-i18n-key="fullChargeIn"><i class="fas fa-battery-half"></i>${t('fullChargeIn')}</div>
         <div class="wplace-stat-value" id="wplace-stat-fullcharge-value">--:--:--</div>
       </div>
     `;
@@ -162,15 +170,15 @@ function ensureImageStats(afterEl = null) {
     el.id = 'wplace-image-stats';
     el.innerHTML = `
       <div class="wplace-stat-item">
-        <div class="wplace-stat-label"><i class="fas fa-image"></i> ${t('progress')}</div>
+        <div class="wplace-stat-label" data-i18n-key="progress"><i class="fas fa-image"></i>${t('progress')}</div>
         <div class="wplace-stat-value" id="wplace-stat-progress">--%</div>
       </div>
       <div class="wplace-stat-item">
-        <div class="wplace-stat-label"><i class="fas fa-paint-brush"></i> ${t('pixels')}</div>
+        <div class="wplace-stat-label" data-i18n-key="pixels"><i class="fas fa-paint-brush"></i>${t('pixels')}</div>
         <div class="wplace-stat-value" id="wplace-stat-pixels">0/0</div>
       </div>
       <div class="wplace-stat-item">
-        <div class="wplace-stat-label"><i class="fas fa-clock"></i> ${t('estimatedTime')}</div>
+        <div class="wplace-stat-label" data-i18n-key="estimatedTime"><i class="fas fa-clock"></i>${t('estimatedTime')}</div>
         <div class="wplace-stat-value" id="wplace-stat-estimated">--:--</div>
       </div>
     `;
@@ -237,7 +245,7 @@ function updateChargeStatsDisplay(intervalMs) {
   const timeText = msToTimeText(remainingMs);
 
   if (currentChargesEl) {
-    const newText = `${state.displayCharges} / ${state.maxCharges}`;
+    const newText = `${state.displayCharges} / ${state.fullChargeData.max}`;
     if (currentChargesEl.textContent !== newText) {
       currentChargesEl.textContent = newText;
     }
@@ -290,9 +298,12 @@ function updateColorSwatches() {
   const gridEl = document.getElementById('wplace-stat-colors-grid');
   if (!labelEl || !gridEl) return;
 
-  labelEl.innerHTML = `<i class="fas fa-palette"></i> ${t('availableColors', {
-    count: state.availableColors.length,
-  })}`;
+  labelEl.innerHTML = `
+    <i class="fas fa-palette"></i> 
+    <span data-i18n-key="availableColors">
+      ${t('availableColors', { count: state.availableColors.length })}
+    </span>
+  `;
 
   gridEl.innerHTML = state.availableColors
     .map((color) => {
@@ -322,7 +333,6 @@ export async function updateStats(isManualRefresh = false) {
     state.displayCharges = Math.floor(count);
     state.preciseCurrentCharges = count;
     state.cooldown = cooldown;
-    state.maxCharges = Math.floor(max) > 1 ? Math.floor(max) : state.maxCharges;
 
     state.fullChargeData = {
       current: count,
@@ -347,8 +357,8 @@ export async function updateStats(isManualRefresh = false) {
   const container = document.getElementById('wplace-image-bot-container');
   const cooldownSlider = container.querySelector('#cooldownSlider');
 
-  if (cooldownSlider.max !== state.maxCharges) {
-    cooldownSlider.max = state.maxCharges;
+  if (cooldownSlider.max !== state.fullChargeData.max) {
+    cooldownSlider.max = state.fullChargeData.max;
   }
 
   const { value: colorsBitmap } = await wplaceService.getExtraColorsBitmap();
@@ -390,16 +400,16 @@ export async function updateStats(isManualRefresh = false) {
 
 const checkSavedProgress = () => {
   const savedData = loadProgress();
-  if (savedData && savedData.state.totalPaintedPixels > 0) {
+  if (savedData && savedData.state.artTotalPixels > 0) {
     const savedDate = new Date(savedData.timestamp).toLocaleString();
-    const progress = Math.round(
-      (savedData.state.totalPaintedPixels / savedData.state.artTotalPixels) * 100
-    );
 
     showAlert(
       `${t('savedDataFound')}\n\n` +
-        `Saved: ${savedDate}\n` +
-        `Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels} pixels (${progress}%)\n` +
+        `Timestamp: ${savedDate}\n` +
+        `Art size: ${savedData.imageData.width} × ${savedData.imageData.height}\n` +
+        `Start position (x, y): ${savedData.state.startPosition.x}, ${savedData.state.startPosition.y}\n` +
+        `Region (x, y): ${savedData.state.region.x}, ${savedData.state.region.y}\n` +
+        `Total: ${savedData.state.artTotalPixels} pixels\n` +
         `${t('clickLoadToContinue')}`,
       'info'
     );
@@ -408,9 +418,9 @@ const checkSavedProgress = () => {
 
 export async function createUI() {
   cleanupExistingUI();
+  await initializeDependencies();
 
   loadBotSettings();
-  await initializeDependencies();
   const container = createMainContainer();
   const statsContainer = createStatsContainer();
   const settingsContainer = createSettingsContainer();
@@ -435,10 +445,10 @@ export async function createUI() {
   makeDraggable(settingsContainer);
 
   updateDataButtons();
-  setTimeout(checkSavedProgress, 1000);
-
   syncSettingsUI();
   NotificationManager.syncFromState();
 
+  await initializeTranslations();
   container.style.display = 'block';
+  checkSavedProgress();
 }
