@@ -15,6 +15,7 @@ import { saveProgress } from './progress-manager.js';
 import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 import { overlayManager } from '../overlay/overlay-manager.js';
 import { getMsToTargetCharges } from '../utils/time.js';
+import { wplaceService } from './api-service.js';
 
 async function flushPixelBatch(batch) {
   if (!batch || batch.pixels.length === 0) return true;
@@ -25,10 +26,12 @@ async function flushPixelBatch(batch) {
   );
   const success = await sendBatchWithRetry(batch.pixels, batch.regionX, batch.regionY);
   if (success) {
+    const ownsRegion = await wplaceService.ownsRegion(batch.regionX, batch.regionY);
+    const chargesSpent = batchSize * (ownsRegion ? 0.9 : 1);
     state.localPaintedOffset += batchSize;
     state.fullChargeData = {
       ...state.fullChargeData,
-      spentSinceShot: state.fullChargeData.spentSinceShot + batchSize,
+      spentSinceShot: state.fullChargeData.spentSinceShot + chargesSpent,
     };
     await updateStats();
     updateUI('paintingProgress', 'default', {
@@ -37,10 +40,8 @@ async function flushPixelBatch(batch) {
     });
     performSmartSave();
 
-    if (state.paintingSpeedLimitEnabled && state.paintingSpeed > 0 && batchSize > 0) {
-      const delayPerPixel = 1000 / state.paintingSpeed;
-      const totalDelay = Math.max(100, delayPerPixel * batchSize);
-      await sleep(totalDelay);
+    if (state.paintingSpeedLimitEnabled) {
+      await sleep(1000);
     }
   } else {
     console.error(
@@ -68,7 +69,7 @@ export async function processImage() {
     height,
     startX,
     startY,
-    10000
+    15000
   );
 
   if (!tilesReady) {

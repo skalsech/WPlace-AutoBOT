@@ -10,6 +10,7 @@
   --wplace-success: #0f0;
   --wplace-error: #f00;
   --wplace-warning: #fa0;
+  --wplace-info: rgb(96 247 242);
   --wplace-radius: 12px;
   --wplace-btn-radius: 16px;
   --wplace-shadow: 0 8px 32px rgb(0 0 0 / 60%), 0 0 0 1px rgb(255 255 255 / 10%);
@@ -226,6 +227,13 @@
   background: var(--wplace-bg-subtle);
   border-color: var(--wplace-text);
   color: var(--wplace-text);
+}
+
+.wplace-theme-classic-light .status-info {
+  background: rgb(0 64 255 / 10%);
+  border-color: var(--wplace-info);
+  color: var(--wplace-text);
+  box-shadow: 0 0 15px rgb(119 92 227 / 20%);
 }
 
 :root .status-success,

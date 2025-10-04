@@ -42,8 +42,6 @@ function enableFileOperations() {
     }, 600);
   }
 
-  // Show a notification that file operations are now available
-  showAlert(t('fileOperationsAvailable'), 'success');
   console.log('✅ File operations (Load/Upload) are now available!');
 }
 
@@ -64,7 +62,6 @@ export async function initializeTokenGenerator() {
     await loadTurnstile();
     console.log('Turnstile script loaded.');
     updateUI('tokenReady', 'success');
-    showAlert(t('tokenGeneratorReady'), 'success');
     enableFileOperations();
   } catch (error) {
     console.error('❌ Critical error during Turnstile initialization:', error); // More specific error

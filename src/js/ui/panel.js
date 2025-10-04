@@ -360,15 +360,18 @@ export async function updateStats(isManualRefresh = false) {
     showAlert(t('noColorsFound'), 'warning');
   } else if (foundColorsCount > 0 && colorsChanged(state.availableColors, newAvailableColors)) {
     const oldCount = state.availableColors.length;
+    const newCount = foundColorsCount;
+    const diffCount = newCount - oldCount;
+    let message;
 
-    showAlert(
-      t('colorsUpdated', {
-        oldCount,
-        newCount: foundColorsCount,
-        diffCount: foundColorsCount - oldCount,
-      }),
-      'success'
-    );
+    if (oldCount === 0 && newCount > 0) {
+      message = t('colorsUpdatedFirst', { newCount });
+    } else if (oldCount > 0 && newCount > oldCount) {
+      message = t('colorsUpdatedIncreased', { oldCount, newCount, diffCount });
+    } else if (oldCount > 0 && newCount < oldCount) {
+      message = t('colorsUpdatedDecreased', { oldCount, newCount, diffCount: -diffCount });
+    }
+    showAlert(message, 'success');
 
     state.availableColors = newAvailableColors;
     invalidateColorCache({ availableColors: true });

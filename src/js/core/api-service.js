@@ -1,4 +1,6 @@
 import { state } from './state.js';
+import { decodeBase64ToBytes } from '../utils/helpers.js';
+import { FlagsBitmap } from '../utils/flags.js';
 
 /**
  * @typedef {Object} UserData
@@ -36,6 +38,12 @@ class WPlaceService {
     this.cacheTimestamp = 0;
     this.minUpdateInterval = 60_000;
     this.maxUpdateInterval = 90_000;
+    /**
+     * @private
+     * @type {Map<string, boolean>}
+     * @description Cache for region ownership results. Key: "regionX,regionY", Value: true/false
+     */
+    this._regionOwnershipCache = new Map();
   }
 
   _generateRandomTTL() {
@@ -141,6 +149,13 @@ class WPlaceService {
     }));
   }
 
+  getFlagsBitmap() {
+    return this.getUserData().then((result) => ({
+      value: result.data.flagsBitmap ?? 'AA==',
+      fromCache: result.fromCache,
+    }));
+  }
+
   getEquippedFlag() {
     return this.getUserData().then((result) => ({
       value: result.data.equippedFlag ?? 0,
@@ -181,6 +196,51 @@ class WPlaceService {
       data: result.data,
       fromCache: result.fromCache,
     }));
+  }
+
+  /**
+   * Checks if a region (regionX, regionY) belongs to a country owned by the current user.
+   * Results are cached locally to avoid redundant network requests.
+   * If the region was checked recently, returns the cached result without making a request.
+   * @param {number} regionX - X-coordinate of the region (0-based grid index)
+   * @param {number} regionY - Y-coordinate of the region (0-based grid index)
+   * @returns {Promise<boolean>} - `true` if the current user owns the country of this region, `false` otherwise
+   * @note Results are cached indefinitely until the cache reaches 100 entries (FIFO eviction).
+   */
+  async ownsRegion(regionX, regionY) {
+    if (!Number.isInteger(regionX) || !Number.isInteger(regionY) || regionX < 0 || regionY < 0) {
+      return false;
+    }
+
+    const key = `${regionX},${regionY}`;
+
+    if (this._regionOwnershipCache.has(key)) {
+      return this._regionOwnershipCache.get(key);
+    }
+
+    const result = await (async () => {
+      const response = await fetch(
+        `https://backend.wplace.live/s0/pixel/${regionX}/${regionY}?x=0&y=0`,
+        { method: 'GET', credentials: 'omit' }
+      );
+
+      const data = await response.json();
+      const countryId = data.region?.countryId;
+      if (typeof countryId !== 'number') return false;
+
+      const flagsBitmap = await this.getFlagsBitmap();
+      const flags = new FlagsBitmap(decodeBase64ToBytes(flagsBitmap.value));
+      return flags.get(countryId);
+    })();
+
+    this._regionOwnershipCache.set(key, result);
+
+    if (this._regionOwnershipCache.size > 100) {
+      const firstKey = this._regionOwnershipCache.keys().next().value;
+      this._regionOwnershipCache.delete(firstKey);
+    }
+
+    return result;
   }
 }
 

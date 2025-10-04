@@ -84,6 +84,14 @@
     });
     return Object.freeze(obj);
   }
+  function decodeBase64ToBytes(base64String) {
+    const binaryString = atob(base64String);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+  }
 
   // src/js/config/DEFAULT_SETTINGS.js
   var DEFAULT_SETTINGS = deepFreeze({
@@ -1483,6 +1491,55 @@
     }, 4e3);
   }
 
+  // src/js/utils/flags.js
+  var FlagsBitmap = class {
+    /**
+     * Creates a bit flag manager backed by a Uint8Array.
+     * @param {Uint8Array} [bytes] - Initial byte data. Defaults to empty array.
+     */
+    constructor(bytes) {
+      this.bytes = bytes || new Uint8Array(0);
+    }
+    /**
+     * Sets a bit at the given index.
+     * @param {number} bitIndex - Zero-based index of the bit to set.
+     * @param {boolean} value - Value to set (true or false).
+     */
+    set(bitIndex, value) {
+      const byteIndex = Math.floor(bitIndex / 8);
+      const bitOffset = bitIndex % 8;
+      if (byteIndex >= this.bytes.length) {
+        const newBytes = new Uint8Array(byteIndex + 1);
+        const offset = newBytes.length - this.bytes.length;
+        for (let i = 0; i < this.bytes.length; i++) {
+          newBytes[i + offset] = this.bytes[i];
+        }
+        this.bytes = newBytes;
+      }
+      const actualByteIndex = this.bytes.length - 1 - byteIndex;
+      if (value) {
+        this.bytes[actualByteIndex] |= 1 << bitOffset;
+      } else {
+        this.bytes[actualByteIndex] &= ~(1 << bitOffset);
+      }
+    }
+    /**
+     * Gets the value of a bit at the given index.
+     * @param {number} bitIndex - Zero-based index of the bit to get.
+     * @returns {boolean} - True if the bit is set, false otherwise.
+     */
+    get(bitIndex) {
+      const byteIndex = Math.floor(bitIndex / 8);
+      const bitOffset = bitIndex % 8;
+      const totalBytes = this.bytes.length;
+      if (byteIndex >= totalBytes) {
+        return false;
+      }
+      const actualByteIndex = totalBytes - 1 - byteIndex;
+      return (this.bytes[actualByteIndex] & 1 << bitOffset) !== 0;
+    }
+  };
+
   // src/js/core/api-service.js
   var WPlaceService = class {
     constructor() {
@@ -1490,6 +1547,7 @@
       this.cacheTimestamp = 0;
       this.minUpdateInterval = 6e4;
       this.maxUpdateInterval = 9e4;
+      this._regionOwnershipCache = /* @__PURE__ */ new Map();
     }
     _generateRandomTTL() {
       return this.minUpdateInterval + Math.random() * (this.maxUpdateInterval - this.minUpdateInterval);
@@ -1577,6 +1635,12 @@
         fromCache: result.fromCache
       }));
     }
+    getFlagsBitmap() {
+      return this.getUserData().then((result) => ({
+        value: result.data.flagsBitmap ?? "AA==",
+        fromCache: result.fromCache
+      }));
+    }
     getEquippedFlag() {
       return this.getUserData().then((result) => ({
         value: result.data.equippedFlag ?? 0,
@@ -1612,6 +1676,42 @@
         data: result.data,
         fromCache: result.fromCache
       }));
+    }
+    /**
+     * Checks if a region (regionX, regionY) belongs to a country owned by the current user.
+     * Results are cached locally to avoid redundant network requests.
+     * If the region was checked recently, returns the cached result without making a request.
+     * @param {number} regionX - X-coordinate of the region (0-based grid index)
+     * @param {number} regionY - Y-coordinate of the region (0-based grid index)
+     * @returns {Promise<boolean>} - `true` if the current user owns the country of this region, `false` otherwise
+     * @note Results are cached indefinitely until the cache reaches 100 entries (FIFO eviction).
+     */
+    async ownsRegion(regionX, regionY) {
+      if (!Number.isInteger(regionX) || !Number.isInteger(regionY) || regionX < 0 || regionY < 0) {
+        return false;
+      }
+      const key = `${regionX},${regionY}`;
+      if (this._regionOwnershipCache.has(key)) {
+        return this._regionOwnershipCache.get(key);
+      }
+      const result = await (async () => {
+        const response = await fetch(
+          `https://backend.wplace.live/s0/pixel/${regionX}/${regionY}?x=0&y=0`,
+          { method: "GET", credentials: "omit" }
+        );
+        const data = await response.json();
+        const countryId = data.region?.countryId;
+        if (typeof countryId !== "number") return false;
+        const flagsBitmap = await this.getFlagsBitmap();
+        const flags = new FlagsBitmap(decodeBase64ToBytes(flagsBitmap.value));
+        return flags.get(countryId);
+      })();
+      this._regionOwnershipCache.set(key, result);
+      if (this._regionOwnershipCache.size > 100) {
+        const firstKey = this._regionOwnershipCache.keys().next().value;
+        this._regionOwnershipCache.delete(firstKey);
+      }
+      return result;
     }
   };
   var wplaceService = new WPlaceService();
@@ -6377,10 +6477,12 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
     );
     const success = await sendBatchWithRetry(batch.pixels, batch.regionX, batch.regionY);
     if (success) {
+      const ownsRegion = await wplaceService.ownsRegion(batch.regionX, batch.regionY);
+      const chargesSpent = batchSize * (ownsRegion ? 0.9 : 1);
       state.localPaintedOffset += batchSize;
       state.fullChargeData = {
         ...state.fullChargeData,
-        spentSinceShot: state.fullChargeData.spentSinceShot + batchSize
+        spentSinceShot: state.fullChargeData.spentSinceShot + chargesSpent
       };
       await updateStats();
       updateUI("paintingProgress", "default", {
@@ -6388,10 +6490,8 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
         total: state.artTotalPixels
       });
       performSmartSave();
-      if (state.paintingSpeedLimitEnabled && state.paintingSpeed > 0 && batchSize > 0) {
-        const delayPerPixel = 1e3 / state.paintingSpeed;
-        const totalDelay = Math.max(100, delayPerPixel * batchSize);
-        await sleep(totalDelay);
+      if (state.paintingSpeedLimitEnabled) {
+        await sleep(1e3);
       }
     } else {
       console.error(
@@ -6415,7 +6515,7 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
       height,
       startX,
       startY,
-      1e4
+      15e3
     );
     if (!tilesReady) {
       updateUI("overlayTilesNotLoaded", "error");
@@ -7079,14 +7179,17 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
       showAlert(t("noColorsFound"), "warning");
     } else if (foundColorsCount > 0 && colorsChanged(state.availableColors, newAvailableColors)) {
       const oldCount = state.availableColors.length;
-      showAlert(
-        t("colorsUpdated", {
-          oldCount,
-          newCount: foundColorsCount,
-          diffCount: foundColorsCount - oldCount
-        }),
-        "success"
-      );
+      const newCount = foundColorsCount;
+      const diffCount = newCount - oldCount;
+      let message;
+      if (oldCount === 0 && newCount > 0) {
+        message = t("colorsUpdatedFirst", { newCount });
+      } else if (oldCount > 0 && newCount > oldCount) {
+        message = t("colorsUpdatedIncreased", { oldCount, newCount, diffCount });
+      } else if (oldCount > 0 && newCount < oldCount) {
+        message = t("colorsUpdatedDecreased", { oldCount, newCount, diffCount: -diffCount });
+      }
+      showAlert(message, "success");
       state.availableColors = newAvailableColors;
       invalidateColorCache({ availableColors: true });
     }
@@ -7176,7 +7279,6 @@ ${t("clickLoadToContinue")}`,
         if (uploadBtn) uploadBtn.style.animation = "";
       }, 600);
     }
-    showAlert(t("fileOperationsAvailable"), "success");
     console.log("\u2705 File operations (Load/Upload) are now available!");
   }
   async function initializeTokenGenerator() {
@@ -7192,7 +7294,6 @@ ${t("clickLoadToContinue")}`,
       await loadTurnstile();
       console.log("Turnstile script loaded.");
       updateUI("tokenReady", "success");
-      showAlert(t("tokenGeneratorReady"), "success");
       enableFileOperations();
     } catch (error) {
       console.error("\u274C Critical error during Turnstile initialization:", error);
