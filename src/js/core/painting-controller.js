@@ -80,6 +80,9 @@ export async function processImage() {
   // key: `${regionX},${regionY}`, value: { regionX, regionY, pixels: [] }
   const pixelBatches = new Map();
 
+  let globalPixelBatchTotalCount = 0;
+  let currentBatchSize = calculateBatchSize();
+
   const skippedPixels = {
     transparent: 0,
     white: 0,
@@ -171,17 +174,6 @@ export async function processImage() {
     );
 
     outerLoop: for (const [x, y] of coords) {
-      if (state.stopFlag) {
-        for (const [_, batch] of pixelBatches.entries()) {
-          if (batch.pixels.length > 0) {
-            console.log(`🎯 Sending last batch before user-stop`);
-            await flushPixelBatch(batch);
-          }
-        }
-        // noinspection UnnecessaryLabelOnBreakStatementJS
-        break outerLoop;
-      }
-
       const targetPixelInfo = checkPixelEligibility(x, y);
       const absX = startX + x;
       const absY = startY + y;
@@ -282,18 +274,25 @@ export async function processImage() {
         localY: y,
       });
 
-      const maxBatchSize = calculateBatchSize();
-      if (batch.pixels.length >= maxBatchSize) {
-        const success = await flushPixelBatch(batch);
-        if (!success) {
-          // noinspection UnnecessaryLabelOnBreakStatementJS
-          break outerLoop;
+      globalPixelBatchTotalCount++;
+
+      if (globalPixelBatchTotalCount >= currentBatchSize) {
+        for (const [_, b] of pixelBatches.entries()) {
+          if (b.pixels.length > 0) {
+            const success = await flushPixelBatch(b);
+            if (!success) {
+              // noinspection UnnecessaryLabelOnBreakStatementJS
+              break outerLoop;
+            }
+            b.pixels = [];
+          }
         }
 
-        batch.pixels = [];
+        globalPixelBatchTotalCount = 0;
+        currentBatchSize = calculateBatchSize();
       }
 
-      if (state.displayCharges < state.cooldownChargeThreshold && !state.stopFlag) {
+      if (state.preciseCurrentCharges < state.cooldownChargeThreshold && !state.stopFlag) {
         await dynamicSleep(() => {
           if (state.displayCharges >= state.cooldownChargeThreshold) {
             NotificationManager.maybeNotifyChargesReached(true);
@@ -385,7 +384,7 @@ function calculateBatchSize() {
   }
 
   // Always limit by available charges
-  const maxAllowed = state.displayCharges;
+  const maxAllowed = Math.floor(state.preciseCurrentCharges);
   const finalBatchSize = Math.min(targetBatchSize, maxAllowed);
 
   return finalBatchSize;

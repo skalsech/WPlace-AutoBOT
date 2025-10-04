@@ -6423,6 +6423,8 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
       return;
     }
     const pixelBatches = /* @__PURE__ */ new Map();
+    let globalPixelBatchTotalCount = 0;
+    let currentBatchSize = calculateBatchSize();
     const skippedPixels = {
       transparent: 0,
       white: 0,
@@ -6485,15 +6487,6 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
         pixels
       );
       outerLoop: for (const [x, y] of coords) {
-        if (state.stopFlag) {
-          for (const [_, batch2] of pixelBatches.entries()) {
-            if (batch2.pixels.length > 0) {
-              console.log(`\u{1F3AF} Sending last batch before user-stop`);
-              await flushPixelBatch(batch2);
-            }
-          }
-          break outerLoop;
-        }
         const targetPixelInfo = checkPixelEligibility(x, y);
         const absX = startX + x;
         const absY = startY + y;
@@ -6565,15 +6558,21 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
           localX: x,
           localY: y
         });
-        const maxBatchSize = calculateBatchSize();
-        if (batch.pixels.length >= maxBatchSize) {
-          const success = await flushPixelBatch(batch);
-          if (!success) {
-            break outerLoop;
+        globalPixelBatchTotalCount++;
+        if (globalPixelBatchTotalCount >= currentBatchSize) {
+          for (const [_, b] of pixelBatches.entries()) {
+            if (b.pixels.length > 0) {
+              const success = await flushPixelBatch(b);
+              if (!success) {
+                break outerLoop;
+              }
+              b.pixels = [];
+            }
           }
-          batch.pixels = [];
+          globalPixelBatchTotalCount = 0;
+          currentBatchSize = calculateBatchSize();
         }
-        if (state.displayCharges < state.cooldownChargeThreshold && !state.stopFlag) {
+        if (state.preciseCurrentCharges < state.cooldownChargeThreshold && !state.stopFlag) {
           await dynamicSleep(() => {
             if (state.displayCharges >= state.cooldownChargeThreshold) {
               NotificationManager.maybeNotifyChargesReached(true);
@@ -6641,7 +6640,7 @@ Progress: ${savedData.state.totalPaintedPixels}/${savedData.state.artTotalPixels
     } else {
       targetBatchSize = state.paintingSpeed;
     }
-    const maxAllowed = state.displayCharges;
+    const maxAllowed = Math.floor(state.preciseCurrentCharges);
     const finalBatchSize = Math.min(targetBatchSize, maxAllowed);
     return finalBatchSize;
   }
