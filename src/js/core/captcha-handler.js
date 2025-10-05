@@ -5,7 +5,6 @@ import { executeTurnstile, loadTurnstile, obtainSitekey } from '../security/turn
 export async function handleCaptcha() {
   const startTime = performance.now();
 
-  // Check user's token source preference
   if (state.tokenSource === 'manual') {
     console.log('🎯 Manual token source selected - using pixel placement automation');
     return await handleCaptchaFallback();
@@ -14,37 +13,20 @@ export async function handleCaptcha() {
   // Generator mode (pure) or Hybrid mode - always generate fresh token
   try {
     const sitekey = await obtainSitekey();
-
     if (!sitekey) {
       throw new Error('No valid sitekey found');
     }
-
     console.log('🔑 Generating Turnstile token for sitekey:', sitekey);
-    console.log(
-      '🧭 UA:',
-      navigator.userAgent.substring(0, 50) + '...',
-      'Platform:',
-      navigator.platform
-    );
 
     if (!window.turnstile) {
       await loadTurnstile();
     }
 
-    console.log('🔐 Generating fresh Turnstile token');
     const token = await executeTurnstile(sitekey, 'paint');
-
     if (!token || typeof token !== 'string' || token.length < 20) {
       throw new Error(`Invalid token received: ${JSON.stringify(token)}`);
     }
-
     setTurnstileToken(token);
-
-    console.debug(
-      `🔍 Token received - Type: ${typeof token}, Value: ${
-        token.length > 50 ? token.substring(0, 50) + '...' : token
-      }, Length: ${token.length}`
-    );
 
     if (token.length > 20) {
       const duration = Math.round(performance.now() - startTime);

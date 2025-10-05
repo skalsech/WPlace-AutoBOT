@@ -42,3 +42,24 @@ export function createDevReloadButton() {
     headerControls.appendChild(button);
   }
 }
+
+export function truncateString(str, prefixLength = 15, suffixLength = 20, middleLength = 15) {
+  if (str.length <= prefixLength + suffixLength + middleLength) {
+    return str;
+  }
+
+  const prefix = str.substring(0, prefixLength);
+  const suffix = str.substring(str.length - suffixLength);
+
+  const middleHash = Array.from(
+    { length: middleLength },
+    (_, i) =>
+      str[
+        Math.floor(
+          prefixLength + (i * (str.length - prefixLength - suffixLength)) / (middleLength - 1)
+        )
+      ]
+  ).join('');
+
+  return `${prefix}...${middleHash}...${suffix}`;
+}

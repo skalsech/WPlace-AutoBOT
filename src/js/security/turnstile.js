@@ -189,9 +189,6 @@ export async function createTurnstileWidget(sitekey, action) {
 }
 
 export async function createTurnstileWidgetInteractive(sitekey, action) {
-  // Create a visible widget that users can interact with if needed
-  console.log('🔄 Creating interactive Turnstile widget (visible)');
-
   return new Promise((resolve) => {
     try {
       // Force cleanup of any existing widget

@@ -1,5 +1,6 @@
 import { sleep, waitForSelector } from '../utils/helpers.js';
 import { executeTurnstile, obtainSitekey } from './turnstile.js';
+import { truncateString } from '../utils/dev-utils.js';
 
 const TurnstileState = {
   /** @type {string | null} */
@@ -17,13 +18,22 @@ TurnstileState.tokenPromise = new Promise((resolve) => {
 const TOKEN_LIFETIME = 240000;
 
 export function setTurnstileToken(token) {
+  if (TurnstileState.token === token) {
+    console.log('[turnstile-token]: ⏭️ Token is the same, skipping update');
+    return;
+  }
+  const displayToken = truncateString(token);
+  console.debug(
+    `[turnstile-token]: 🔑 New set - Type: ${typeof token}, Value: ${displayToken}, 🔍 Length: ${token.length}`
+  );
+
   if (TurnstileState.resolveToken) {
     TurnstileState.resolveToken(token);
     TurnstileState.resolveToken = null;
   }
   TurnstileState.token = token;
   TurnstileState.expiryTime = Date.now() + TOKEN_LIFETIME;
-  console.log('✅ Turnstile token cached successfully');
+  console.log('[turnstile-token]: ✅ Cached successfully');
 }
 
 export function getTurnstileToken() {
@@ -37,7 +47,7 @@ export function isTokenValid() {
 function invalidateToken() {
   TurnstileState.token = null;
   TurnstileState.expiryTime = 0;
-  console.log('🗑️ Token invalidated, will force fresh generation');
+  console.log('[turnstile-token]: 🗑️ Token invalidated, will force fresh generation');
 }
 
 export async function ensureToken(forceRefresh = false) {
@@ -48,7 +58,7 @@ export async function ensureToken(forceRefresh = false) {
   if (forceRefresh) invalidateToken();
 
   if (TurnstileState.generationInProgress) {
-    console.log('🔄 Token generation already in progress, waiting...');
+    console.log('[turnstile-token]: 🔄 Token generation already in progress, waiting...');
     await sleep(2000);
     return isTokenValid() ? TurnstileState.token : null;
   }
@@ -56,22 +66,22 @@ export async function ensureToken(forceRefresh = false) {
   TurnstileState.generationInProgress = true;
 
   try {
-    console.log('🔄 Token expired or missing, generating new one...');
+    console.log('[turnstile-token]: 🔄 Token expired or missing, generating new one...');
     const token = await handleCaptchaWithRetry();
     if (token) {
       setTurnstileToken(token);
       return token;
     }
 
-    console.log('⚠️ Invisible Turnstile failed, forcing browser automation...');
+    console.log('[turnstile-token]: ⚠️ Invisible Turnstile failed, forcing browser automation...');
     const fallbackToken = await handleCaptchaFallback();
     if (fallbackToken && fallbackToken.length > 20) {
       setTurnstileToken(fallbackToken);
-      console.log('✅ Fallback token captured successfully');
+      console.log('[turnstile-token]: ✅ Fallback token captured successfully');
       return fallbackToken;
     }
 
-    console.log('❌ All token generation methods failed');
+    console.log('[turnstile-token]: ❌ All token generation methods failed');
     return null;
   } finally {
     TurnstileState.generationInProgress = false;
@@ -88,19 +98,22 @@ export async function handleCaptchaWithRetry() {
       throw new Error('No valid sitekey found');
     }
 
-    console.log('🔐 Generating fresh Turnstile token');
-    const token = await executeTurnstile(sitekey, 'paint');
+    console.log('[turnstile-token]: 🔐 Getting cached Turnstile token');
+    const token = getTurnstileToken();
 
     if (token && typeof token === 'string' && token.length > 20) {
       const elapsed = Math.round(performance.now() - startTime);
-      console.log(`✅ Turnstile token generated successfully in ${elapsed}ms`);
+      console.log(`[turnstile-token]: ✅ Turnstile token generated successfully in ${elapsed}ms`);
       return token;
     } else {
       throw new Error(`Invalid or empty token received - Length: ${token?.length || 0}`);
     }
   } catch (error) {
     const elapsed = Math.round(performance.now() - startTime);
-    console.error(`❌ Turnstile token generation failed after ${elapsed}ms:`, error);
+    console.error(
+      `[turnstile-token]: ❌ Turnstile token generation failed after ${elapsed}ms:`,
+      error
+    );
     throw error;
   }
 }
@@ -192,7 +205,7 @@ export async function handleCaptchaFallback() {
 
       await Promise.race([solvePromise, timeoutPromise]);
     } catch (error) {
-      console.error('Auto-CAPTCHA process failed:', error);
+      console.error('[turnstile-token]: Auto-CAPTCHA process failed:', error);
       reject(error);
     }
   });

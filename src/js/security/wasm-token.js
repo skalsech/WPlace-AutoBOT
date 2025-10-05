@@ -30,12 +30,9 @@ function getMainWorldCode() {
      */
     async function findTokenModule(str) {
       try {
-        console.log('[WPlace-AutoBOT]: 🔎 Searching for Pawtect module...');
-
         const links = Array.from(
           document.querySelectorAll('link[rel="modulepreload"][href$=".js"]')
         );
-        console.log(`[WPlace-AutoBOT]: Found ${links.length} potential module candidates`);
 
         for (const link of links) {
           try {
@@ -43,7 +40,6 @@ function getMainWorldCode() {
             const code = await fetch(url, { credentials: 'omit' }).then((r) => r.text());
 
             if (code.includes(str)) {
-              console.log(`[WPlace-AutoBOT]: ✅ Found Pawtect module: ${url}`);
               pawtectModuleUrl = url;
               return url;
             }
@@ -52,10 +48,10 @@ function getMainWorldCode() {
           }
         }
 
-        console.error('[WPlace-AutoBOT]: ❌ Could not find Pawtect module');
+        console.error('[wasm-token]: ❌ Could not find Pawtect module');
         return null;
       } catch (error) {
-        console.error('[WPlace-AutoBOT]: 🛑 Error finding Pawtect module:', error);
+        console.error('[wasm-token]: 🛑 Error finding Pawtect module:', error);
         return null;
       }
     }
@@ -72,15 +68,12 @@ function getMainWorldCode() {
         throw new Error('pawtect module URL not found');
       }
 
-      console.log('[WPlace-AutoBOT]: 📦 Loading Pawtect module:', moduleUrl);
-
       const mod = await import(moduleUrl);
       if (!mod || typeof mod._ !== 'function') {
         throw new Error('Invalid pawtect module structure');
       }
 
       const wasm = await mod._();
-      console.log('[WPlace-AutoBOT]: ✅ WASM initialized successfully');
 
       wasmModule = { mod, wasm };
       return wasmModule;
@@ -94,10 +87,6 @@ function getMainWorldCode() {
     async function computePawtect(payload) {
       try {
         const { url, bodyStr } = payload;
-        console.log('[WPlace-AutoBOT]: 🚀 Starting pawtect computation', {
-          url,
-          bodyLen: bodyStr.length,
-        });
 
         const { mod, wasm } = await loadWasmModule();
 
@@ -108,30 +97,27 @@ function getMainWorldCode() {
           );
           if (me?.id && typeof mod.i === 'function') {
             try {
-              new mod.i(me.id);
-              console.log('[WPlace-AutoBOT]: ✅ User ID set:', me.id);
+              mod.i(me.id);
             } catch (userIdError) {
-              console.log('[WPlace-AutoBOT]: ⚠️ Error setting user ID:', userIdError.message);
+              console.log('[wasm-token]: ⚠️ Error setting user ID:', userIdError.message);
             }
           }
         } catch (error) {
-          console.warn('[WPlace-AutoBOT]: ⚠️ Failed to set user ID:', error.message);
+          console.warn('[wasm-token]: ⚠️ Failed to set user ID:', error.message);
         }
 
         // Set request URL
         try {
           if (typeof mod.r === 'function') {
             mod.r(url);
-            console.log('[WPlace-AutoBOT]: ✅ Request URL set:', url);
           }
         } catch (urlError) {
-          console.log('[WPlace-AutoBOT]: ⚠️ Error setting request URL:', urlError.message);
+          console.log('[wasm-token]: ⚠️ Error setting request URL:', urlError.message);
         }
 
         const enc = new TextEncoder();
         const dec = new TextDecoder();
         const bytes = enc.encode(bodyStr);
-        console.log('[WPlace-AutoBOT]: 📏 Payload size:', bytes.length, 'bytes');
 
         // Allocate memory in WASM
         let inPtr;
@@ -143,14 +129,12 @@ function getMainWorldCode() {
           inPtr = wasm.__wbindgen_malloc(bytes.length, 1);
           const wasmBuffer = new Uint8Array(wasm.memory.buffer, inPtr, bytes.length);
           wasmBuffer.set(bytes);
-          console.log('[WPlace-AutoBOT]: ✅ Data copied to WASM memory');
         } catch (memError) {
-          console.error('[WPlace-AutoBOT]: ❌ Memory allocation error:', memError);
+          console.error('[wasm-token]: ❌ Memory allocation error:', memError);
           throw memError;
         }
 
         // Call the token generation function
-        console.log('[WPlace-AutoBOT]: 🚀 Calling get_pawtected_endpoint_payload...');
         let token = null;
         let outPtr, outLen;
         try {
@@ -163,27 +147,21 @@ function getMainWorldCode() {
           } else {
             throw new Error('Unexpected result format from WASM');
           }
-
-          console.log('[WPlace-AutoBOT]: ✅ Token decoded successfully');
         } catch (funcError) {
-          console.error('[WPlace-AutoBOT]: ❌ Function call error:', funcError);
+          console.error('[wasm-token]: ❌ Function call error:', funcError);
           throw funcError;
         } finally {
           try {
             if (wasm.__wbindgen_free && outPtr && outLen) {
               wasm.__wbindgen_free(outPtr, outLen, 1);
-              console.log('[WPlace-AutoBOT]: ✅ Output memory freed');
             }
             if (wasm.__wbindgen_free && inPtr) {
               wasm.__wbindgen_free(inPtr, bytes.length, 1);
-              console.log('[WPlace-AutoBOT]: ✅ Input memory freed');
             }
           } catch (cleanupError) {
-            console.log('[WPlace-AutoBOT]: ⚠️ Cleanup warning:', cleanupError.message);
+            console.log('[wasm-token]: ⚠️ Cleanup warning:', cleanupError.message);
           }
         }
-
-        console.log('[WPlace-AutoBOT]: ✅ pawtect compute done');
 
         if (token) {
           let displayToken = token;
@@ -204,15 +182,12 @@ function getMainWorldCode() {
 
             displayToken = `${prefix}...${middleHash}...${suffix}`;
           }
-          console.log(
-            '[WPlace-AutoBOT]: 🔑 Full token:',
-            `${displayToken}, 🔍 Length: ${token.length}`
-          );
+          console.log(`[wasm-token]: 🔑 Full token: ${displayToken}, 🔍 Length: ${token.length}`);
         }
 
         return token;
       } catch (error) {
-        console.error('[WPlace-AutoBOT]: 🛑 pawtect computation failed:', error);
+        console.error('[wasm-token]: 🛑 pawtect computation failed:', error);
         throw error;
       }
     }
@@ -276,7 +251,7 @@ function injectIntoMainWorld() {
         const mainWorldCode = ${functionString};
         mainWorldCode('${MESSAGE_ID}');
       } catch (error) {
-        console.error('[WPlace-AutoBOT] Failed to initialize main world code:', error);
+        console.error('[wasm-token] Failed to initialize main world code:', error);
       }
     })();
   `;
@@ -315,7 +290,7 @@ export function initPawtect() {
         }
 
         store.error = new Error(event.data.error);
-        console.error('[WPlace-AutoBOT] Pawtect error:', event.data.error);
+        console.error('[wasm-token] Pawtect error:', event.data.error);
       } else if (event.data.action === 'request-ready') {
         window.__pawtect_store.ready = true;
       }

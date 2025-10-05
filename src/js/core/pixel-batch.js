@@ -34,7 +34,7 @@ export async function sendBatchWithRetry(pixels, regionX, regionY, maxRetries = 
       updateUI('captchaSolving', 'warning');
       try {
         await handleCaptcha();
-        attempt--; // Don't count token regeneration as a failed attempt
+        attempt--;
         continue;
       } catch (e) {
         console.error(`❌ Token regeneration failed on attempt ${attempt}:`, e);
@@ -44,8 +44,8 @@ export async function sendBatchWithRetry(pixels, regionX, regionY, maxRetries = 
     } else {
       console.warn(`⚠️ Batch failed on attempt ${attempt}, retrying...`);
 
-      const baseDelay = Math.min(1000 * Math.pow(2, attempt - 1), 30000); // Max 30s
-      const jitter = Math.random() * 1000; // Add up to 1s random delay
+      const baseDelay = Math.min(1000 * Math.pow(2, attempt - 1), 30000);
+      const jitter = Math.random() * 1000;
       await sleep(baseDelay + jitter);
     }
   }
@@ -80,17 +80,8 @@ async function sendPixelBatch(pixelBatch, regionX, regionY) {
     );
   }
 
-  let token = getTurnstileToken();
-
-  if (!token) {
-    try {
-      console.log('🔑 Generating Turnstile token for pixel batch...');
-      token = await handleCaptcha();
-    } catch (error) {
-      console.error('❌ Failed to generate Turnstile token:', error);
-      return 'token_error';
-    }
-  }
+  const token = getTurnstileToken();
+  if (!token) return 'token_error';
 
   // Prepare coordinates and colors
   const coords = new Array(pixelBatch.length * 2);

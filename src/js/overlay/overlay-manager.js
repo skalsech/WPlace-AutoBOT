@@ -500,9 +500,9 @@ class OverlayManager {
     this.tileProgress.set(tileKey, { painted, required, wrong });
     state.localPaintedOffset = 0;
 
-    console.log(
-      `[OverlayManager] Analyzed tile ${tileKey}: painted=${painted}, required=${required}, wrong=${wrong}`
-    );
+    // console.debug(
+    //   `[OverlayManager] Analyzed tile ${tileKey}: painted=${painted}, required=${required}, wrong=${wrong}`
+    // );
   }
 
   async _compositeTileOptimized(originalBlob, overlayBitmap) {

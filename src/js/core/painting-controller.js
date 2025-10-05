@@ -21,9 +21,6 @@ async function flushPixelBatch(batch) {
   if (!batch || batch.pixels.length === 0) return true;
 
   const batchSize = batch.pixels.length;
-  console.log(
-    `📦 Sending batch with ${batchSize} pixels (region: ${batch.regionX},${batch.regionY})`
-  );
   const success = await sendBatchWithRetry(batch.pixels, batch.regionX, batch.regionY);
   if (success) {
     const ownsRegion = await wplaceService.ownsRegion(batch.regionX, batch.regionY);
@@ -249,14 +246,9 @@ export async function processImage() {
             continue;
           }
           console.debug(
-            `[COMPARE] Pixel at 📍 (${pixelX}, ${pixelY}) in region (${
-              regionX + adderX
-            }, ${regionY + adderY})\n` +
-              `  ├── Current color: rgb(${tilePixelRGBA.join(
-                ', '
-              )}) (id: ${mappedCanvasColor.id})\n` +
-              `  ├── Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}, ${targetPixelInfo.a}) (id: ${targetMappedColorId})\n` +
-              `  └── Status: ${isMatch ? '✅ Already painted → SKIP' : '🔴 Needs paint → PAINT'}\n`
+            `[COMPARE] Pixel at 📍 (${pixelX}, ${pixelY}) in region (${batch.regionX}, ${batch.regionY})\n` +
+              `  ├── Current color: rgb(${tilePixelRGBA.join(', ')}) (id: ${mappedCanvasColor.id})\n` +
+              `  └── Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}, ${targetPixelInfo.a}) (id: ${targetMappedColorId})`
           );
         }
       } catch (e) {

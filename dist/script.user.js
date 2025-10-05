@@ -2933,9 +2933,6 @@
       }
       this.tileProgress.set(tileKey, { painted, required, wrong });
       state.localPaintedOffset = 0;
-      console.log(
-        `[OverlayManager] Analyzed tile ${tileKey}: painted=${painted}, required=${required}, wrong=${wrong}`
-      );
     }
     async _compositeTileOptimized(originalBlob, overlayBitmap) {
       const originalBitmap = await createImageBitmap(originalBlob);
@@ -5322,7 +5319,6 @@ Total: ${savedData.state.artTotalPixels} pixels`
     });
   }
   async function createTurnstileWidgetInteractive(sitekey, action) {
-    console.log("\u{1F504} Creating interactive Turnstile widget (visible)");
     return new Promise((resolve) => {
       try {
         if (_turnstileWidgetId && window.turnstile?.remove) {
@@ -5491,6 +5487,56 @@ Total: ${savedData.state.artTotalPixels} pixels`
     return null;
   }
 
+  // src/js/utils/dev-utils.js
+  function createDevReloadButton() {
+    const container = document.getElementById("wplace-image-bot-container");
+    if (!container) return;
+    const headerControls = container.querySelector(".wplace-header-controls");
+    if (!headerControls) return;
+    const button = document.createElement("button");
+    button.id = "dev-reload-btn";
+    button.className = "wplace-header-btn";
+    button.title = "Force Script Reload";
+    const icon = document.createElement("i");
+    icon.className = "fas fa-sync-alt";
+    button.appendChild(icon);
+    button.onclick = (e) => {
+      e.stopPropagation();
+      button.classList.add("animate-spin");
+      setTimeout(() => button.classList.remove("animate-spin"), 500);
+      const updateUrl = "http://127.0.0.1:8000/dist/script.user.js";
+      const updateTab = window.open(updateUrl, "_blank");
+      setTimeout(() => {
+        if (updateTab && !updateTab.closed) {
+          updateTab.close();
+        }
+        setTimeout(() => {
+          location.reload();
+        }, 500);
+      }, 1500);
+    };
+    const minimizeBtn = headerControls.querySelector("#settingsBtn");
+    if (minimizeBtn) {
+      headerControls.insertBefore(button, minimizeBtn);
+    } else {
+      headerControls.appendChild(button);
+    }
+  }
+  function truncateString(str, prefixLength = 15, suffixLength = 20, middleLength = 15) {
+    if (str.length <= prefixLength + suffixLength + middleLength) {
+      return str;
+    }
+    const prefix = str.substring(0, prefixLength);
+    const suffix = str.substring(str.length - suffixLength);
+    const middleHash = Array.from(
+      { length: middleLength },
+      (_, i) => str[Math.floor(
+        prefixLength + i * (str.length - prefixLength - suffixLength) / (middleLength - 1)
+      )]
+    ).join("");
+    return `${prefix}...${middleHash}...${suffix}`;
+  }
+
   // src/js/security/turnstile-manager.js
   var TurnstileState = {
     /** @type {string | null} */
@@ -5505,13 +5551,21 @@ Total: ${savedData.state.artTotalPixels} pixels`
   });
   var TOKEN_LIFETIME = 24e4;
   function setTurnstileToken(token) {
+    if (TurnstileState.token === token) {
+      console.log("[turnstile-token]: \u23ED\uFE0F Token is the same, skipping update");
+      return;
+    }
+    const displayToken = truncateString(token);
+    console.debug(
+      `[turnstile-token]: \u{1F511} New set - Type: ${typeof token}, Value: ${displayToken}, \u{1F50D} Length: ${token.length}`
+    );
     if (TurnstileState.resolveToken) {
       TurnstileState.resolveToken(token);
       TurnstileState.resolveToken = null;
     }
     TurnstileState.token = token;
     TurnstileState.expiryTime = Date.now() + TOKEN_LIFETIME;
-    console.log("\u2705 Turnstile token cached successfully");
+    console.log("[turnstile-token]: \u2705 Cached successfully");
   }
   function getTurnstileToken() {
     return TurnstileState.token;
@@ -5522,7 +5576,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
   function invalidateToken() {
     TurnstileState.token = null;
     TurnstileState.expiryTime = 0;
-    console.log("\u{1F5D1}\uFE0F Token invalidated, will force fresh generation");
+    console.log("[turnstile-token]: \u{1F5D1}\uFE0F Token invalidated, will force fresh generation");
   }
   async function ensureToken(forceRefresh = false) {
     if (isTokenValid() && !forceRefresh) {
@@ -5530,26 +5584,26 @@ Total: ${savedData.state.artTotalPixels} pixels`
     }
     if (forceRefresh) invalidateToken();
     if (TurnstileState.generationInProgress) {
-      console.log("\u{1F504} Token generation already in progress, waiting...");
+      console.log("[turnstile-token]: \u{1F504} Token generation already in progress, waiting...");
       await sleep(2e3);
       return isTokenValid() ? TurnstileState.token : null;
     }
     TurnstileState.generationInProgress = true;
     try {
-      console.log("\u{1F504} Token expired or missing, generating new one...");
+      console.log("[turnstile-token]: \u{1F504} Token expired or missing, generating new one...");
       const token = await handleCaptchaWithRetry();
       if (token) {
         setTurnstileToken(token);
         return token;
       }
-      console.log("\u26A0\uFE0F Invisible Turnstile failed, forcing browser automation...");
+      console.log("[turnstile-token]: \u26A0\uFE0F Invisible Turnstile failed, forcing browser automation...");
       const fallbackToken = await handleCaptchaFallback();
       if (fallbackToken && fallbackToken.length > 20) {
         setTurnstileToken(fallbackToken);
-        console.log("\u2705 Fallback token captured successfully");
+        console.log("[turnstile-token]: \u2705 Fallback token captured successfully");
         return fallbackToken;
       }
-      console.log("\u274C All token generation methods failed");
+      console.log("[turnstile-token]: \u274C All token generation methods failed");
       return null;
     } finally {
       TurnstileState.generationInProgress = false;
@@ -5562,18 +5616,21 @@ Total: ${savedData.state.artTotalPixels} pixels`
       if (!sitekey) {
         throw new Error("No valid sitekey found");
       }
-      console.log("\u{1F510} Generating fresh Turnstile token");
-      const token = await executeTurnstile(sitekey, "paint");
+      console.log("[turnstile-token]: \u{1F510} Getting cached Turnstile token");
+      const token = getTurnstileToken();
       if (token && typeof token === "string" && token.length > 20) {
         const elapsed = Math.round(performance.now() - startTime);
-        console.log(`\u2705 Turnstile token generated successfully in ${elapsed}ms`);
+        console.log(`[turnstile-token]: \u2705 Turnstile token generated successfully in ${elapsed}ms`);
         return token;
       } else {
         throw new Error(`Invalid or empty token received - Length: ${token?.length || 0}`);
       }
     } catch (error) {
       const elapsed = Math.round(performance.now() - startTime);
-      console.error(`\u274C Turnstile token generation failed after ${elapsed}ms:`, error);
+      console.error(
+        `[turnstile-token]: \u274C Turnstile token generation failed after ${elapsed}ms:`,
+        error
+      );
       throw error;
     }
   }
@@ -5652,7 +5709,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
         })();
         await Promise.race([solvePromise, timeoutPromise]);
       } catch (error) {
-        console.error("Auto-CAPTCHA process failed:", error);
+        console.error("[turnstile-token]: Auto-CAPTCHA process failed:", error);
         reject(error);
       }
     });
@@ -5671,24 +5728,14 @@ Total: ${savedData.state.artTotalPixels} pixels`
         throw new Error("No valid sitekey found");
       }
       console.log("\u{1F511} Generating Turnstile token for sitekey:", sitekey);
-      console.log(
-        "\u{1F9ED} UA:",
-        navigator.userAgent.substring(0, 50) + "...",
-        "Platform:",
-        navigator.platform
-      );
       if (!window.turnstile) {
         await loadTurnstile();
       }
-      console.log("\u{1F510} Generating fresh Turnstile token");
       const token = await executeTurnstile(sitekey, "paint");
       if (!token || typeof token !== "string" || token.length < 20) {
         throw new Error(`Invalid token received: ${JSON.stringify(token)}`);
       }
       setTurnstileToken(token);
-      console.debug(
-        `\u{1F50D} Token received - Type: ${typeof token}, Value: ${token.length > 50 ? token.substring(0, 50) + "..." : token}, Length: ${token.length}`
-      );
       if (token.length > 20) {
         const duration = Math.round(performance.now() - startTime);
         console.log(`\u2705 Turnstile token generated successfully in ${duration}ms`);
@@ -5724,17 +5771,14 @@ Total: ${savedData.state.artTotalPixels} pixels`
       let wasmModule = null;
       async function findTokenModule(str) {
         try {
-          console.log("[WPlace-AutoBOT]: \u{1F50E} Searching for Pawtect module...");
           const links = Array.from(
             document.querySelectorAll('link[rel="modulepreload"][href$=".js"]')
           );
-          console.log(`[WPlace-AutoBOT]: Found ${links.length} potential module candidates`);
           for (const link of links) {
             try {
               const url = new URL(link.getAttribute("href"), location.origin).href;
               const code = await fetch(url, { credentials: "omit" }).then((r) => r.text());
               if (code.includes(str)) {
-                console.log(`[WPlace-AutoBOT]: \u2705 Found Pawtect module: ${url}`);
                 pawtectModuleUrl = url;
                 return url;
               }
@@ -5742,10 +5786,10 @@ Total: ${savedData.state.artTotalPixels} pixels`
               console.warn(`[WPlace-AutoBOT]: \u26A0\uFE0F Failed to check script:`, error.message);
             }
           }
-          console.error("[WPlace-AutoBOT]: \u274C Could not find Pawtect module");
+          console.error("[wasm-token]: \u274C Could not find Pawtect module");
           return null;
         } catch (error) {
-          console.error("[WPlace-AutoBOT]: \u{1F6D1} Error finding Pawtect module:", error);
+          console.error("[wasm-token]: \u{1F6D1} Error finding Pawtect module:", error);
           return null;
         }
       }
@@ -5755,23 +5799,17 @@ Total: ${savedData.state.artTotalPixels} pixels`
         if (!moduleUrl) {
           throw new Error("pawtect module URL not found");
         }
-        console.log("[WPlace-AutoBOT]: \u{1F4E6} Loading Pawtect module:", moduleUrl);
         const mod = await import(moduleUrl);
         if (!mod || typeof mod._ !== "function") {
           throw new Error("Invalid pawtect module structure");
         }
         const wasm = await mod._();
-        console.log("[WPlace-AutoBOT]: \u2705 WASM initialized successfully");
         wasmModule = { mod, wasm };
         return wasmModule;
       }
       async function computePawtect(payload) {
         try {
           const { url, bodyStr } = payload;
-          console.log("[WPlace-AutoBOT]: \u{1F680} Starting pawtect computation", {
-            url,
-            bodyLen: bodyStr.length
-          });
           const { mod, wasm } = await loadWasmModule();
           try {
             const me = await fetch("https://backend.wplace.live/me", { credentials: "include" }).then(
@@ -5779,27 +5817,24 @@ Total: ${savedData.state.artTotalPixels} pixels`
             );
             if (me?.id && typeof mod.i === "function") {
               try {
-                new mod.i(me.id);
-                console.log("[WPlace-AutoBOT]: \u2705 User ID set:", me.id);
+                mod.i(me.id);
               } catch (userIdError) {
-                console.log("[WPlace-AutoBOT]: \u26A0\uFE0F Error setting user ID:", userIdError.message);
+                console.log("[wasm-token]: \u26A0\uFE0F Error setting user ID:", userIdError.message);
               }
             }
           } catch (error) {
-            console.warn("[WPlace-AutoBOT]: \u26A0\uFE0F Failed to set user ID:", error.message);
+            console.warn("[wasm-token]: \u26A0\uFE0F Failed to set user ID:", error.message);
           }
           try {
             if (typeof mod.r === "function") {
               mod.r(url);
-              console.log("[WPlace-AutoBOT]: \u2705 Request URL set:", url);
             }
           } catch (urlError) {
-            console.log("[WPlace-AutoBOT]: \u26A0\uFE0F Error setting request URL:", urlError.message);
+            console.log("[wasm-token]: \u26A0\uFE0F Error setting request URL:", urlError.message);
           }
           const enc = new TextEncoder();
           const dec = new TextDecoder();
           const bytes = enc.encode(bodyStr);
-          console.log("[WPlace-AutoBOT]: \u{1F4CF} Payload size:", bytes.length, "bytes");
           let inPtr;
           try {
             if (!wasm.__wbindgen_malloc) {
@@ -5808,12 +5843,10 @@ Total: ${savedData.state.artTotalPixels} pixels`
             inPtr = wasm.__wbindgen_malloc(bytes.length, 1);
             const wasmBuffer = new Uint8Array(wasm.memory.buffer, inPtr, bytes.length);
             wasmBuffer.set(bytes);
-            console.log("[WPlace-AutoBOT]: \u2705 Data copied to WASM memory");
           } catch (memError) {
-            console.error("[WPlace-AutoBOT]: \u274C Memory allocation error:", memError);
+            console.error("[wasm-token]: \u274C Memory allocation error:", memError);
             throw memError;
           }
-          console.log("[WPlace-AutoBOT]: \u{1F680} Calling get_pawtected_endpoint_payload...");
           let token = null;
           let outPtr, outLen;
           try {
@@ -5825,25 +5858,21 @@ Total: ${savedData.state.artTotalPixels} pixels`
             } else {
               throw new Error("Unexpected result format from WASM");
             }
-            console.log("[WPlace-AutoBOT]: \u2705 Token decoded successfully");
           } catch (funcError) {
-            console.error("[WPlace-AutoBOT]: \u274C Function call error:", funcError);
+            console.error("[wasm-token]: \u274C Function call error:", funcError);
             throw funcError;
           } finally {
             try {
               if (wasm.__wbindgen_free && outPtr && outLen) {
                 wasm.__wbindgen_free(outPtr, outLen, 1);
-                console.log("[WPlace-AutoBOT]: \u2705 Output memory freed");
               }
               if (wasm.__wbindgen_free && inPtr) {
                 wasm.__wbindgen_free(inPtr, bytes.length, 1);
-                console.log("[WPlace-AutoBOT]: \u2705 Input memory freed");
               }
             } catch (cleanupError) {
-              console.log("[WPlace-AutoBOT]: \u26A0\uFE0F Cleanup warning:", cleanupError.message);
+              console.log("[wasm-token]: \u26A0\uFE0F Cleanup warning:", cleanupError.message);
             }
           }
-          console.log("[WPlace-AutoBOT]: \u2705 pawtect compute done");
           if (token) {
             let displayToken = token;
             if (token.length > 64) {
@@ -5857,14 +5886,11 @@ Total: ${savedData.state.artTotalPixels} pixels`
               ).join("");
               displayToken = `${prefix}...${middleHash}...${suffix}`;
             }
-            console.log(
-              "[WPlace-AutoBOT]: \u{1F511} Full token:",
-              `${displayToken}, \u{1F50D} Length: ${token.length}`
-            );
+            console.log(`[wasm-token]: \u{1F511} Full token: ${displayToken}, \u{1F50D} Length: ${token.length}`);
           }
           return token;
         } catch (error) {
-          console.error("[WPlace-AutoBOT]: \u{1F6D1} pawtect computation failed:", error);
+          console.error("[wasm-token]: \u{1F6D1} pawtect computation failed:", error);
           throw error;
         }
       }
@@ -5913,7 +5939,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
         const mainWorldCode = ${functionString};
         mainWorldCode('${MESSAGE_ID}');
       } catch (error) {
-        console.error('[WPlace-AutoBOT] Failed to initialize main world code:', error);
+        console.error('[wasm-token] Failed to initialize main world code:', error);
       }
     })();
   `;
@@ -5943,7 +5969,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
             reject(new Error(event.data.error));
           }
           store.error = new Error(event.data.error);
-          console.error("[WPlace-AutoBOT] Pawtect error:", event.data.error);
+          console.error("[wasm-token] Pawtect error:", event.data.error);
         } else if (event.data.action === "request-ready") {
           window.__pawtect_store.ready = true;
         }
@@ -6047,16 +6073,8 @@ Total: ${savedData.state.artTotalPixels} pixels`
         "FingerprintJS failed to generate a visitor ID. This is required for pixel painting. Check if FingerprintJS loaded properly, or if the user is blocking scripts (adblock, privacy mode, etc.)."
       );
     }
-    let token = getTurnstileToken();
-    if (!token) {
-      try {
-        console.log("\u{1F511} Generating Turnstile token for pixel batch...");
-        token = await handleCaptcha();
-      } catch (error) {
-        console.error("\u274C Failed to generate Turnstile token:", error);
-        return "token_error";
-      }
-    }
+    const token = getTurnstileToken();
+    if (!token) return "token_error";
     const coords = new Array(pixelBatch.length * 2);
     const colors = new Array(pixelBatch.length);
     for (let i = 0; i < pixelBatch.length; i++) {
@@ -6142,18 +6160,6 @@ Total: ${savedData.state.artTotalPixels} pixels`
   // src/js/core/coordinate-generator.js
   async function generateCoordinates(width, height, mode, direction, snake, blockWidth, blockHeight, sortByFrequency, pixels) {
     const coords = [];
-    console.log(
-      "Generating coordinates with \n  mode:",
-      mode,
-      "\n  direction:",
-      direction,
-      "\n  snake:",
-      snake,
-      "\n  blockWidth:",
-      blockWidth,
-      "\n  blockHeight:",
-      blockHeight
-    );
     let xStart, xEnd, xStep;
     let yStart, yEnd, yStep;
     switch (direction) {
@@ -6323,9 +6329,6 @@ Total: ${savedData.state.artTotalPixels} pixels`
   async function flushPixelBatch(batch) {
     if (!batch || batch.pixels.length === 0) return true;
     const batchSize = batch.pixels.length;
-    console.log(
-      `\u{1F4E6} Sending batch with ${batchSize} pixels (region: ${batch.regionX},${batch.regionY})`
-    );
     const success = await sendBatchWithRetry(batch.pixels, batch.regionX, batch.regionY);
     if (success) {
       const ownsRegion = await wplaceService.ownsRegion(batch.regionX, batch.regionY);
@@ -6487,13 +6490,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
               continue;
             }
             console.debug(
-              `[COMPARE] Pixel at \u{1F4CD} (${pixelX}, ${pixelY}) in region (${regionX + adderX}, ${regionY + adderY})
-  \u251C\u2500\u2500 Current color: rgb(${tilePixelRGBA.join(
-                ", "
-              )}) (id: ${mappedCanvasColor.id})
-  \u251C\u2500\u2500 Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}, ${targetPixelInfo.a}) (id: ${targetMappedColorId})
-  \u2514\u2500\u2500 Status: ${isMatch ? "\u2705 Already painted \u2192 SKIP" : "\u{1F534} Needs paint \u2192 PAINT"}
-`
+              `[COMPARE] Pixel at \u{1F4CD} (${pixelX}, ${pixelY}) in region (${batch.regionX}, ${batch.regionY})
+  \u251C\u2500\u2500 Current color: rgb(${tilePixelRGBA.join(", ")}) (id: ${mappedCanvasColor.id})
+  \u2514\u2500\u2500 Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}, ${targetPixelInfo.a}) (id: ${targetMappedColorId})`
             );
           }
         } catch (e) {
@@ -7230,42 +7229,6 @@ ${t("clickLoadToContinue")}`,
       overlayManager.processAndRespondToTileRequest(event.data);
     }
   });
-
-  // src/js/utils/dev-utils.js
-  function createDevReloadButton() {
-    const container = document.getElementById("wplace-image-bot-container");
-    if (!container) return;
-    const headerControls = container.querySelector(".wplace-header-controls");
-    if (!headerControls) return;
-    const button = document.createElement("button");
-    button.id = "dev-reload-btn";
-    button.className = "wplace-header-btn";
-    button.title = "Force Script Reload";
-    const icon = document.createElement("i");
-    icon.className = "fas fa-sync-alt";
-    button.appendChild(icon);
-    button.onclick = (e) => {
-      e.stopPropagation();
-      button.classList.add("animate-spin");
-      setTimeout(() => button.classList.remove("animate-spin"), 500);
-      const updateUrl = "http://127.0.0.1:8000/dist/script.user.js";
-      const updateTab = window.open(updateUrl, "_blank");
-      setTimeout(() => {
-        if (updateTab && !updateTab.closed) {
-          updateTab.close();
-        }
-        setTimeout(() => {
-          location.reload();
-        }, 500);
-      }, 1500);
-    };
-    const minimizeBtn = headerControls.querySelector("#settingsBtn");
-    if (minimizeBtn) {
-      headerControls.insertBefore(button, minimizeBtn);
-    } else {
-      headerControls.appendChild(button);
-    }
-  }
 
   // src/js/lib/inject-library.js
   var LIBRARY_ID = "wplace-lib-" + Math.random().toString(36).slice(2, 11);

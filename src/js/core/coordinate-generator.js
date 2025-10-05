@@ -29,18 +29,7 @@ export async function generateCoordinates(
   pixels
 ) {
   const coords = [];
-  console.log(
-    'Generating coordinates with \n  mode:',
-    mode,
-    '\n  direction:',
-    direction,
-    '\n  snake:',
-    snake,
-    '\n  blockWidth:',
-    blockWidth,
-    '\n  blockHeight:',
-    blockHeight
-  );
+
   // --------- Standard 4 corners traversal ----------
   let xStart, xEnd, xStep;
   let yStart, yEnd, yStep;
