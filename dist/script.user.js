@@ -1153,7 +1153,7 @@
     }, 4e3);
   }
 
-  // src/js/core/storage.js
+  // src/js/storage/storage.js
   var createStorageSaver = (options = {}) => {
     const { maxLength = 100, shouldLog = false, label = "LocalStorage" } = options;
     return (key, value) => {
@@ -1249,7 +1249,7 @@
   });
   var loadFromStorage = createStorageLoader();
 
-  // src/js/core/settings-manager.js
+  // src/js/storage/settings-manager.js
   function saveBotSettings() {
     try {
       const settings = {};
@@ -1845,36 +1845,84 @@
   });
 
   // src/js/core/image-processor.js
-  var ImageProcessor = class {
-    constructor(imageSrc) {
-      this.imageSrc = imageSrc;
-      this.img = null;
-      this.canvas = null;
-      this.ctx = null;
+  var ImageProcessor = class _ImageProcessor {
+    constructor(imageSrcOrData) {
+      if (typeof imageSrcOrData === "string") {
+        this.imageSrc = imageSrcOrData;
+        this.img = null;
+        this.canvas = null;
+        this.ctx = null;
+      } else if (imageSrcOrData && typeof imageSrcOrData === "object") {
+        const { width, height, pixels } = imageSrcOrData;
+        if (width && height && pixels) {
+          this.imageSrc = null;
+          this.img = null;
+          this.canvas = null;
+          this.ctx = null;
+          this.createFromPixelData(width, height, pixels);
+        } else {
+          throw new Error("Invalid image data object: missing width, height, or pixels");
+        }
+      } else {
+        this.imageSrc = null;
+        this.img = null;
+        this.canvas = null;
+        this.ctx = null;
+      }
+    }
+    /**
+     * Creates canvas and context from pixel data
+     * @param {number} width
+     * @param {number} height
+     * @param {Uint8ClampedArray | ArrayBuffer} pixels
+     */
+    createFromPixelData(width, height, pixels) {
+      if (pixels instanceof ArrayBuffer) {
+        pixels = new Uint8ClampedArray(pixels);
+      }
+      if (!(pixels instanceof Uint8ClampedArray)) {
+        throw new Error("pixels must be Uint8ClampedArray or ArrayBuffer");
+      }
+      this.canvas = document.createElement("canvas");
+      this.ctx = this.canvas.getContext("2d");
+      this.canvas.width = width;
+      this.canvas.height = height;
+      const imageData = new ImageData(pixels, width, height);
+      this.ctx.putImageData(imageData, 0, 0);
+      this.img = this.canvas;
     }
     async load() {
-      return new Promise((resolve, reject) => {
-        this.img = new Image();
-        this.img.crossOrigin = "anonymous";
-        this.img.onload = () => {
-          this.canvas = document.createElement("canvas");
-          this.ctx = this.canvas.getContext("2d");
-          this.canvas.width = this.img.width;
-          this.canvas.height = this.img.height;
-          this.ctx.drawImage(this.img, 0, 0);
-          resolve();
-        };
-        this.img.onerror = reject;
-        this.img.src = this.imageSrc;
-      });
+      if (this.imageSrc) {
+        return new Promise((resolve, reject) => {
+          this.img = new Image();
+          this.img.crossOrigin = "anonymous";
+          this.img.onload = () => {
+            this.canvas = document.createElement("canvas");
+            this.ctx = this.canvas.getContext("2d");
+            this.canvas.width = this.img.width;
+            this.canvas.height = this.img.height;
+            this.ctx.drawImage(this.img, 0, 0);
+            resolve();
+          };
+          this.img.onerror = reject;
+          this.img.src = this.imageSrc;
+        });
+      } else {
+        if (this.canvas && this.ctx) {
+          return Promise.resolve();
+        } else {
+          return Promise.reject(new Error("No image source or pixel data available"));
+        }
+      }
     }
     getDimensions() {
       return {
-        width: this.canvas.width,
-        height: this.canvas.height
+        width: this.canvas?.width || 0,
+        height: this.canvas?.height || 0
       };
     }
     getPixelData() {
+      if (!this.ctx) return null;
       return this.ctx.getImageData(0, 0, this.canvas.width, this.canvas.height).data;
     }
     /**
@@ -1886,6 +1934,7 @@
      */
     countColors(shouldSkipTransparent) {
       const data = this.getPixelData();
+      if (!data) return /* @__PURE__ */ new Map();
       const colorCounts = /* @__PURE__ */ new Map();
       const defaceColorObj = APP_CONSTANTS.COLOR_MAP["0"].rgb;
       const defaceTransparentColor = [defaceColorObj.r, defaceColorObj.g, defaceColorObj.b].join(",");
@@ -1896,6 +1945,18 @@
         colorCounts.set(key, (colorCounts.get(key) || 0) + 1);
       }
       return colorCounts;
+    }
+    /**
+     * Static helper to create ImageProcessor from pixel data
+     * @param {number} width
+     * @param {number} height
+     * @param {Uint8ClampedArray | ArrayBuffer} pixels
+     * @param {boolean} shouldSkipTransparent
+     * @returns {ImageProcessor}
+     */
+    static fromPixelData(width, height, pixels, shouldSkipTransparent = false) {
+      const proc = new _ImageProcessor({ width, height, pixels });
+      return proc;
     }
   };
 
@@ -1924,7 +1985,7 @@
     return btoa(binary);
   }
 
-  // src/js/core/migrations.js
+  // src/js/storage/migrations.js
   function migrateProgressToV2(saved) {
     if (!saved) return saved;
     const isV1 = !saved.version || saved.version === "1" || saved.version === "1.0" || saved.version === "1.1";
@@ -2039,7 +2100,87 @@
     }
   }
 
-  // src/js/core/progress-manager.js
+  // src/js/storage/indexed-db-storage.js
+  var DB_NAME = "WplaceDB";
+  var DB_VERSION = 1;
+  var STORE_NAME = "progress-store";
+  var dbPromise = null;
+  function promisifyRequest(request) {
+    return new Promise((resolve, reject) => {
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+  async function getDB() {
+    if (dbPromise) return dbPromise;
+    dbPromise = new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, DB_VERSION);
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(request.result);
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME);
+        }
+      };
+    });
+    return dbPromise;
+  }
+  async function transactionComplete(tx) {
+    return new Promise((resolve, reject) => {
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error || new Error("transaction error"));
+      tx.onabort = () => reject(tx.error || new Error("transaction aborted"));
+    });
+  }
+  function normalizeForStorage(value) {
+    if (value?.imageData?.pixels instanceof Uint8ClampedArray) {
+      value = {
+        ...value,
+        imageData: {
+          ...value.imageData,
+          pixels: value.imageData.pixels.buffer
+        }
+      };
+    }
+    return value;
+  }
+  function normalizeAfterLoad(value) {
+    if (value?.imageData?.pixels instanceof Array) {
+      value.imageData.pixels = new Uint8ClampedArray(value.imageData.pixels).buffer;
+    }
+    return value;
+  }
+  var saveToIndexDB = async (key, value) => {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const normalized = normalizeForStorage(value);
+      store.put(normalized, key);
+      await transactionComplete(tx);
+      return true;
+    } catch (error) {
+      console.error("\u274C IndexedDB save failed:", error);
+      return false;
+    }
+  };
+  var loadFromIndexDB = async (key, defaultValue = null) => {
+    try {
+      const db = await getDB();
+      const tx = db.transaction(STORE_NAME, "readonly");
+      const store = tx.objectStore(STORE_NAME);
+      const record = await promisifyRequest(store.get(key));
+      await transactionComplete(tx);
+      if (!record) return defaultValue;
+      return normalizeAfterLoad(record);
+    } catch (error) {
+      console.error("\u274C IndexedDB load failed:", error);
+      return defaultValue;
+    }
+  };
+
+  // src/js/storage/progress-manager.js
   function buildProgressData() {
     return {
       timestamp: Date.now(),
@@ -2052,8 +2193,8 @@
       imageData: state.imageLoaded ? {
         width: state.imageData.width,
         height: state.imageData.height,
-        pixels: Array.from(state.imageData.pixels),
-        totalPixels: state.imageData.totalPixels
+        totalPixels: state.imageData.totalPixels,
+        pixels: state.imageData.pixels.buffer
       } : null
     };
   }
@@ -2078,22 +2219,22 @@
     }
     return data;
   }
-  function saveProgress() {
+  async function saveProgress() {
     try {
-      const progressData = buildProgressData(state);
-      return saveToStorage("wplace-bot-progress", progressData);
+      const progressData = buildProgressData();
+      return await saveToIndexDB("wplace-bot-progress", progressData);
     } catch (error) {
       console.error("Error saving progress:", error);
       return false;
     }
   }
-  function loadProgress() {
+  async function loadProgress() {
     try {
-      const savedData = loadFromStorage("wplace-bot-progress");
+      const savedData = await loadFromIndexDB("wplace-bot-progress");
       if (!savedData) return null;
       const migrated = migrateProgress(savedData);
       if (migrated && migrated !== savedData) {
-        saveToStorage("wplace-bot-progress", migrated);
+        await saveToIndexDB("wplace-bot-progress", migrated);
       }
       return migrated;
     } catch (error) {
@@ -2104,27 +2245,31 @@
   function restoreProgress(savedData) {
     try {
       const migrated = migrateProgress(savedData);
+      if (!migrated) return false;
       Object.assign(state, migrated.state);
       if (migrated.imageData) {
+        const { width, height, totalPixels, pixels } = migrated.imageData;
+        let pixelArray;
+        if (pixels instanceof ArrayBuffer) {
+          pixelArray = new Uint8ClampedArray(pixels);
+        } else if (Array.isArray(pixels)) {
+          pixelArray = new Uint8ClampedArray(pixels);
+        } else {
+          throw new Error("Invalid pixels format: expected ArrayBuffer or Array");
+        }
         state.imageData = {
-          ...migrated.imageData,
-          pixels: new Uint8ClampedArray(migrated.imageData.pixels)
+          width,
+          height,
+          totalPixels,
+          pixels: pixelArray
         };
         try {
-          const canvas = document.createElement("canvas");
-          canvas.width = state.imageData.width;
-          canvas.height = state.imageData.height;
-          const ctx = canvas.getContext("2d");
-          const imageData = new ImageData(
-            state.imageData.pixels,
+          const proc = ImageProcessor.fromPixelData(
             state.imageData.width,
-            state.imageData.height
+            state.imageData.height,
+            state.imageData.pixels,
+            !state.paintTransparentPixels
           );
-          ctx.putImageData(imageData, 0, 0);
-          const proc = new ImageProcessor("");
-          proc.img = canvas;
-          proc.canvas = canvas;
-          proc.ctx = ctx;
           state.imageData.processor = proc;
           state.artColorFrequency = proc.countColors(!state.paintTransparentPixels);
         } catch (e) {
@@ -2140,6 +2285,11 @@
   function saveProgressToFile() {
     try {
       const progressData = buildProgressData();
+      if (progressData.imageData) {
+        progressData.imageData.pixels = Array.from(
+          new Uint8ClampedArray(progressData.imageData.pixels)
+        );
+      }
       const filename = `wplace-bot-progress-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 19).replace(/:/g, "-")}.json`;
       createFileDownloader(JSON.stringify(progressData, null, 2), filename);
       return true;
@@ -2153,6 +2303,9 @@
       const data = await createFileUploader();
       if (!data || !data.state) {
         throw new Error("Invalid file format");
+      }
+      if (data.imageData && Array.isArray(data.imageData.pixels)) {
+        data.imageData.pixels = new Uint8ClampedArray(data.imageData.pixels).buffer;
       }
       return restoreProgress(data);
     } catch (error) {
@@ -3027,13 +3180,29 @@
       return false;
     }
     try {
-      const imageData = new ImageData(
-        state.imageData.pixels,
-        state.imageData.width,
-        state.imageData.height
-      );
-      const canvas = new OffscreenCanvas(state.imageData.width, state.imageData.height);
-      const ctx = canvas.getContext("2d");
+      const { width, height, pixels } = state.imageData;
+      if (!pixels || !(pixels instanceof Uint8ClampedArray)) {
+        console.error("Invalid pixel data: expected Uint8ClampedArray");
+        return false;
+      }
+      if (width <= 0 || height <= 0) {
+        console.error("Invalid image dimensions:", { width, height });
+        return false;
+      }
+      if (pixels.length !== width * height * 4) {
+        console.error("Pixel data length mismatch:", {
+          expected: width * height * 4,
+          actual: pixels.length
+        });
+        return false;
+      }
+      const imageData = new ImageData(pixels, width, height);
+      const canvas = new OffscreenCanvas(width, height);
+      const ctx = canvas.getContext("2d", { willReadFrequently: false });
+      if (!ctx) {
+        console.error("Could not get 2D context from OffscreenCanvas");
+        return false;
+      }
       ctx.putImageData(imageData, 0, 0);
       const imageBitmap = await canvas.transferToImageBitmap();
       await overlayManager.setImage(imageBitmap);
@@ -3348,12 +3517,12 @@
     saveBtn.disabled = !hasImageData;
     saveToFileBtn.disabled = !hasImageData;
   }
-  function handleSaveClick() {
+  async function handleSaveClick() {
     if (!state.imageLoaded) {
       showAlert(t("missingRequirements"), "error");
       return;
     }
-    const success = saveProgress();
+    const success = await saveProgress();
     if (success) {
       updateUI("autoSaved", "success");
       showAlert(t("autoSaved"), "success");
@@ -3361,48 +3530,49 @@
       showAlert(t("errorSavingProgress"), "error");
     }
   }
-  async function handleLoadClick() {
-    const savedData = loadProgress();
+  async function handleLoadClick(needConfirm = false) {
+    const savedData = await loadProgress();
     if (!savedData) {
       updateUI("noSavedData", "warning");
       showAlert(t("noSavedData"), "warning");
       return;
     }
     const savedDate = new Date(savedData.timestamp).toLocaleString();
-    const confirmLoad = confirm(
-      `${t("savedDataFound")}
+    if (needConfirm) {
+      const confirmLoad = confirm(
+        `${t("savedDataFound")}
 
 Timestamp: ${savedDate}
 Art size: ${savedData.imageData.width} \xD7 ${savedData.imageData.height}
 Start position (x, y): ${savedData.state.startPosition.x}, ${savedData.state.startPosition.y}
 Region (x, y): ${savedData.state.region.x}, ${savedData.state.region.y}
 Total: ${savedData.state.artTotalPixels} pixels`
-    );
-    if (confirmLoad) {
-      const success = restoreProgress(savedData);
-      if (success) {
-        updateUI("dataLoaded", "success");
-        showAlert(t("dataLoaded"), "success");
-        updateDataButtons();
-        await updateStats();
-        restoreOverlayFromData().catch((error) => {
-          console.error("Failed to restore overlay from localStorage:", error);
-        });
-        const uploadBtn = document.getElementById("uploadBtn");
-        const selectPosBtn = document.getElementById("selectPosBtn");
-        if (!state.hasAvailableColors) {
-          if (uploadBtn) uploadBtn.disabled = false;
-        } else {
-          if (uploadBtn) uploadBtn.disabled = false;
-          if (selectPosBtn) selectPosBtn.disabled = false;
-        }
-        const startBtn = document.getElementById("startBtn");
-        if (state.imageLoaded && state.startPosition && state.region && state.hasAvailableColors) {
-          if (startBtn) startBtn.disabled = false;
-        }
+      );
+      if (!confirmLoad) return;
+    }
+    const success = restoreProgress(savedData);
+    if (success) {
+      updateUI("dataLoaded", "success");
+      showAlert(t("dataLoaded"), "success");
+      updateDataButtons();
+      await updateStats();
+      restoreOverlayFromData().catch((error) => {
+        console.error("Failed to restore overlay from localStorage:", error);
+      });
+      const uploadBtn = document.getElementById("uploadBtn");
+      const selectPosBtn = document.getElementById("selectPosBtn");
+      if (!state.hasAvailableColors) {
+        if (uploadBtn) uploadBtn.disabled = false;
       } else {
-        showAlert(t("errorLoadingProgress"), "error");
+        if (uploadBtn) uploadBtn.disabled = false;
+        if (selectPosBtn) selectPosBtn.disabled = false;
       }
+      const startBtn = document.getElementById("startBtn");
+      if (state.imageLoaded && state.startPosition && state.region && state.hasAvailableColors) {
+        if (startBtn) startBtn.disabled = false;
+      }
+    } else {
+      showAlert(t("errorLoadingProgress"), "error");
     }
   }
   function handleSaveToFileClick() {
@@ -5075,14 +5245,14 @@ Total: ${savedData.state.artTotalPixels} pixels`
       showAlert(t("uploadImageFirstColors"), "warning");
     }
   }
-  function handleStopClick() {
+  async function handleStopClick() {
     state.stopFlag = true;
     state.running = false;
     const stopBtn = document.getElementById("stopBtn");
     if (stopBtn) stopBtn.disabled = true;
     updateUI("paintingStoppedByUser", "warning");
     if (state.imageLoaded && state.totalPaintedPixels > 0) {
-      saveProgress();
+      await saveProgress();
       showAlert(t("autoSaved"), "success");
     }
   }
@@ -6144,10 +6314,10 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const timeSinceLastSave = now - state._lastSaveTime;
     return !state._saveInProgress && pixelsSinceLastSave >= 25 && timeSinceLastSave >= 3e4;
   }
-  function performSmartSave() {
+  async function performSmartSave() {
     if (!shouldAutoSave()) return false;
     state._saveInProgress = true;
-    const success = saveProgress();
+    const success = await saveProgress();
     if (success) {
       state._lastSavePixelCount = state.currentPaintedPixels;
       state._lastSaveTime = Date.now();
@@ -6559,10 +6729,10 @@ Total: ${savedData.state.artTotalPixels} pixels`
       console.groupEnd();
     }
     if (state.stopFlag) {
-      saveProgress();
+      await saveProgress();
     } else {
       updateUI("paintingComplete", "success", { count: state.currentPaintedPixels });
-      saveProgress();
+      await saveProgress();
       overlayManager.clear();
       const toggleOverlayBtn2 = document.getElementById("toggleOverlayBtn");
       if (toggleOverlayBtn2) {
@@ -7062,8 +7232,8 @@ Total: ${savedData.state.artTotalPixels} pixels`
     updateColorSwatches();
     tryRemoveStatsInitMessage();
   }
-  var checkSavedProgress = () => {
-    const savedData = loadProgress();
+  var checkSavedProgress = async () => {
+    const savedData = await loadProgress();
     if (savedData && savedData.state.artTotalPixels > 0) {
       const savedDate = new Date(savedData.timestamp).toLocaleString();
       showAlert(
@@ -7096,6 +7266,9 @@ ${t("clickLoadToContinue")}`,
       statsContainer,
       settingsContainer
     );
+    if (true) {
+      createDevReloadButton();
+    }
     setupMainPanelListeners();
     setupStatsListeners();
     setupSettingsListeners();
@@ -7107,7 +7280,7 @@ ${t("clickLoadToContinue")}`,
     NotificationManager.syncFromState();
     await initializeTranslations();
     container.style.display = "block";
-    checkSavedProgress();
+    await checkSavedProgress();
   }
 
   // src/js/startup/startup.js
@@ -7356,18 +7529,10 @@ ${t("clickLoadToContinue")}`,
       setupFetchInterceptor();
       createUI().then(async () => {
         await updateStats();
-        if (true) {
-          createDevReloadButton();
-          try {
-            const fingerprint = await getFingerprint();
-            console.log("Fingerprint result:", fingerprint);
-          } catch (error) {
-            console.error("\u274C Fingerprint error:", error);
-          }
-        }
         window.addEventListener("beforeunload", cleanupTurnstile);
         await initializeTokenGenerator();
         enableFileOperations();
+        await handleLoadClick();
       });
     });
   });

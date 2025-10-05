@@ -1,6 +1,6 @@
 import { state } from '../../../core/state.js';
 import { showAlert } from '../../alerts.js';
-import { saveBotSettings } from '../../../core/settings-manager.js';
+import { saveBotSettings } from '../../../storage/settings-manager.js';
 import { t } from '../../../i18n/i18.js';
 import { updateStats, updateUI } from '../../panel.js';
 import { createImageUploader } from '../../../utils/files.js';

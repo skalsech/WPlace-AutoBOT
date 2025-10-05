@@ -629,15 +629,35 @@ export async function restoreOverlayFromData() {
   }
 
   try {
-    // Recreate ImageBitmap from loaded pixel data
-    const imageData = new ImageData(
-      state.imageData.pixels,
-      state.imageData.width,
-      state.imageData.height
-    );
+    const { width, height, pixels } = state.imageData;
 
-    const canvas = new OffscreenCanvas(state.imageData.width, state.imageData.height);
-    const ctx = canvas.getContext('2d');
+    if (!pixels || !(pixels instanceof Uint8ClampedArray)) {
+      console.error('Invalid pixel data: expected Uint8ClampedArray');
+      return false;
+    }
+
+    if (width <= 0 || height <= 0) {
+      console.error('Invalid image dimensions:', { width, height });
+      return false;
+    }
+
+    if (pixels.length !== width * height * 4) {
+      console.error('Pixel data length mismatch:', {
+        expected: width * height * 4,
+        actual: pixels.length,
+      });
+      return false;
+    }
+
+    const imageData = new ImageData(pixels, width, height);
+    const canvas = new OffscreenCanvas(width, height);
+    const ctx = canvas.getContext('2d', { willReadFrequently: false });
+
+    if (!ctx) {
+      console.error('Could not get 2D context from OffscreenCanvas');
+      return false;
+    }
+
     ctx.putImageData(imageData, 0, 0);
     const imageBitmap = await canvas.transferToImageBitmap();
 

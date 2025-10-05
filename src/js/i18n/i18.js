@@ -1,7 +1,7 @@
 import { sleep } from '../utils/helpers.js';
 import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 import { state } from '../core/state.js';
-import { isSavedSettingsEmpty } from '../core/settings-manager.js';
+import { isSavedSettingsEmpty } from '../storage/settings-manager.js';
 import { FALLBACK_TEXT } from './fallback.js';
 
 const loadedTranslations = {};

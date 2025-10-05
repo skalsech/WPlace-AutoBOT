@@ -2,12 +2,12 @@ import { DEFAULT_SETTINGS } from '../config/DEFAULT_SETTINGS.js';
 import { StateEventEmitter } from '../utils/StateEventEmitter.js';
 
 /**
- * @typedef {Object} ImageData
- * @property {number} totalPixels - Total number of pixels in the loaded image.
- * @property {Uint8ClampedArray} pixels - Raw RGBA pixel data (width × height × 4).
+ * @typedef {Object} TemplateImageData
  * @property {number} width - Width of the image in pixels.
  * @property {number} height - Height of the image in pixels.
+ * @property {number} totalPixels - Total number of pixels in the loaded image.
  * @property {ImageProcessor} processor - Image processing utility (e.g., for dithering/color matching).
+ * @property {Uint8ClampedArray} pixels - Raw RGBA pixel data (width × height × 4).
  */
 
 /**
@@ -34,7 +34,7 @@ import { StateEventEmitter } from '../utils/StateEventEmitter.js';
  * @property {number} displayCharges - Number of charges to display in UI (rounded).
  * @property {number} preciseCurrentCharges - Exact current charge value (decimal precision).
  * @property {number} cooldown - Global cooldown in milliseconds (e.g., for painting delay).
- * @property {ImageData|null} imageData - Current loaded image data.
+ * @property {TemplateImageData|null} imageData - Current loaded image data.
  * @property {boolean} stopFlag - Flag to signal an immediate stop of painting.
  * @property {{x: number, y: number}|null} startPosition - Starting coordinate for region selection, or null if none.
  * @property {boolean} selectingPosition - Whether the user is currently selecting a region.

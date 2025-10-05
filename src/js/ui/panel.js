@@ -4,11 +4,11 @@ import { createMainContainer } from './components/create-panel.js';
 import { createStatsContainer, tryRemoveStatsInitMessage } from './components/create-stats.js';
 import { createResizeContainer } from './components/create-resize.js';
 import { NotificationManager } from '../core/notification-manager.js';
-import { loadBotSettings } from '../core/settings-manager.js';
+import { loadBotSettings } from '../storage/settings-manager.js';
 import { state } from '../core/state.js';
 import { showAlert } from './alerts.js';
 import { initializeTranslations, t } from '../i18n/i18.js';
-import { loadProgress } from '../core/progress-manager.js';
+import { loadProgress } from '../storage/progress-manager.js';
 import { wplaceService } from '../core/api-service.js';
 import { calculateEstimatedTime, formatTime, getMsToTargetCharges } from '../utils/time.js';
 import { updateChargesThresholdUI } from '../utils/painting-helpers.js';
@@ -20,6 +20,7 @@ import { setupMainPanelListeners } from './listeners/main-panel.js';
 import { updateDataButtons } from './handlers/main-panel/handle-data-buttons.js';
 import { syncSettingsUI } from './sync-ui.js';
 import { overlayManager } from '../overlay/overlay-manager.js';
+import { createDevReloadButton } from '../utils/dev-utils.js';
 
 function cleanupExistingUI() {
   const ids = ['wplace-image-bot-container', 'wplace-settings-container', 'wplace-stats-container'];
@@ -398,8 +399,8 @@ export async function updateStats(isManualRefresh = false) {
   tryRemoveStatsInitMessage();
 }
 
-const checkSavedProgress = () => {
-  const savedData = loadProgress();
+const checkSavedProgress = async () => {
+  const savedData = await loadProgress();
   if (savedData && savedData.state.artTotalPixels > 0) {
     const savedDate = new Date(savedData.timestamp).toLocaleString();
 
@@ -436,6 +437,11 @@ export async function createUI() {
     settingsContainer
   );
 
+  /** @constant {boolean} __DEV__ - Set by esbuild define in build.mjs */
+  if (__DEV__) {
+    createDevReloadButton();
+  }
+
   setupMainPanelListeners();
   setupStatsListeners();
   setupSettingsListeners();
@@ -450,5 +456,5 @@ export async function createUI() {
 
   await initializeTranslations();
   container.style.display = 'block';
-  checkSavedProgress();
+  await checkSavedProgress();
 }

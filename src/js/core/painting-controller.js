@@ -11,7 +11,7 @@ import {
 } from '../utils/color-matching.js';
 import { generateCoordinates } from './coordinate-generator.js';
 import { NotificationManager } from './notification-manager.js';
-import { saveProgress } from './progress-manager.js';
+import { saveProgress } from '../storage/progress-manager.js';
 import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 import { overlayManager } from '../overlay/overlay-manager.js';
 import { getMsToTargetCharges } from '../utils/time.js';
@@ -328,11 +328,11 @@ export async function processImage() {
   }
 
   if (state.stopFlag) {
-    saveProgress();
+    await saveProgress();
   } else {
     updateUI('paintingComplete', 'success', { count: state.currentPaintedPixels });
 
-    saveProgress();
+    await saveProgress();
     overlayManager.clear();
     const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
     if (toggleOverlayBtn) {

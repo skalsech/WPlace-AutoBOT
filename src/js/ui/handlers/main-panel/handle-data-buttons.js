@@ -7,7 +7,7 @@ import {
   restoreProgress,
   saveProgress,
   saveProgressToFile,
-} from '../../../core/progress-manager.js';
+} from '../../../storage/progress-manager.js';
 import { updateStats, updateUI } from '../../panel.js';
 import { restoreOverlayFromData } from '../../../overlay/overlay-manager.js';
 
@@ -21,13 +21,13 @@ export function updateDataButtons() {
   saveToFileBtn.disabled = !hasImageData;
 }
 
-export function handleSaveClick() {
+export async function handleSaveClick() {
   if (!state.imageLoaded) {
     showAlert(t('missingRequirements'), 'error');
     return;
   }
 
-  const success = saveProgress();
+  const success = await saveProgress();
   if (success) {
     updateUI('autoSaved', 'success');
     showAlert(t('autoSaved'), 'success');
@@ -35,53 +35,55 @@ export function handleSaveClick() {
     showAlert(t('errorSavingProgress'), 'error');
   }
 }
-
-export async function handleLoadClick() {
-  const savedData = loadProgress();
+export async function handleLoadClick(needConfirm = false) {
+  const savedData = await loadProgress();
   if (!savedData) {
     updateUI('noSavedData', 'warning');
     showAlert(t('noSavedData'), 'warning');
     return;
   }
+
   const savedDate = new Date(savedData.timestamp).toLocaleString();
 
-  const confirmLoad = confirm(
-    `${t('savedDataFound')}\n\n` +
-      `Timestamp: ${savedDate}\n` +
-      `Art size: ${savedData.imageData.width} × ${savedData.imageData.height}\n` +
-      `Start position (x, y): ${savedData.state.startPosition.x}, ${savedData.state.startPosition.y}\n` +
-      `Region (x, y): ${savedData.state.region.x}, ${savedData.state.region.y}\n` +
-      `Total: ${savedData.state.artTotalPixels} pixels`
-  );
+  if (needConfirm) {
+    const confirmLoad = confirm(
+      `${t('savedDataFound')}\n\n` +
+        `Timestamp: ${savedDate}\n` +
+        `Art size: ${savedData.imageData.width} × ${savedData.imageData.height}\n` +
+        `Start position (x, y): ${savedData.state.startPosition.x}, ${savedData.state.startPosition.y}\n` +
+        `Region (x, y): ${savedData.state.region.x}, ${savedData.state.region.y}\n` +
+        `Total: ${savedData.state.artTotalPixels} pixels`
+    );
 
-  if (confirmLoad) {
-    const success = restoreProgress(savedData);
-    if (success) {
-      updateUI('dataLoaded', 'success');
-      showAlert(t('dataLoaded'), 'success');
-      updateDataButtons();
-      await updateStats();
+    if (!confirmLoad) return;
+  }
 
-      restoreOverlayFromData().catch((error) => {
-        console.error('Failed to restore overlay from localStorage:', error);
-      });
+  const success = restoreProgress(savedData);
+  if (success) {
+    updateUI('dataLoaded', 'success');
+    showAlert(t('dataLoaded'), 'success');
+    updateDataButtons();
+    await updateStats();
 
-      const uploadBtn = document.getElementById('uploadBtn');
-      const selectPosBtn = document.getElementById('selectPosBtn');
-      if (!state.hasAvailableColors) {
-        if (uploadBtn) uploadBtn.disabled = false;
-      } else {
-        if (uploadBtn) uploadBtn.disabled = false;
-        if (selectPosBtn) selectPosBtn.disabled = false;
-      }
+    restoreOverlayFromData().catch((error) => {
+      console.error('Failed to restore overlay from localStorage:', error);
+    });
 
-      const startBtn = document.getElementById('startBtn');
-      if (state.imageLoaded && state.startPosition && state.region && state.hasAvailableColors) {
-        if (startBtn) startBtn.disabled = false;
-      }
+    const uploadBtn = document.getElementById('uploadBtn');
+    const selectPosBtn = document.getElementById('selectPosBtn');
+    if (!state.hasAvailableColors) {
+      if (uploadBtn) uploadBtn.disabled = false;
     } else {
-      showAlert(t('errorLoadingProgress'), 'error');
+      if (uploadBtn) uploadBtn.disabled = false;
+      if (selectPosBtn) selectPosBtn.disabled = false;
     }
+
+    const startBtn = document.getElementById('startBtn');
+    if (state.imageLoaded && state.startPosition && state.region && state.hasAvailableColors) {
+      if (startBtn) startBtn.disabled = false;
+    }
+  } else {
+    showAlert(t('errorLoadingProgress'), 'error');
   }
 }
 

@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { saveProgress } from './progress-manager.js';
+import { saveProgress } from '../storage/progress-manager.js';
 
 function shouldAutoSave() {
   return false;
@@ -11,11 +11,11 @@ function shouldAutoSave() {
   return !state._saveInProgress && pixelsSinceLastSave >= 25 && timeSinceLastSave >= 30000;
 }
 
-export function performSmartSave() {
+export async function performSmartSave() {
   if (!shouldAutoSave()) return false;
 
   state._saveInProgress = true;
-  const success = saveProgress();
+  const success = await saveProgress();
 
   if (success) {
     state._lastSavePixelCount = state.currentPaintedPixels;

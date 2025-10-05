@@ -1,5 +1,5 @@
 import { loadFromStorage, saveToStorage } from './storage.js';
-import { state } from './state.js';
+import { state } from '../core/state.js';
 import { DEFAULT_SETTINGS } from '../config/DEFAULT_SETTINGS.js';
 
 export function saveBotSettings() {

@@ -4,7 +4,7 @@ import {
   isSavedSettingsEmpty,
   loadBotSettings,
   saveBotSettings,
-} from '../src/js/core/settings-manager.js';
+} from '../src/js/storage/settings-manager.js';
 import { createTestMask, encodeMask } from './helpers.js';
 import { DEFAULT_SETTINGS } from '../src/js/config/DEFAULT_SETTINGS.js';
 import { cloneDeep } from 'lodash';

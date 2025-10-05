@@ -1,7 +1,6 @@
-import { state } from './state.js';
-import { loadFromStorage, saveToStorage } from './storage.js';
+import { state } from '../core/state.js';
 import { createFileDownloader, createFileUploader } from '../utils/files.js';
-import { ImageProcessor } from './image-processor.js';
+import { ImageProcessor } from '../core/image-processor.js';
 import {
   migrateProgressToV2,
   migrateProgressToV21,
@@ -9,6 +8,7 @@ import {
   migrateProgressToV23,
   migrateProgressToV24,
 } from './migrations.js';
+import { clearIndexDBStorage, loadFromIndexDB, saveToIndexDB } from './indexed-db-storage.js';
 
 // todo refactor progress and progress related state part
 export function buildProgressData() {
@@ -24,8 +24,8 @@ export function buildProgressData() {
       ? {
           width: state.imageData.width,
           height: state.imageData.height,
-          pixels: Array.from(state.imageData.pixels),
           totalPixels: state.imageData.totalPixels,
+          pixels: state.imageData.pixels.buffer,
         }
       : null,
   };
@@ -61,25 +61,24 @@ export function migrateProgress(saved) {
   return data;
 }
 
-export function saveProgress() {
+export async function saveProgress() {
   try {
-    const progressData = buildProgressData(state);
-
-    return saveToStorage('wplace-bot-progress', progressData);
+    const progressData = buildProgressData();
+    return await saveToIndexDB('wplace-bot-progress', progressData);
   } catch (error) {
     console.error('Error saving progress:', error);
     return false;
   }
 }
 
-export function loadProgress() {
+export async function loadProgress() {
   try {
-    const savedData = loadFromStorage('wplace-bot-progress');
+    const savedData = await loadFromIndexDB('wplace-bot-progress');
     if (!savedData) return null;
     const migrated = migrateProgress(savedData);
 
     if (migrated && migrated !== savedData) {
-      saveToStorage('wplace-bot-progress', migrated);
+      await saveToIndexDB('wplace-bot-progress', migrated);
     }
     return migrated;
   } catch (error) {
@@ -88,13 +87,17 @@ export function loadProgress() {
   }
 }
 
-export function clearProgress() {
+export async function clearProgress() {
   try {
+    await clearIndexDBStorage();
+
     localStorage.removeItem('wplace-bot-progress');
-    // Also clear painted map from memory
-    //state.paintedMap = null;
+
+    state.imageData = null;
+    state.artColorFrequency = new Map();
     state._lastSavePixelCount = 0;
     state._lastSaveTime = 0;
+    state.paintedMap = null; // legacy
 
     console.log('📋 Progress and painted map cleared');
     return true;
@@ -107,29 +110,37 @@ export function clearProgress() {
 export function restoreProgress(savedData) {
   try {
     const migrated = migrateProgress(savedData);
+    if (!migrated) return false;
+
     Object.assign(state, migrated.state);
 
     if (migrated.imageData) {
+      const { width, height, totalPixels, pixels } = migrated.imageData;
+
+      let pixelArray;
+      if (pixels instanceof ArrayBuffer) {
+        pixelArray = new Uint8ClampedArray(pixels);
+      } else if (Array.isArray(pixels)) {
+        pixelArray = new Uint8ClampedArray(pixels);
+      } else {
+        throw new Error('Invalid pixels format: expected ArrayBuffer or Array');
+      }
+
       state.imageData = {
-        ...migrated.imageData,
-        pixels: new Uint8ClampedArray(migrated.imageData.pixels),
+        width,
+        height,
+        totalPixels,
+        pixels: pixelArray,
       };
 
       try {
-        const canvas = document.createElement('canvas');
-        canvas.width = state.imageData.width;
-        canvas.height = state.imageData.height;
-        const ctx = canvas.getContext('2d');
-        const imageData = new ImageData(
-          state.imageData.pixels,
+        const proc = ImageProcessor.fromPixelData(
           state.imageData.width,
-          state.imageData.height
+          state.imageData.height,
+          state.imageData.pixels,
+          !state.paintTransparentPixels
         );
-        ctx.putImageData(imageData, 0, 0);
-        const proc = new ImageProcessor('');
-        proc.img = canvas;
-        proc.canvas = canvas;
-        proc.ctx = ctx;
+
         state.imageData.processor = proc;
         state.artColorFrequency = proc.countColors(!state.paintTransparentPixels);
       } catch (e) {
@@ -147,10 +158,18 @@ export function restoreProgress(savedData) {
 export function saveProgressToFile() {
   try {
     const progressData = buildProgressData();
+
+    if (progressData.imageData) {
+      progressData.imageData.pixels = Array.from(
+        new Uint8ClampedArray(progressData.imageData.pixels)
+      );
+    }
+
     const filename = `wplace-bot-progress-${new Date()
       .toISOString()
       .slice(0, 19)
       .replace(/:/g, '-')}.json`;
+
     createFileDownloader(JSON.stringify(progressData, null, 2), filename);
     return true;
   } catch (error) {
@@ -164,6 +183,10 @@ export async function loadProgressFromFile() {
     const data = await createFileUploader();
     if (!data || !data.state) {
       throw new Error('Invalid file format');
+    }
+
+    if (data.imageData && Array.isArray(data.imageData.pixels)) {
+      data.imageData.pixels = new Uint8ClampedArray(data.imageData.pixels).buffer;
     }
 
     return restoreProgress(data);
