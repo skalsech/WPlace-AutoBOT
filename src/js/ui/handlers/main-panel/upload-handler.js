@@ -35,10 +35,10 @@ export async function handleUploadClick() {
     const { width, height } = processor.getDimensions();
     const pixels = processor.getPixelData();
     const artColorFrequency = processor.countColors(!state.paintTransparentPixels);
-    const totalValidPixels = Object.values(artColorFrequency).reduce(
-      (sum, count) => sum + count,
-      0
-    );
+    let totalValidPixels = 0;
+    for (const count of artColorFrequency.values()) {
+      totalValidPixels += count;
+    }
 
     state.imageData = {
       width,
