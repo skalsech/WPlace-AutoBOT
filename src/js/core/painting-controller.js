@@ -17,6 +17,10 @@ import { overlayManager } from '../overlay/overlay-manager.js';
 import { getMsToTargetCharges } from '../utils/time.js';
 import { wplaceService } from './api-service.js';
 
+/**
+ * @param {PixelBatch} batch - The batch of pixels to flush.
+ * @returns {Promise<boolean>} Resolves to true if the batch was flushed successfully.
+ */
 async function flushPixelBatch(batch) {
   if (!batch || batch.pixels.length === 0) return true;
 
@@ -35,7 +39,7 @@ async function flushPixelBatch(batch) {
       painted: state.currentPaintedPixels,
       total: state.artTotalPixels,
     });
-    performSmartSave();
+    await performSmartSave();
 
     if (state.paintingSpeedLimitEnabled) {
       await sleep(1000);
@@ -58,16 +62,7 @@ export async function processImage() {
   const { x: startX, y: startY } = state.startPosition;
   const { x: regionX, y: regionY } = state.region;
 
-  // todo force load tiles
-  const tilesReady = await overlayManager.waitForTiles(
-    regionX,
-    regionY,
-    width,
-    height,
-    startX,
-    startY,
-    15000
-  );
+  const tilesReady = await overlayManager.waitForTiles();
 
   if (!tilesReady) {
     updateUI('overlayTilesNotLoaded', 'error');
@@ -75,7 +70,26 @@ export async function processImage() {
     return;
   }
 
-  // key: `${regionX},${regionY}`, value: { regionX, regionY, pixels: [] }
+  /**
+   * @typedef {Object} PixelData
+   * @property {number} x - Absolute X coordinate of the pixel, measured from the template origin (0,0).
+   * @property {number} y - Absolute Y coordinate of the pixel, measured from the template origin (0,0).
+   * @property {number} color - Mapped color ID of the pixel from template.
+   * @property {number} localX - Local X coordinate within the region.
+   * @property {number} localY - Local Y coordinate within the region.
+   */
+
+  /**
+   * @typedef {Object} PixelBatch
+   * @property {number} regionX - Region X coordinate.
+   * @property {number} regionY - Region Y coordinate.
+   * @property {PixelData[]} pixels - List of pixels belonging to this region.
+   */
+
+  /**
+   * @type {Map<string, PixelBatch>}
+   * Key - `${regionX},${regionY}`
+   */
   const pixelBatches = new Map();
 
   let globalPixelBatchTotalCount = 0;
@@ -220,11 +234,9 @@ export async function processImage() {
       const batch = pixelBatches.get(key);
 
       try {
-        const tileKeyParts = [batch.regionX, batch.regionY];
-
         const tilePixelRGBA = await overlayManager.getTilePixelColor(
-          tileKeyParts[0],
-          tileKeyParts[1],
+          batch.regionX,
+          batch.regionY,
           pixelX,
           pixelY
         );
@@ -270,7 +282,7 @@ export async function processImage() {
       globalPixelBatchTotalCount++;
 
       if (globalPixelBatchTotalCount >= currentBatchSize) {
-        for (const [_, b] of pixelBatches.entries()) {
+        for (const b of pixelBatches.values()) {
           if (b.pixels.length > 0) {
             const success = await flushPixelBatch(b);
             if (!success) {

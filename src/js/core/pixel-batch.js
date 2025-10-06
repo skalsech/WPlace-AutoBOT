@@ -104,6 +104,7 @@ async function sendPixelBatch(pixelBatch, regionX, regionY) {
       headers: {
         'Content-Type': 'text/plain;charset=UTF-8',
         'x-pawtect-token': wasmToken,
+        'x-pawtect-variant': 'koala',
       },
       credentials: 'include',
       body: JSON.stringify(payload),
@@ -124,6 +125,7 @@ async function sendPixelBatch(pixelBatch, regionX, regionY) {
           headers: {
             'Content-Type': 'text/plain;charset=UTF-8',
             'x-pawtect-token': retryWasmToken,
+            'x-pawtect-variant': 'koala',
           },
           credentials: 'include',
           body: JSON.stringify(retryPayload),

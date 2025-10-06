@@ -93,7 +93,7 @@
     if (minutes > 0) return `${minutes}m ${seconds}s`;
     return `${seconds}s`;
   };
-  var calculateTileRange = (startRegionX, startRegionY, startPixelX, startPixelY, width, height, tileSize = 1e3) => {
+  var calculateTileRange = (startRegionX, startRegionY, startPixelX, startPixelY, width, height, tileSize) => {
     const endPixelX = startPixelX + width;
     const endPixelY = startPixelY + height;
     return {
@@ -2747,6 +2747,97 @@
     };
   }
 
+  // src/js/core/tile-loader.js
+  var TileLoader = class {
+    constructor(overlayManager2) {
+      this.overlayManager = overlayManager2;
+      this.baseTileUrl = "https://backend.wplace.live/files/s0/tiles";
+      this.activeRequests = /* @__PURE__ */ new Map();
+      this.recentlyRequested = /* @__PURE__ */ new Map();
+      this.requestCacheTimeout = 5e3;
+    }
+    isRecentlyRequested(tileKey) {
+      const lastTime = this.recentlyRequested.get(tileKey);
+      return lastTime && Date.now() - lastTime < this.requestCacheTimeout;
+    }
+    markAsRequested(tileKey) {
+      this.recentlyRequested.set(tileKey, Date.now());
+      setTimeout(() => {
+        if (this.recentlyRequested.get(tileKey) === Date.now()) {
+          this.recentlyRequested.delete(tileKey);
+        }
+      }, this.requestCacheTimeout);
+    }
+    /**
+     * Loads a tile and updates the overlay cache
+     * @param {number} tileX
+     * @param {number} tileY
+     * @param {AbortSignal} [signal]
+     * @returns {Promise<{success: boolean, skipped?: boolean, error?: string}>}
+     */
+    async loadTile(tileX, tileY, signal = null) {
+      const tileKey = `${tileX},${tileY}`;
+      if (this.isRecentlyRequested(tileKey)) {
+        return { success: true, skipped: true, reason: "Recently requested" };
+      }
+      if (this.activeRequests.has(tileKey)) {
+        this.activeRequests.get(tileKey).abort();
+      }
+      const controller = new AbortController();
+      this.activeRequests.set(tileKey, controller);
+      if (signal) {
+        signal.addEventListener("abort", () => controller.abort());
+      }
+      try {
+        const url = `${this.baseTileUrl}/${tileX}/${tileY}.png`;
+        const response = await fetch(url, {
+          signal: controller.signal
+        });
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        this.markAsRequested(tileKey);
+        return { success: true };
+      } catch (error) {
+        if (error.name === "AbortError") {
+          return { success: false, error: "Request aborted" };
+        }
+        return { success: false, error: error.message };
+      } finally {
+        this.activeRequests.delete(tileKey);
+      }
+    }
+    /**
+     * Batch loads tiles
+     * @param {Array<{x: number, y: number}>} tiles
+     * @param {number} [concurrency = 4]
+     * @returns {Promise<Array<{tile: {x, y}, result: {success: boolean, skipped?: boolean, error?: string}}>>}
+     */
+    async loadTilesBatch(tiles, concurrency = 4) {
+      const results = [];
+      const queue = [...tiles];
+      while (queue.length > 0) {
+        const batch = queue.splice(0, concurrency);
+        const promises = batch.map(async (tile) => {
+          const result = await this.loadTile(tile.x, tile.y);
+          return { tile, result };
+        });
+        const batchResults = await Promise.all(promises);
+        results.push(...batchResults);
+      }
+      return results;
+    }
+    /**
+     * Cancels all active requests
+     */
+    cancelAll() {
+      for (const controller of this.activeRequests.values()) {
+        controller.abort();
+      }
+      this.activeRequests.clear();
+    }
+  };
+
   // src/js/overlay/overlay-manager.js
   var OverlayManager = class {
     constructor() {
@@ -2915,9 +3006,8 @@
         }
         chunkCtx.putImageData(imageData, dX, dY);
       }
-      return await chunkCanvas.transferToImageBitmap();
+      return chunkCanvas.transferToImageBitmap();
     }
-    // --- OVERLAY UPDATE: Optimized compositing with caching ---
     async processAndRespondToTileRequest(eventData) {
       const { endpoint, blobID, blobData } = eventData;
       let finalBlob = blobData;
@@ -3109,6 +3199,9 @@
       }
       this.tileProgress.set(tileKey, { painted, required, wrong });
       state.localPaintedOffset = 0;
+      console.debug(
+        `[OverlayManager] Analyzed tile ${tileKey}: painted=${painted}, required=${required}, wrong=${wrong}`
+      );
     }
     async _compositeTileOptimized(originalBlob, overlayBitmap) {
       const originalBitmap = await createImageBitmap(originalBlob);
@@ -3127,52 +3220,65 @@
     }
     /**
      * Wait until all required tiles are loaded and cached
-     * @param {number} startRegionX
-     * @param {number} startRegionY
-     * @param {number} pixelWidth
-     * @param {number} pixelHeight
-     * @param {number} startPixelX
-     * @param {number} startPixelY
      * @param {number} timeoutMs
+     * @param {number} [concurrency = 4]
      * @returns {Promise<boolean>} true if tiles are ready
      */
-    async waitForTiles(startRegionX, startRegionY, pixelWidth, pixelHeight, startPixelX = 0, startPixelY = 0, timeoutMs = 1e4) {
+    async waitForTiles(timeoutMs = 1e4, concurrency = 4) {
+      if (!this.startCoords || !this.startCoords.region || !this.startCoords.pixel) {
+        console.warn("OverlayManager: startCoords not set, cannot calculate tile range");
+        return false;
+      }
+      if (!this.imageBitmap || !this.imageBitmap.width || !this.imageBitmap.height) {
+        console.warn("OverlayManager: imageBitmap not set or invalid, cannot calculate tile range");
+        return false;
+      }
+      const { x: startPixelX, y: startPixelY } = this.startCoords.pixel;
+      const { x: startRegionX, y: startRegionY } = this.startCoords.region;
+      const { width: imageWidth, height: imageHeight } = this.imageBitmap;
       const { startTileX, startTileY, endTileX, endTileY } = calculateTileRange(
         startRegionX,
         startRegionY,
         startPixelX,
         startPixelY,
-        pixelWidth,
-        pixelHeight,
+        imageWidth,
+        imageHeight,
         this.tileSize
       );
       const requiredTiles = [];
       for (let ty = startTileY; ty <= endTileY; ty++) {
         for (let tx = startTileX; tx <= endTileX; tx++) {
-          requiredTiles.push(`${tx},${ty}`);
+          requiredTiles.push({ x: tx, y: ty });
         }
       }
       if (requiredTiles.length === 0) return true;
+      const tileLoader = new TileLoader(this);
+      const results = await tileLoader.loadTilesBatch(requiredTiles, concurrency);
+      const failed = results.filter((r) => !r.result.success);
+      if (failed.length > 0) {
+        console.warn(`\u274C Some tiles failed to load:`, failed);
+      }
+      const requiredTileKeys = requiredTiles.map((t2) => `${t2.x},${t2.y}`);
       const startTime = Date.now();
       while (Date.now() - startTime < timeoutMs) {
         if (state.stopFlag) {
           console.log("waitForTiles: stopped by user");
           return false;
         }
-        const missing = requiredTiles.filter((key) => !this.originalTiles.has(key));
+        const missing = requiredTileKeys.filter((key) => !this.originalTiles.has(key));
         if (missing.length === 0) {
-          console.log(`\u2705 All ${requiredTiles.length} required tiles are loaded`);
+          console.log(`\u2705 All ${requiredTiles.length} required tiles are loaded and cached`);
           return true;
         }
         await sleep(100);
       }
-      console.warn(`\u274C Timeout waiting for tiles: ${requiredTiles.length} required, 
-        ${requiredTiles.filter((k) => this.originalTiles.has(k)).length} loaded`);
+      console.warn(`\u274C Timeout waiting for tiles: ${requiredTileKeys.length} required, 
+      ${requiredTileKeys.filter((k) => this.originalTiles.has(k)).length} loaded`);
       return false;
     }
     /**
      * Calculates overall progress statistics based on cached tile data.
-     * @returns {Object} { painted: number, required: number, wrong: number, percentage: number }
+     * @returns {Object} { painted: number, required: number, wrong: number }
      */
     getOverallProgress() {
       let totalPainted = 0;
@@ -3186,12 +3292,10 @@
       this.totalPainted = totalPainted;
       this.totalRequired = totalRequired;
       this.totalWrong = totalWrong;
-      const percentage = totalRequired > 0 ? totalPainted / totalRequired * 100 : 0;
       return {
         painted: totalPainted,
         required: totalRequired,
-        wrong: totalWrong,
-        percentage: parseFloat(percentage.toFixed(2))
+        wrong: totalWrong
       };
     }
     getTileProgress(tileKey) {
@@ -6283,7 +6387,8 @@ Total: ${savedData.state.artTotalPixels} pixels`
         method: "POST",
         headers: {
           "Content-Type": "text/plain;charset=UTF-8",
-          "x-pawtect-token": wasmToken
+          "x-pawtect-token": wasmToken,
+          "x-pawtect-variant": "koala"
         },
         credentials: "include",
         body: JSON.stringify(payload)
@@ -6299,7 +6404,8 @@ Total: ${savedData.state.artTotalPixels} pixels`
             method: "POST",
             headers: {
               "Content-Type": "text/plain;charset=UTF-8",
-              "x-pawtect-token": retryWasmToken
+              "x-pawtect-token": retryWasmToken,
+              "x-pawtect-variant": "koala"
             },
             credentials: "include",
             body: JSON.stringify(retryPayload)
@@ -6536,7 +6642,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
         painted: state.currentPaintedPixels,
         total: state.artTotalPixels
       });
-      performSmartSave();
+      await performSmartSave();
       if (state.paintingSpeedLimitEnabled) {
         await sleep(1e3);
       }
@@ -6555,15 +6661,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const { width, height, pixels } = state.imageData;
     const { x: startX, y: startY } = state.startPosition;
     const { x: regionX, y: regionY } = state.region;
-    const tilesReady = await overlayManager.waitForTiles(
-      regionX,
-      regionY,
-      width,
-      height,
-      startX,
-      startY,
-      15e3
-    );
+    const tilesReady = await overlayManager.waitForTiles();
     if (!tilesReady) {
       updateUI("overlayTilesNotLoaded", "error");
       state.stopFlag = true;
@@ -6662,10 +6760,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
         }
         const batch = pixelBatches.get(key);
         try {
-          const tileKeyParts = [batch.regionX, batch.regionY];
           const tilePixelRGBA = await overlayManager.getTilePixelColor(
-            tileKeyParts[0],
-            tileKeyParts[1],
+            batch.regionX,
+            batch.regionY,
             pixelX,
             pixelY
           );
@@ -6703,7 +6800,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
         });
         globalPixelBatchTotalCount++;
         if (globalPixelBatchTotalCount >= currentBatchSize) {
-          for (const [_, b] of pixelBatches.entries()) {
+          for (const b of pixelBatches.values()) {
             if (b.pixels.length > 0) {
               const success = await flushPixelBatch(b);
               if (!success) {
@@ -7159,10 +7256,12 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const progress = overlayManager.getOverallProgress();
     state.totalPaintedPixels = progress.painted;
     state.estimatedTime = calculateEstimatedTime(intervalMs);
-    const newWidth = `${progress.percentage}%`;
+    const percentage = state.artTotalPixels > 0 ? state.currentPaintedPixels / state.artTotalPixels * 100 : 0;
+    const displayPercentage = parseFloat(percentage.toFixed(2));
+    const newWidth = `${displayPercentage}%`;
     if (progressBar.style.width !== newWidth) progressBar.style.width = newWidth;
     const updates = [
-      { el: "wplace-stat-progress", text: `${progress.percentage}%` },
+      { el: "wplace-stat-progress", text: `${displayPercentage}%` },
       { el: "wplace-stat-pixels", text: `${state.currentPaintedPixels}/${state.artTotalPixels}` },
       { el: "wplace-stat-estimated", text: formatTime(state.estimatedTime) }
     ];

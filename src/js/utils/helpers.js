@@ -117,7 +117,7 @@ export const msToTimeText = (ms) => {
  * @param {number} startPixelY - Starting pixel Y within the region grid
  * @param {number} width - Image width in pixels
  * @param {number} height - Image height in pixels
- * @param {number} tileSize - Size of a tile (default 1000)
+ * @param {number} tileSize - Size of a tile
  * @returns {{ startTileX: number, startTileY: number, endTileX: number, endTileY: number }}
  */
 export const calculateTileRange = (
@@ -127,7 +127,7 @@ export const calculateTileRange = (
   startPixelY,
   width,
   height,
-  tileSize = 1000
+  tileSize
 ) => {
   const endPixelX = startPixelX + width;
   const endPixelY = startPixelY + height;

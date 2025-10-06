@@ -276,12 +276,15 @@ function updateImageStats(intervalMs) {
   const progress = overlayManager.getOverallProgress();
   state.totalPaintedPixels = progress.painted;
   state.estimatedTime = calculateEstimatedTime(intervalMs);
+  const percentage =
+    state.artTotalPixels > 0 ? (state.currentPaintedPixels / state.artTotalPixels) * 100 : 0;
+  const displayPercentage = parseFloat(percentage.toFixed(2));
 
-  const newWidth = `${progress.percentage}%`;
+  const newWidth = `${displayPercentage}%`;
   if (progressBar.style.width !== newWidth) progressBar.style.width = newWidth;
 
   const updates = [
-    { el: 'wplace-stat-progress', text: `${progress.percentage}%` },
+    { el: 'wplace-stat-progress', text: `${displayPercentage}%` },
     { el: 'wplace-stat-pixels', text: `${state.currentPaintedPixels}/${state.artTotalPixels}` },
     { el: 'wplace-stat-estimated', text: formatTime(state.estimatedTime) },
   ];

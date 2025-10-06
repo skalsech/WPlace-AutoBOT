@@ -1,13 +1,13 @@
-// Helper function to restore overlay from loaded data
 import { state } from '../core/state.js';
 import { calculateTileRange, sleep } from '../utils/helpers.js';
 import { isTransparentPixel } from '../utils/color-matching.js';
+import { TileLoader } from '../core/tile-loader.js';
 
 class OverlayManager {
   constructor() {
     this.isEnabled = false;
 
-    /** @type {{ region: {x: number, y: number}, pixel: {x: number, y: number} } | null} */
+    /** @type {{ region: {x: number, y: number} | null, pixel: {x: number, y: number} | null } | null} */
     this.startCoords = null;
 
     /** @type {ImageBitmap | null} */
@@ -253,10 +253,9 @@ class OverlayManager {
       chunkCtx.putImageData(imageData, dX, dY);
     }
 
-    return await chunkCanvas.transferToImageBitmap();
+    return chunkCanvas.transferToImageBitmap();
   }
 
-  // --- OVERLAY UPDATE: Optimized compositing with caching ---
   async processAndRespondToTileRequest(eventData) {
     const { endpoint, blobID, blobData } = eventData;
 
@@ -500,9 +499,9 @@ class OverlayManager {
     this.tileProgress.set(tileKey, { painted, required, wrong });
     state.localPaintedOffset = 0;
 
-    // console.debug(
-    //   `[OverlayManager] Analyzed tile ${tileKey}: painted=${painted}, required=${required}, wrong=${wrong}`
-    // );
+    console.debug(
+      `[OverlayManager] Analyzed tile ${tileKey}: painted=${painted}, required=${required}, wrong=${wrong}`
+    );
   }
 
   async _compositeTileOptimized(originalBlob, overlayBitmap) {
@@ -530,43 +529,52 @@ class OverlayManager {
 
   /**
    * Wait until all required tiles are loaded and cached
-   * @param {number} startRegionX
-   * @param {number} startRegionY
-   * @param {number} pixelWidth
-   * @param {number} pixelHeight
-   * @param {number} startPixelX
-   * @param {number} startPixelY
    * @param {number} timeoutMs
+   * @param {number} [concurrency = 4]
    * @returns {Promise<boolean>} true if tiles are ready
    */
-  async waitForTiles(
-    startRegionX,
-    startRegionY,
-    pixelWidth,
-    pixelHeight,
-    startPixelX = 0,
-    startPixelY = 0,
-    timeoutMs = 10000
-  ) {
+  async waitForTiles(timeoutMs = 10000, concurrency = 4) {
+    if (!this.startCoords || !this.startCoords.region || !this.startCoords.pixel) {
+      console.warn('OverlayManager: startCoords not set, cannot calculate tile range');
+      return false;
+    }
+    if (!this.imageBitmap || !this.imageBitmap.width || !this.imageBitmap.height) {
+      console.warn('OverlayManager: imageBitmap not set or invalid, cannot calculate tile range');
+      return false;
+    }
+
+    const { x: startPixelX, y: startPixelY } = this.startCoords.pixel;
+    const { x: startRegionX, y: startRegionY } = this.startCoords.region;
+    const { width: imageWidth, height: imageHeight } = this.imageBitmap;
+
     const { startTileX, startTileY, endTileX, endTileY } = calculateTileRange(
       startRegionX,
       startRegionY,
       startPixelX,
       startPixelY,
-      pixelWidth,
-      pixelHeight,
+      imageWidth,
+      imageHeight,
       this.tileSize
     );
 
     const requiredTiles = [];
     for (let ty = startTileY; ty <= endTileY; ty++) {
       for (let tx = startTileX; tx <= endTileX; tx++) {
-        requiredTiles.push(`${tx},${ty}`);
+        requiredTiles.push({ x: tx, y: ty });
       }
     }
 
     if (requiredTiles.length === 0) return true;
 
+    const tileLoader = new TileLoader(this);
+    const results = await tileLoader.loadTilesBatch(requiredTiles, concurrency);
+    const failed = results.filter((r) => !r.result.success);
+
+    if (failed.length > 0) {
+      console.warn(`❌ Some tiles failed to load:`, failed);
+    }
+
+    const requiredTileKeys = requiredTiles.map((t) => `${t.x},${t.y}`);
     const startTime = Date.now();
 
     while (Date.now() - startTime < timeoutMs) {
@@ -575,23 +583,23 @@ class OverlayManager {
         return false;
       }
 
-      const missing = requiredTiles.filter((key) => !this.originalTiles.has(key));
+      const missing = requiredTileKeys.filter((key) => !this.originalTiles.has(key));
       if (missing.length === 0) {
-        console.log(`✅ All ${requiredTiles.length} required tiles are loaded`);
+        console.log(`✅ All ${requiredTiles.length} required tiles are loaded and cached`);
         return true;
       }
 
       await sleep(100);
     }
 
-    console.warn(`❌ Timeout waiting for tiles: ${requiredTiles.length} required, 
-        ${requiredTiles.filter((k) => this.originalTiles.has(k)).length} loaded`);
+    console.warn(`❌ Timeout waiting for tiles: ${requiredTileKeys.length} required, 
+      ${requiredTileKeys.filter((k) => this.originalTiles.has(k)).length} loaded`);
     return false;
   }
 
   /**
    * Calculates overall progress statistics based on cached tile data.
-   * @returns {Object} { painted: number, required: number, wrong: number, percentage: number }
+   * @returns {Object} { painted: number, required: number, wrong: number }
    */
   getOverallProgress() {
     let totalPainted = 0;
@@ -608,13 +616,10 @@ class OverlayManager {
     this.totalRequired = totalRequired;
     this.totalWrong = totalWrong;
 
-    const percentage = totalRequired > 0 ? (totalPainted / totalRequired) * 100 : 0;
-
     return {
       painted: totalPainted,
       required: totalRequired,
       wrong: totalWrong,
-      percentage: parseFloat(percentage.toFixed(2)),
     };
   }
 

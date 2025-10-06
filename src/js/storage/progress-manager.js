@@ -10,7 +10,6 @@ import {
 } from './migrations.js';
 import { clearIndexDBStorage, loadFromIndexDB, saveToIndexDB } from './indexed-db-storage.js';
 
-// todo refactor progress and progress related state part
 export function buildProgressData() {
   return {
     timestamp: Date.now(),
