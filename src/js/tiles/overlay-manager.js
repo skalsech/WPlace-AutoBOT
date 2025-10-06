@@ -630,6 +630,7 @@ class OverlayManager {
   }
 }
 
+// todo add auto collapse of image management section in main panel, when restoring from data
 export async function restoreOverlayFromData() {
   if (!state.imageLoaded || !state.imageLoaded || !state.startPosition || !state.region) {
     return false;

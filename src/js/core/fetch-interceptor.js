@@ -21,8 +21,6 @@ export function setupFetchInterceptor() {
       const url = args[0] instanceof Request ? args[0].url : args[0];
 
       if (typeof url === 'string') {
-        // todo add timestamps, research how actual the saved map is, and
-        //  maybe add force tile load before painting
         const contentType = response.headers.get('content-type') || '';
         if (contentType.includes('image/png') && url.includes('.png')) {
           const cloned = response.clone();

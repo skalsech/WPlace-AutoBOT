@@ -121,6 +121,15 @@ function makeDraggable(element) {
   }
 }
 
+/**
+ * Updates the UI status message.
+ * Supports both i18n keys and direct strings. Automatically interpolates params.
+ *
+ * @param {string} messageKey - i18n key or direct message string
+ * @param {'default' | 'info' | 'success' | 'error' | 'warning' } [type='default'] - Message type
+ * @param {Object} [params={}] - Parameters for i18n interpolation
+ * @param {boolean} [silent=false] - If true, suppresses slide-in animation
+ */
 export function updateUI(messageKey, type = 'default', params = {}, silent = false) {
   const message = t(messageKey, params);
   const container = document.getElementById('wplace-image-bot-container');
@@ -136,6 +145,7 @@ export function updateUI(messageKey, type = 'default', params = {}, silent = fal
   }
 }
 
+// fixme .wplace-stat-item:last-child in statsArea
 function ensureChargeStats(afterEl = null) {
   const statsContainer = document.getElementById('wplace-stats-container');
   const statsArea = statsContainer?.querySelector('#statsArea');
@@ -301,7 +311,7 @@ function updateColorSwatches() {
   const labelEl = document.getElementById('wplace-stat-colors-label');
   const gridEl = document.getElementById('wplace-stat-colors-grid');
   if (!labelEl || !gridEl) return;
-
+  // todo make available colors foldable
   labelEl.innerHTML = `
     <i class="fas fa-palette"></i> 
     <span data-i18n-key="availableColors">

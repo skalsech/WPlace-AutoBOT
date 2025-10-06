@@ -1,5 +1,6 @@
 import { state } from '../../core/state.js';
 
+// todo merge start/stop button to 1. then update of all btn logic is needed
 export function createMainContainer() {
   const container = document.createElement('div');
   container.id = 'wplace-image-bot-container';

@@ -15,6 +15,7 @@ export function formatTime(ms) {
   return result;
 }
 
+// todo add option to edit accounts to calculate time right
 export function calculateEstimatedTime(
   intervalMs = 0,
   efficientAccountsCount = 1,

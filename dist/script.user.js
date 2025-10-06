@@ -193,7 +193,6 @@
   // src/js/core/state.js
   var state = {
     ...DEFAULT_SETTINGS,
-    // runtime-only (some progress also, todo to separate them)
     running: false,
     processing: false,
     artColorFrequency: /* @__PURE__ */ new Map(),
@@ -1681,6 +1680,16 @@
         fromCache: result.fromCache
       }));
     }
+    /**
+     * Returns the raw experiments object from user data.
+     * @returns {Promise<{ value: Object, fromCache: boolean }>}
+     */
+    getExperiments() {
+      return this.getUserData().then((result) => ({
+        value: result.data.experiments ?? {},
+        fromCache: result.fromCache
+      }));
+    }
     getAll() {
       return this.getUserData().then((result) => ({
         data: result.data,
@@ -1722,6 +1731,81 @@
         this._regionOwnershipCache.delete(firstKey);
       }
       return result;
+    }
+    /**
+     * Returns the current Pawtect experiment variant (e.g., "koala").
+     * Returns null if the experiment is not present or malformed.
+     *
+     * @returns {Promise<{ value: string | null, fromCache: boolean }>}
+     *   - `value`: The variant string (e.g., "koala"), or `null` if unavailable
+     *   - `fromCache`: Whether the data came from cache
+     */
+    getPawtectVariant() {
+      return this.getUserData().then((result) => {
+        const experiments = result.data.experiments ?? {};
+        const pawtect = experiments["2025-09_pawtect"] ?? {};
+        return {
+          value: typeof pawtect.variant === "string" ? pawtect.variant : null,
+          fromCache: result.fromCache
+        };
+      });
+    }
+    /**
+     * Validates that the experiments object matches the exact expected structure.
+     * Only allows two specific keys with exact values.
+     * Throws an error if validation fails.
+     *
+     * @param {Object} experiments - The experiments object from user data
+     * @throws {Error} If experiments structure is invalid or unexpected
+     */
+    validateExperiments(experiments) {
+      const expected = {
+        "2025-09_discord_linking": { enabled: true },
+        "2025-09_pawtect": { variant: "koala" }
+      };
+      if (!experiments || typeof experiments !== "object") {
+        throw new Error("Experiments must be a non-null object");
+      }
+      const keys = Object.keys(experiments);
+      const expectedKeys = Object.keys(expected);
+      if (keys.length !== expectedKeys.length) {
+        throw new Error(
+          `Experiments must have exactly ${expectedKeys.length} keys, found ${keys.length}: ${keys.join(", ")}`
+        );
+      }
+      for (const [key, expectedValue] of Object.entries(expected)) {
+        if (!Object.prototype.hasOwnProperty.call(experiments, key)) {
+          throw new Error(`Missing required experiment key: ${key}`);
+        }
+        const actual = experiments[key];
+        if (typeof actual !== "object" || actual === null) {
+          throw new Error(`Experiment ${key} must be an object`);
+        }
+        for (const [prop, expectedPropVal] of Object.entries(expectedValue)) {
+          if (actual[prop] !== expectedPropVal) {
+            throw new Error(
+              `Experiment ${key}.${prop} must be ${expectedPropVal}, got ${actual[prop]}`
+            );
+          }
+        }
+      }
+      const unexpectedKeys = keys.filter((k) => !Object.prototype.hasOwnProperty.call(expected, k));
+      if (unexpectedKeys.length > 0) {
+        throw new Error(`Unexpected experiment keys detected: ${unexpectedKeys.join(", ")}`);
+      }
+      return true;
+    }
+    /**
+     * Fetches and validates experiments. Blocks app startup if experiments are tampered with.
+     * Call this at app startup to ensure the environment is trusted.
+     *
+     * @returns {Promise<void>}
+     * @throws {Error} If experiments structure is invalid
+     * @see {@link this.validateExperiments} — performs the actual validation and throws on failure
+     */
+    async requireValidExperiments() {
+      const { value: experiments } = await this.getExperiments();
+      this.validateExperiments(experiments);
     }
   };
   var wplaceService = new WPlaceService();
@@ -6354,11 +6438,15 @@ Total: ${savedData.state.artTotalPixels} pixels`
   }
   async function sendPixelBatch(pixelBatch, regionX, regionY) {
     const fingerprint = await getFingerprint();
+    const pawtectVariant = (await wplaceService.getPawtectVariant()).value;
     const url = `https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`;
     if (!fingerprint) {
       throw new Error(
         "FingerprintJS failed to generate a visitor ID. This is required for pixel painting. Check if FingerprintJS loaded properly, or if the user is blocking scripts (adblock, privacy mode, etc.)."
       );
+    }
+    if (!pawtectVariant) {
+      throw new Error("Pawtect protection variant is unavailable.");
     }
     const token = getTurnstileToken();
     if (!token) return "token_error";
@@ -6378,7 +6466,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
         headers: {
           "Content-Type": "text/plain;charset=UTF-8",
           "x-pawtect-token": wasmToken,
-          "x-pawtect-variant": "koala"
+          "x-pawtect-variant": pawtectVariant
         },
         credentials: "include",
         body: JSON.stringify(payload)
@@ -6395,7 +6483,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
             headers: {
               "Content-Type": "text/plain;charset=UTF-8",
               "x-pawtect-token": retryWasmToken,
-              "x-pawtect-variant": "koala"
+              "x-pawtect-variant": pawtectVariant
             },
             credentials: "include",
             body: JSON.stringify(retryPayload)
@@ -6830,19 +6918,21 @@ Total: ${savedData.state.artTotalPixels} pixels`
         }
       }
     } catch (e) {
+      state.stopFlag = true;
+      updateUI("paintingError", "error");
       const err = e instanceof Error ? e : new Error(String(e));
-      console.groupCollapsed(`Error: ${err.message}`);
+      const groupStyle = "color: #d32f2f; font-weight: bold; background: #ffebee; padding: 2px 6px; border-radius: 3px;";
+      console.groupCollapsed(`%cError: ${err.message}`, groupStyle);
       console.log("time:", (/* @__PURE__ */ new Date()).toISOString());
       console.log("name:", err.name);
       console.log("message:", err.message);
       if (err.stack) console.log("stack:", err.stack);
       console.groupEnd();
     }
+    await saveProgress();
     if (state.stopFlag) {
-      await saveProgress();
     } else {
       updateUI("paintingComplete", "success", { count: state.currentPaintedPixels });
-      await saveProgress();
       overlayManager.clear();
       const toggleOverlayBtn2 = document.getElementById("toggleOverlayBtn");
       if (toggleOverlayBtn2) {
@@ -6850,14 +6940,6 @@ Total: ${savedData.state.artTotalPixels} pixels`
         toggleOverlayBtn2.disabled = true;
       }
     }
-    console.log(`\u{1F4CA} Pixel Statistics:`);
-    console.log(`   Skipped - Transparent: ${skippedPixels.transparent}`);
-    console.log(`   Skipped - White (disabled): ${skippedPixels.white}`);
-    console.log(`   Skipped - Already painted: ${skippedPixels.alreadyPainted}`);
-    console.log(`   Skipped - Color Unavailable: ${skippedPixels.colorUnavailable}`);
-    console.log(
-      `   Total processed: ${state.currentPaintedPixels + skippedPixels.transparent + skippedPixels.white + skippedPixels.alreadyPainted + skippedPixels.colorUnavailable}`
-    );
     await updateStats();
   }
   function calculateBatchSize() {
@@ -7641,6 +7723,16 @@ ${t("clickLoadToContinue")}`,
       setupFetchInterceptor();
       createUI().then(async () => {
         await updateStats();
+        try {
+          await wplaceService.requireValidExperiments();
+        } catch (error) {
+          console.error("\u{1F6D1} CRITICAL: Invalid experiment configuration. App cannot start.");
+          console.error(error.message);
+          const message = "Security settings have been updated. This app requires the latest version to run. Please try again later or contact support if the issue persists.";
+          showAlert(message, "error");
+          updateUI(message, "error");
+          return;
+        }
         window.addEventListener("beforeunload", cleanupTurnstile);
         await initializeTokenGenerator();
         enableFileOperations();

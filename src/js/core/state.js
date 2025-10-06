@@ -63,7 +63,6 @@ import { StateEventEmitter } from '../utils/StateEventEmitter.js';
 export const state = {
   ...DEFAULT_SETTINGS,
 
-  // runtime-only (some progress also, todo to separate them)
   running: false,
   processing: false,
   artColorFrequency: new Map(),

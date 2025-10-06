@@ -5,6 +5,7 @@ import { sleep } from '../utils/helpers.js';
 import { getTurnstileToken, setTurnstileToken } from '../security/turnstile-manager.js';
 import { computePawtectToken } from '../security/wasm-token.js';
 import { getFingerprint } from '../lib/fingerprint.js';
+import { wplaceService } from './api-service.js';
 
 /**
  * Sends a batch of pixels with retry logic and exponential backoff
@@ -70,6 +71,7 @@ export async function sendBatchWithRetry(pixels, regionX, regionY, maxRetries = 
  */
 async function sendPixelBatch(pixelBatch, regionX, regionY) {
   const fingerprint = await getFingerprint();
+  const pawtectVariant = (await wplaceService.getPawtectVariant()).value;
   const url = `https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`;
 
   if (!fingerprint) {
@@ -79,7 +81,9 @@ async function sendPixelBatch(pixelBatch, regionX, regionY) {
         'or if the user is blocking scripts (adblock, privacy mode, etc.).'
     );
   }
-
+  if (!pawtectVariant) {
+    throw new Error('Pawtect protection variant is unavailable.');
+  }
   const token = getTurnstileToken();
   if (!token) return 'token_error';
 
@@ -104,13 +108,22 @@ async function sendPixelBatch(pixelBatch, regionX, regionY) {
       headers: {
         'Content-Type': 'text/plain;charset=UTF-8',
         'x-pawtect-token': wasmToken,
-        'x-pawtect-variant': 'koala',
+        'x-pawtect-variant': pawtectVariant,
       },
       credentials: 'include',
       body: JSON.stringify(payload),
     });
 
     // Handle 403 — likely invalid/expired Turnstile token
+    // REVIEW: Current handling of 403 (Forbidden) is functional but suboptimal.
+    //  - Duplicates the fetch logic, making it hard to maintain.
+    //  - Combines multiple responsibilities (fetch, captcha handling, wasm token) in one function.
+    //  - Retry logic lacks backoff for regenerated tokens and may fail silently.
+    //  Suggestion: refactor into smaller functions:
+    //    1. sendPixelRequest(payload, url, token) – just sends the request.
+    //    2. handle403AndRetry(pixelBatch, url, fingerprint) – deals with 403, regenerates token, retries.
+    //  This will simplify testing, error handling, and make future changes easier.
+
     if (res.status === 403) {
       console.error('❌ 403 Forbidden. Turnstile token might be invalid or expired.');
       console.log('🔄 Regenerating Turnstile token after 403...');
@@ -125,7 +138,7 @@ async function sendPixelBatch(pixelBatch, regionX, regionY) {
           headers: {
             'Content-Type': 'text/plain;charset=UTF-8',
             'x-pawtect-token': retryWasmToken,
-            'x-pawtect-variant': 'koala',
+            'x-pawtect-variant': pawtectVariant,
           },
           credentials: 'include',
           body: JSON.stringify(retryPayload),

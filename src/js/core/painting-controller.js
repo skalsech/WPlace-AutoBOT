@@ -328,23 +328,29 @@ export async function processImage() {
       }
     }
   } catch (e) {
+    state.stopFlag = true;
+    updateUI('paintingError', 'error');
     const err = e instanceof Error ? e : new Error(String(e));
-    console.groupCollapsed(`Error: ${err.message}`);
+    const groupStyle =
+      'color: #d32f2f; font-weight: bold; background: #ffebee; padding: 2px 6px; border-radius: 3px;';
+
+    console.groupCollapsed(`%cError: ${err.message}`, groupStyle);
     console.log('time:', new Date().toISOString());
     console.log('name:', err.name);
     console.log('message:', err.message);
     if (err.stack) console.log('stack:', err.stack);
+
     // useful context:
     // console.log('context:', { userId, input });
     console.groupEnd();
   }
 
+  await saveProgress();
   if (state.stopFlag) {
-    await saveProgress();
+    /* empty */
   } else {
     updateUI('paintingComplete', 'success', { count: state.currentPaintedPixels });
 
-    await saveProgress();
     overlayManager.clear();
     const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
     if (toggleOverlayBtn) {
@@ -352,22 +358,6 @@ export async function processImage() {
       toggleOverlayBtn.disabled = true;
     }
   }
-
-  // Log skip statistics
-  console.log(`📊 Pixel Statistics:`);
-  console.log(`   Skipped - Transparent: ${skippedPixels.transparent}`);
-  console.log(`   Skipped - White (disabled): ${skippedPixels.white}`);
-  console.log(`   Skipped - Already painted: ${skippedPixels.alreadyPainted}`);
-  console.log(`   Skipped - Color Unavailable: ${skippedPixels.colorUnavailable}`);
-  console.log(
-    `   Total processed: ${
-      state.currentPaintedPixels +
-      skippedPixels.transparent +
-      skippedPixels.white +
-      skippedPixels.alreadyPainted +
-      skippedPixels.colorUnavailable
-    }`
-  );
 
   await updateStats();
 }

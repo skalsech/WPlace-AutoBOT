@@ -23,6 +23,8 @@ import { FlagsBitmap } from '../utils/flags.js';
  * @property {number} maxFavoriteLocations - Max allowed favorite locations
  * @property {Array<{id: number, name: string, latitude: number, longitude: number}>} favoriteLocations - List of favorite locations
  * @property {Object} experiments - Experiment flags and variants
+ * @property {boolean} experiments["2025-09_discord_linking"].enabled - Whether Discord linking is enabled
+ * @property {string} experiments["2025-09_pawtect"].variant - Variant of Pawtect experiment (e.g., "koala")
  * @property {Object} charges - Charge limits and cooldown
  * @property {number} charges.count - Current charge count
  * @property {number} charges.max - Max charge limit
@@ -191,6 +193,17 @@ class WPlaceService {
     }));
   }
 
+  /**
+   * Returns the raw experiments object from user data.
+   * @returns {Promise<{ value: Object, fromCache: boolean }>}
+   */
+  getExperiments() {
+    return this.getUserData().then((result) => ({
+      value: result.data.experiments ?? {},
+      fromCache: result.fromCache,
+    }));
+  }
+
   getAll() {
     return this.getUserData().then((result) => ({
       data: result.data,
@@ -241,6 +254,91 @@ class WPlaceService {
     }
 
     return result;
+  }
+
+  /**
+   * Returns the current Pawtect experiment variant (e.g., "koala").
+   * Returns null if the experiment is not present or malformed.
+   *
+   * @returns {Promise<{ value: string | null, fromCache: boolean }>}
+   *   - `value`: The variant string (e.g., "koala"), or `null` if unavailable
+   *   - `fromCache`: Whether the data came from cache
+   */
+  getPawtectVariant() {
+    return this.getUserData().then((result) => {
+      const experiments = result.data.experiments ?? {};
+      const pawtect = experiments['2025-09_pawtect'] ?? {};
+
+      return {
+        value: typeof pawtect.variant === 'string' ? pawtect.variant : null,
+        fromCache: result.fromCache,
+      };
+    });
+  }
+  /**
+   * Validates that the experiments object matches the exact expected structure.
+   * Only allows two specific keys with exact values.
+   * Throws an error if validation fails.
+   *
+   * @param {Object} experiments - The experiments object from user data
+   * @throws {Error} If experiments structure is invalid or unexpected
+   */
+  validateExperiments(experiments) {
+    const expected = {
+      '2025-09_discord_linking': { enabled: true },
+      '2025-09_pawtect': { variant: 'koala' },
+    };
+
+    if (!experiments || typeof experiments !== 'object') {
+      throw new Error('Experiments must be a non-null object');
+    }
+
+    const keys = Object.keys(experiments);
+    const expectedKeys = Object.keys(expected);
+    if (keys.length !== expectedKeys.length) {
+      throw new Error(
+        `Experiments must have exactly ${expectedKeys.length} keys, found ${keys.length}: ${keys.join(', ')}`
+      );
+    }
+
+    for (const [key, expectedValue] of Object.entries(expected)) {
+      if (!Object.prototype.hasOwnProperty.call(experiments, key)) {
+        throw new Error(`Missing required experiment key: ${key}`);
+      }
+
+      const actual = experiments[key];
+      if (typeof actual !== 'object' || actual === null) {
+        throw new Error(`Experiment ${key} must be an object`);
+      }
+
+      for (const [prop, expectedPropVal] of Object.entries(expectedValue)) {
+        if (actual[prop] !== expectedPropVal) {
+          throw new Error(
+            `Experiment ${key}.${prop} must be ${expectedPropVal}, got ${actual[prop]}`
+          );
+        }
+      }
+    }
+
+    const unexpectedKeys = keys.filter((k) => !Object.prototype.hasOwnProperty.call(expected, k));
+    if (unexpectedKeys.length > 0) {
+      throw new Error(`Unexpected experiment keys detected: ${unexpectedKeys.join(', ')}`);
+    }
+
+    return true;
+  }
+
+  /**
+   * Fetches and validates experiments. Blocks app startup if experiments are tampered with.
+   * Call this at app startup to ensure the environment is trusted.
+   *
+   * @returns {Promise<void>}
+   * @throws {Error} If experiments structure is invalid
+   * @see {@link this.validateExperiments} — performs the actual validation and throws on failure
+   */
+  async requireValidExperiments() {
+    const { value: experiments } = await this.getExperiments();
+    this.validateExperiments(experiments);
   }
 }
 

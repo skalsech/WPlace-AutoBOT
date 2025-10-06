@@ -65,6 +65,7 @@ const initializeDOMRefs = (container, overlay) => {
   clearIgnoredBtn = container.querySelector('#clearIgnoredBtn');
   toggleOverlayBtn = container.querySelector('#toggleOverlayBtn');
 };
+// todo check the other ui elements work in dialog
 
 /**
  * Shows the resize dialog with full interactivity.
@@ -250,7 +251,6 @@ function showResizeDialog(processor, container, overlay) {
     const handleColorSettingsChange = (updates) => {
       invalidateColorCache(updates);
       previewController.updateResizePreview();
-      // todo check the other ui elements work in dialog
       saveBotSettings();
     };
 
