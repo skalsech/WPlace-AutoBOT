@@ -2747,7 +2747,7 @@
     };
   }
 
-  // src/js/core/tile-loader.js
+  // src/js/tiles/tile-loader.js
   var TileLoader = class {
     constructor(overlayManager2) {
       this.overlayManager = overlayManager2;
@@ -2838,7 +2838,7 @@
     }
   };
 
-  // src/js/overlay/overlay-manager.js
+  // src/js/tiles/overlay-manager.js
   var OverlayManager = class {
     constructor() {
       this.isEnabled = false;
@@ -2873,6 +2873,7 @@
       this.chunkedTiles.clear();
       this.originalTiles.clear();
       this.originalTilesData.clear();
+      this.tileProgress.clear();
       this.lastProcessedHash = null;
       if (this.processPromise) {
         this.processPromise = null;
@@ -2881,6 +2882,7 @@
     async setImage(imageBitmap) {
       this.imageBitmap = imageBitmap;
       this.lastProcessedHash = null;
+      this.tileProgress.clear();
       if (this.imageBitmap && this.startCoords) {
         await this.processImageIntoChunks();
       }
@@ -3644,6 +3646,15 @@
     saveBtn.disabled = !hasImageData;
     saveToFileBtn.disabled = !hasImageData;
   }
+  function handleSaveToFileClick() {
+    const success = saveProgressToFile();
+    if (success) {
+      updateUI("fileSaved", "success");
+      showAlert(t("fileSaved"), "success");
+    } else {
+      showAlert(t("fileError"), "error");
+    }
+  }
   async function handleSaveClick() {
     if (!state.imageLoaded) {
       showAlert(t("missingRequirements"), "error");
@@ -3655,6 +3666,32 @@
       showAlert(t("autoSaved"), "success");
     } else {
       showAlert(t("errorSavingProgress"), "error");
+    }
+  }
+  async function handleProgressLoadSuccess(savedData, source) {
+    updateUI(source, "success");
+    showAlert(t(source), "success");
+    updateDataButtons();
+    try {
+      await restoreOverlayFromData();
+      await overlayManager.waitForTiles();
+      await updateStats();
+    } catch (error) {
+      console.error(`Failed to restore overlay from ${source}:`, error);
+    }
+    const uploadBtn = document.getElementById("uploadBtn");
+    const selectPosBtn = document.getElementById("selectPosBtn");
+    const resizeBtn = document.getElementById("resizeBtn");
+    if (state.hasAvailableColors) {
+      if (uploadBtn) uploadBtn.disabled = false;
+      if (selectPosBtn) selectPosBtn.disabled = false;
+      if (resizeBtn) resizeBtn.disabled = false;
+    } else {
+      if (uploadBtn) uploadBtn.disabled = false;
+    }
+    const startBtn = document.getElementById("startBtn");
+    if (state.imageLoaded && state.startPosition && state.region && state.hasAvailableColors) {
+      if (startBtn) startBtn.disabled = false;
     }
   }
   async function handleLoadClick(needConfirm = false) {
@@ -3679,63 +3716,16 @@ Total: ${savedData.state.artTotalPixels} pixels`
     }
     const success = restoreProgress(savedData);
     if (success) {
-      updateUI("dataLoaded", "success");
-      showAlert(t("dataLoaded"), "success");
-      updateDataButtons();
-      await updateStats();
-      restoreOverlayFromData().catch((error) => {
-        console.error("Failed to restore overlay from localStorage:", error);
-      });
-      const uploadBtn = document.getElementById("uploadBtn");
-      const selectPosBtn = document.getElementById("selectPosBtn");
-      if (!state.hasAvailableColors) {
-        if (uploadBtn) uploadBtn.disabled = false;
-      } else {
-        if (uploadBtn) uploadBtn.disabled = false;
-        if (selectPosBtn) selectPosBtn.disabled = false;
-      }
-      const startBtn = document.getElementById("startBtn");
-      if (state.imageLoaded && state.startPosition && state.region && state.hasAvailableColors) {
-        if (startBtn) startBtn.disabled = false;
-      }
+      await handleProgressLoadSuccess(savedData, "dataLoaded");
     } else {
       showAlert(t("errorLoadingProgress"), "error");
-    }
-  }
-  function handleSaveToFileClick() {
-    const success = saveProgressToFile();
-    if (success) {
-      updateUI("fileSaved", "success");
-      showAlert(t("fileSaved"), "success");
-    } else {
-      showAlert(t("fileError"), "error");
     }
   }
   async function handleLoadFromFileClick() {
     try {
       const success = await loadProgressFromFile();
       if (success) {
-        updateUI("fileLoaded", "success");
-        showAlert(t("fileLoaded"), "success");
-        updateDataButtons();
-        await updateStats();
-        await restoreOverlayFromData().catch((error) => {
-          console.error("Failed to restore overlay from file:", error);
-        });
-        const uploadBtn = document.getElementById("uploadBtn");
-        const selectPosBtn = document.getElementById("selectPosBtn");
-        const resizeBtn = document.getElementById("resizeBtn");
-        if (state.hasAvailableColors) {
-          if (uploadBtn) uploadBtn.disabled = false;
-          if (selectPosBtn) selectPosBtn.disabled = false;
-          if (resizeBtn) resizeBtn.disabled = false;
-        } else {
-          if (uploadBtn) uploadBtn.disabled = false;
-        }
-        const startBtn = document.getElementById("startBtn");
-        if (state.imageLoaded && state.startPosition && state.region && state.hasAvailableColors) {
-          if (startBtn) startBtn.disabled = false;
-        }
+        await handleProgressLoadSuccess(null, "fileLoaded");
       }
     } catch (error) {
       if (error.message === "Invalid JSON file") {

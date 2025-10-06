@@ -2,7 +2,7 @@ import { state } from '../../../core/state.js';
 import { showAlert } from '../../alerts.js';
 import { t } from '../../../i18n/i18.js';
 import { updateUI } from '../../panel.js';
-import { overlayManager } from '../../../overlay/overlay-manager.js';
+import { overlayManager } from '../../../tiles/overlay-manager.js';
 
 export function handleSelectPositionClick() {
   if (state.selectingPosition) return;

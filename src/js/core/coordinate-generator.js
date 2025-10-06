@@ -1,4 +1,4 @@
-import { overlayManager } from '../overlay/overlay-manager.js';
+import { overlayManager } from '../tiles/overlay-manager.js';
 import { state } from './state.js';
 import { isTransparentPixel } from '../utils/color-matching.js';
 /**

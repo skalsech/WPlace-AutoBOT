@@ -4,7 +4,7 @@ import { state } from '../../../core/state.js';
 import { showResizeDialog } from '../../components/resize/resize-dialog.js';
 import { updateUI } from '../../panel.js';
 import { saveProgress } from '../../../storage/progress-manager.js';
-import { overlayManager } from '../../../overlay/overlay-manager.js';
+import { overlayManager } from '../../../tiles/overlay-manager.js';
 import { NotificationManager } from '../../../core/notification-manager.js';
 import { saveBotSettings } from '../../../storage/settings-manager.js';
 

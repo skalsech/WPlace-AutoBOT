@@ -1,6 +1,6 @@
 import { createCheckboxHandler, createSliderHandler } from '../checkbox-handlers.js';
 import { state } from '../../../core/state.js';
-import { overlayManager } from '../../../overlay/overlay-manager.js';
+import { overlayManager } from '../../../tiles/overlay-manager.js';
 import { showAlert } from '../../alerts.js';
 import { loadTranslations, t, updateTranslations } from '../../../i18n/i18.js';
 import { saveBotSettings } from '../../../storage/settings-manager.js';

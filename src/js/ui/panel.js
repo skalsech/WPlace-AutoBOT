@@ -19,7 +19,7 @@ import { setupStatsListeners } from './listeners/stats.js';
 import { setupMainPanelListeners } from './listeners/main-panel.js';
 import { updateDataButtons } from './handlers/main-panel/handle-data-buttons.js';
 import { syncSettingsUI } from './sync-ui.js';
-import { overlayManager } from '../overlay/overlay-manager.js';
+import { overlayManager } from '../tiles/overlay-manager.js';
 import { createDevReloadButton } from '../utils/dev-utils.js';
 
 function cleanupExistingUI() {

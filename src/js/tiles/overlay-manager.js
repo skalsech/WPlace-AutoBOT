@@ -1,7 +1,7 @@
 import { state } from '../core/state.js';
 import { calculateTileRange, sleep } from '../utils/helpers.js';
 import { isTransparentPixel } from '../utils/color-matching.js';
-import { TileLoader } from '../core/tile-loader.js';
+import { TileLoader } from './tile-loader.js';
 
 class OverlayManager {
   constructor() {
@@ -71,6 +71,7 @@ class OverlayManager {
     this.chunkedTiles.clear();
     this.originalTiles.clear();
     this.originalTilesData.clear();
+    this.tileProgress.clear();
     this.lastProcessedHash = null;
     if (this.processPromise) {
       this.processPromise = null;
@@ -79,7 +80,8 @@ class OverlayManager {
 
   async setImage(imageBitmap) {
     this.imageBitmap = imageBitmap;
-    this.lastProcessedHash = null; // Invalidate cache
+    this.lastProcessedHash = null;
+    this.tileProgress.clear();
     if (this.imageBitmap && this.startCoords) {
       await this.processImageIntoChunks();
     }

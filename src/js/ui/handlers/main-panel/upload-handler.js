@@ -5,7 +5,7 @@ import { t } from '../../../i18n/i18.js';
 import { updateStats, updateUI } from '../../panel.js';
 import { createImageUploader } from '../../../utils/files.js';
 import { ImageProcessor } from '../../../core/image-processor.js';
-import { overlayManager } from '../../../overlay/overlay-manager.js';
+import { overlayManager } from '../../../tiles/overlay-manager.js';
 import { updateDataButtons } from './handle-data-buttons.js';
 
 export async function handleUploadClick() {

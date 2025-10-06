@@ -8,7 +8,7 @@ import {
 } from '../../../utils/color-matching.js';
 import { saveBotSettings } from '../../../storage/settings-manager.js';
 import { updateStats, updateUI } from '../../panel.js';
-import { overlayManager } from '../../../overlay/overlay-manager.js';
+import { overlayManager } from '../../../tiles/overlay-manager.js';
 import { initializeColorPalette } from './color-palette.js';
 import {
   createDitherBuffers,
