@@ -1,125 +1,63 @@
-<p align="center">
-  <img width="300" height="300" alt="image" src="https://github.com/user-attachments/assets/92c38d55-37ef-4e88-bf24-9dba693fa0ab" />
-</p>
+<div style="display: flex; align-items: center;">
+  <img width="200" style="margin-right: 20px;" src="https://github.com/user-attachments/assets/c14ef2b5-e104-4526-9b17-23cb2abc9efe" alt="WPlace UserScript">
+  <div style="text-align: center;">
+    <p><strong>WPlace UserScript</strong></p>
+    <p>This is a Tampermonkey-based fork of <a href="https://github.com/Wplace-AutoBot/WPlace-AutoBOT">WPlace-AutoBOT</a>, optimized for safety and developer experience.</p>
+    <p><a href="https://discord.gg/knkNRYyQcm">Join community Discord</a> • <a href="https://wplace.live">wplace.live</a></p>
+  </div>
+</div>
 
-<p align="center"><strong>WPlace AutoBOT</strong></p>
-<p align="center">
-This project was fork from https://github.com/DarkModde/WPlace-AutoBOT
-</p>
-<p align="center">
-  Consider checking out our discord: https://discord.gg/knkNRYyQcm
-</p>
-<p align="center">
-  Practical scripts with intuitive menus to make your life easier on <a href="https://wplace.live" target="_blank">WPlace</a>!<br>
-  Perfect for those who want to level up automatically or build massive pixel arts — without wasting time.
-  
-  Warning: This is a purely educational script to demonstrate what can be done on wplace.live, it is not our responsibility of what happens if you use the script.
-</p>
+> ⚠️ **Warning**: This is an educational script. Use at your own risk — WPlace may ban accounts for automation.
 
-<br>
+> ⚙️ **Note:** Documentation and developer workflow setup are still in progress.
+> The README will be expanded and clarified as the development environment and tooling are finalized.
 
-<p align="center">
-  If you're wondering—yes! These scripts were Developed by a team consisting of Brazilians, Vietnamese, and Indonesians. HUEHUE!</strong></sub>
-  <p align="center">
-  <img src="https://cdn.jsdelivr.net/gh/hjnilsson/country-flags/svg/br.svg" alt="Brazil" width="32"/>
-  &nbsp;
-  <img src="https://cdn.jsdelivr.net/gh/hjnilsson/country-flags/svg/vn.svg" alt="Vietnam" width="32"/>
-  &nbsp;
-  <img src="https://cdn.jsdelivr.net/gh/hjnilsson/country-flags/svg/id.svg" alt="Indonesia" width="32"/>
-</p>
-</p>
-
+## 🧩 Key Features & Differences
+- **Focused single-feature build**: This fork keeps only the **"Auto-Image"** — the rest (`Acc-Switch.js`, `Art-Extractor.js`, `Auto-Farm.js`, `Auto-Repair.js`) currently contain excessive boilerplate and overlapping logic at the moment. These features may be reimplemented later in a cleaner, modular form if necessary.
+- **Live development server**: Run `npm run dev` → changes to `src/js/` and `src/css/` auto-rebuild, and then you need 2 clicks to inject new version into WPlace.
+- **No fake or rotating fingerprints**: Use real browser's fingerprint for maximum safety and realism.
+- **Only manual account switching**: Use separate browser installations (e.g., Chrome for Account 1, Firefox for Account 2) — no automation, no detection risk. (later can be updated to multi accounts but still with real and fixed fingerprints)
+- **Tampermonkey-only**: Works in any browser with Tampermonkey/Violentmonkey
+- **No extension installation**: Just install via one click — [direct link to latest build](https://github.com/skalsech/WPlace-AutoBOT/raw/custom-main/dist/script.user.js) (requires Tampermonkey/Violentmonkey).
+- **Auto-updates enabled**: Script checks for updates automatically via `@updateURL` — just click "Update" in Tampermonkey when a new version is released.
+- **Built with esbuild**: Clean, minified, and fast — `dist/script.user.js` is generated from `src/` with full metadata injection (version, build time, etc.).
+- **Modular and cleaned-up codebase**: Refactored into a modular structure and cleaned from legacy, unused, and AI-generated clutter (some small traces may still remain).
 ---
 
-<p align="center"><strong>🚀┃How to use the scripts:</strong></p>
+## 📦 Installation
 
-<p align="center">
-  It’s super easy: copy one of the codes below, paste it into your browser’s bookmarks bar,<br>
-  and run it while you're on wplace.live.
-</p>
+1. Install [Tampermonkey](https://www.tampermonkey.net/) or [Violentmonkey](https://violentmonkey.github.io/) in your browser.
+2. Open the [latest script build](https://github.com/skalsech/WPlace-AutoBOT/raw/custom-main/dist/script.user.js) and click **Install**.
+3. Visit [wplace.live](https://wplace.live) — the script will autoload.
 
-<br>
-
-### 🎯┃Auto-Farm
-#### AUTOFARM USES CHARGES TO GET LEVELS, IT DOES NOT DRAW AN IMAGE FOR YOU. PLEASE USE AUTO-IMAGE FOR THAT
-```js
-javascript:fetch("https://raw.githubusercontent.com/Wplace-AutoBot/WPlace-AutoBOT/refs/heads/main/Auto-Farm.js").then(t=>t.text()).then(eval);
-```
-
-### 🖼️┃Auto-Image
-
-```js
-javascript:fetch("https://raw.githubusercontent.com/Wplace-AutoBot/WPlace-AutoBOT/refs/heads/main/Auto-Image.js").then(t=>t.text()).then(eval);
-```
-
-<details>
-  <summary><h2>📖┃Tutorials</h2></summary>
-
+> **Pro tip**: Bookmark the [installation link](https://github.com/skalsech/WPlace-AutoBOT/raw/custom-main/dist/script.user.js)  — manual update is always the fastest way.
+> 
+> Tampermonkey checks for updates every 6–24 hours (you’ll be asked to confirm before updating). Other extensions like Violentmonkey may have similar delays. 
 ---
 
-![Parte 1](https://i.imgur.com/yneG5if.png)
+## 💻 Development Setup
 
----
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/skalsech/WPlace-AutoBOT
+   cd WPlace-AutoBOT
+   ```
 
-![Parte 2](https://i.imgur.com/ZRpU0wZ.png)
+2. Switch to the `custom-main` branch:
+   ```bash
+   git checkout custom-main
+   ```
 
----
+3. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-![Parte 3](https://i.imgur.com/lfjfcEw.png)
+4. Start the live development server:
+   ```bash
+   npm run dev
+   ```
 
-</details>
+> ⚙️ **Note:** Documentation and developer workflow setup are still in progress.
+> The README will be expanded and clarified as the development environment and tooling are finalized.
 
-
-<br>
-
-> [!IMPORTANT]
-> <p><sub><strong>1.</strong> None of the scripts will work if you close the browser tab. You must keep the WPlace tab open, even if it's in the background.</sub></p>
-> <p><sub><strong>2.</strong> Never run both scripts on the same page — this can bug your WPlace. If it happens, just refresh the page!</sub></p>
-> <p><sub><strong>3.</strong> If the script doesn’t detect the available colors, just click the "Paint" button to show them — only then start the Auto-Imager.</sub></p>
-
-<br>
-
-### ✨┃Features
-
-- [x] Automatically farms droplets/levels
-- [x] Correct Color Pixel Skip
-- [x] Overlay(you dont need bluemarble anymore)
-- [x] Paint over multiple tiles
-- [x] Multi Account Auto Switcher Via Other Branch ; https://github.com/Wplace-AutoBot/WPlace-AutoBOT/tree/Acc-switch (Ram Efficient LOL)
-- [x] AutoCaptcha Solver With Turnstile Token Generator
-- [x] Advance Color Processing
-- [x] MultiLanguage Support
-- [x] Multi account through save and load feature
-- [x] Works on mobile :P
-
-
----
-
-
----
-
-<p align="center">
-  <img src="https://i.imgur.com/lyNQUsY.png" alt="Script Demonstration"/>
-</p>
-
----
-
-### 📋┃To-do
-
-- [x] Making AutoFarm working
-- [ ] Merge both scripts into one
-- [x] Add Overlay system
-- [x] Add Cross Tiles Support
-- [x] Add AutoCaptcha Solver
-- [x] Add Correct Color Pixel Skip
-- [x] Separate Css
-
----
-
-- Contributors:  
-  <img src="https://contrib.rocks/image?repo=Wplace-AutoBot/WPlace-AutoBOT" alt="Contributors" />
-
-
-<p align="center">
-  <a href="#"><img src="https://komarev.com/ghpvc/?username=WPlace-AutoBOT&style=for-the-badge&label=Views:&color=gray"/></a>
-</p>
