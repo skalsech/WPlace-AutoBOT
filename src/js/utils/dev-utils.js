@@ -44,6 +44,9 @@ export function createDevReloadButton() {
 }
 
 export function truncateString(str, prefixLength = 15, suffixLength = 20, middleLength = 15) {
+  if (typeof str !== 'string') {
+    return str;
+  }
   if (str.length <= prefixLength + suffixLength + middleLength) {
     return str;
   }

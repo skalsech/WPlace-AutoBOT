@@ -134,6 +134,7 @@ export async function generateCoordinates(
       }
     }
   } else if (mode === 'blocks' || mode === 'shuffle-blocks') {
+    // todo make this option as sort by frequency and respect start pos and direction
     const blocks = [];
     for (let by = 0; by < height; by += blockHeight) {
       for (let bx = 0; bx < width; bx += blockWidth) {
@@ -166,6 +167,7 @@ export async function generateCoordinates(
   }
 
   if (sortByFrequency) {
+    // todo add ui where all colors and their frequencies can be viewed, later add filter option
     if (!overlayManager || state.artColorFrequency.size === 0) {
       throw new Error(
         'overlayManager and artColorFrequency must be provided for option sort-by-color-frequency'
