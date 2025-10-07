@@ -76,21 +76,21 @@ export function setupFetchInterceptor() {
   };
 
   (document.head || document.documentElement).appendChild(script);
+
+  // Main world listeners (safe, no CSP issues)
+  window.addEventListener('message', (event) => {
+    const { source, endpoint, blobID, blobData, token } = event.data;
+
+    if (source === 'auto-image-tile' && endpoint && blobID && blobData) {
+      overlayManager.processAndRespondToTileRequest(event.data);
+    }
+
+    // if (source === 'turnstile-capture' && token) {
+    //   setTurnstileToken(token);
+    //   if (document.querySelector('#statusText')?.textContent.includes('CAPTCHA')) {
+    //     showAlert(t('tokenCapturedSuccess'), 'success');
+    //     updateUI('colorsFound', 'success', { count: state.availableColors.length });
+    //   }
+    // }
+  });
 }
-
-// Main world listeners (safe, no CSP issues)
-window.addEventListener('message', (event) => {
-  const { source, endpoint, blobID, blobData, token } = event.data;
-
-  if (source === 'auto-image-tile' && endpoint && blobID && blobData) {
-    overlayManager.processAndRespondToTileRequest(event.data);
-  }
-
-  // if (source === 'turnstile-capture' && token) {
-  //   setTurnstileToken(token);
-  //   if (document.querySelector('#statusText')?.textContent.includes('CAPTCHA')) {
-  //     showAlert(t('tokenCapturedSuccess'), 'success');
-  //     updateUI('colorsFound', 'success', { count: state.availableColors.length });
-  //   }
-  // }
-});

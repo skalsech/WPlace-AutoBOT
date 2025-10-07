@@ -2875,7 +2875,8 @@
       try {
         const url = `${this.baseTileUrl}/${tileX}/${tileY}.png`;
         const response = await fetch(url, {
-          signal: controller.signal
+          signal: controller.signal,
+          cache: "reload"
         });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -2992,7 +2993,6 @@
       const { x: rx, y: ry } = this.startCoords.region;
       return `${width}x${height}_${px},${py}_${rx},${ry}_${state.blueMarbleEnabled}_${state.overlayOpacity}`;
     }
-    // --- OVERLAY UPDATE: Optimized chunking with caching and batch processing ---
     async processImageIntoChunks() {
       if (!this.imageBitmap || !this.startCoords) return;
       if (this.processPromise) {
@@ -5062,6 +5062,15 @@ Total: ${savedData.state.artTotalPixels} pixels`
           blockControls: container.querySelector("#blockControls")
         });
       }
+    },
+    {
+      keys: ["blockHeight", "blockWidth"],
+      update: (state2) => {
+        const blockHeightInput = document.getElementById("blockHeightInput");
+        const blockWidthInput = document.getElementById("blockWidthInput");
+        if (blockHeightInput) blockHeightInput.value = state2.blockHeight;
+        if (blockWidthInput) blockWidthInput.value = state2.blockWidth;
+      }
     }
   ];
   function syncSettingsUI() {
@@ -6236,9 +6245,6 @@ Total: ${savedData.state.artTotalPixels} pixels`
             try {
               if (wasm.__wbindgen_free && outPtr && outLen) {
                 wasm.__wbindgen_free(outPtr, outLen, 1);
-              }
-              if (wasm.__wbindgen_free && inPtr) {
-                wasm.__wbindgen_free(inPtr, bytes.length, 1);
               }
             } catch (cleanupError) {
               console.log("[wasm-token]: \u26A0\uFE0F Cleanup warning:", cleanupError.message);
@@ -7432,12 +7438,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
       const savedDate = new Date(savedData.timestamp).toLocaleString();
       showAlert(
         `${t("savedDataFound")}
-
-Timestamp: ${savedDate}
-Art size: ${savedData.imageData.width} \xD7 ${savedData.imageData.height}
-Start position (x, y): ${savedData.state.startPosition.x}, ${savedData.state.startPosition.y}
-Region (x, y): ${savedData.state.region.x}, ${savedData.state.region.y}
-Total: ${savedData.state.artTotalPixels} pixels
+Timestamp: ${savedDate} - Art size: ${savedData.imageData.width} \xD7 ${savedData.imageData.height}.
+Start position: ${savedData.state.startPosition.x},${savedData.state.startPosition.y} - Region: ${savedData.state.region.x},${savedData.state.region.y}
+Total: ${savedData.state.artTotalPixels} pixels. 
 ${t("clickLoadToContinue")}`,
         "info"
       );
@@ -7589,13 +7592,13 @@ ${t("clickLoadToContinue")}`,
       console.error("[WPlace-AutoBOT] Failed to inject fetch interceptor via blob");
     };
     (document.head || document.documentElement).appendChild(script);
+    window.addEventListener("message", (event) => {
+      const { source, endpoint, blobID, blobData, token } = event.data;
+      if (source === "auto-image-tile" && endpoint && blobID && blobData) {
+        overlayManager.processAndRespondToTileRequest(event.data);
+      }
+    });
   }
-  window.addEventListener("message", (event) => {
-    const { source, endpoint, blobID, blobData, token } = event.data;
-    if (source === "auto-image-tile" && endpoint && blobID && blobData) {
-      overlayManager.processAndRespondToTileRequest(event.data);
-    }
-  });
 
   // src/js/lib/inject-library.js
   var LIBRARY_ID = "wplace-lib-" + Math.random().toString(36).slice(2, 11);

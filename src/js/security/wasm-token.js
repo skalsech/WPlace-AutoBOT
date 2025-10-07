@@ -155,9 +155,6 @@ function getMainWorldCode() {
             if (wasm.__wbindgen_free && outPtr && outLen) {
               wasm.__wbindgen_free(outPtr, outLen, 1);
             }
-            if (wasm.__wbindgen_free && inPtr) {
-              wasm.__wbindgen_free(inPtr, bytes.length, 1);
-            }
           } catch (cleanupError) {
             console.log('[wasm-token]: ⚠️ Cleanup warning:', cleanupError.message);
           }

@@ -418,13 +418,11 @@ const checkSavedProgress = async () => {
     const savedDate = new Date(savedData.timestamp).toLocaleString();
 
     showAlert(
-      `${t('savedDataFound')}\n\n` +
-        `Timestamp: ${savedDate}\n` +
-        `Art size: ${savedData.imageData.width} × ${savedData.imageData.height}\n` +
-        `Start position (x, y): ${savedData.state.startPosition.x}, ${savedData.state.startPosition.y}\n` +
-        `Region (x, y): ${savedData.state.region.x}, ${savedData.state.region.y}\n` +
-        `Total: ${savedData.state.artTotalPixels} pixels\n` +
-        `${t('clickLoadToContinue')}`,
+      `${t('savedDataFound')}\n` +
+        `Timestamp: ${savedDate} - Art size: ${savedData.imageData.width} × ${savedData.imageData.height}.\n` +
+        `Start position: ${savedData.state.startPosition.x},${savedData.state.startPosition.y} - ` +
+        `Region: ${savedData.state.region.x},${savedData.state.region.y}\n` +
+        `Total: ${savedData.state.artTotalPixels} pixels. \n${t('clickLoadToContinue')}`,
       'info'
     );
   }

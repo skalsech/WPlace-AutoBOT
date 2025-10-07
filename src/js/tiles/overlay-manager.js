@@ -110,7 +110,6 @@ class OverlayManager {
     return `${width}x${height}_${px},${py}_${rx},${ry}_${state.blueMarbleEnabled}_${state.overlayOpacity}`;
   }
 
-  // --- OVERLAY UPDATE: Optimized chunking with caching and batch processing ---
   async processImageIntoChunks() {
     if (!this.imageBitmap || !this.startCoords) return;
 
@@ -236,7 +235,6 @@ class OverlayManager {
 
     chunkCtx.drawImage(this.imageBitmap, sX, sY, sW, sH, dX, dY, sW, sH);
 
-    // --- OPTIMIZED: Blue marble effect with faster pixel manipulation ---
     if (state.blueMarbleEnabled) {
       const imageData = chunkCtx.getImageData(dX, dY, sW, sH);
       const data = imageData.data;

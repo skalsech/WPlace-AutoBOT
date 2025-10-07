@@ -174,6 +174,16 @@ export const SPECIAL_HANDLERS = [
       });
     },
   },
+  {
+    keys: ['blockHeight', 'blockWidth'],
+    update: (state) => {
+      const blockHeightInput = document.getElementById('blockHeightInput');
+      const blockWidthInput = document.getElementById('blockWidthInput');
+
+      if (blockHeightInput) blockHeightInput.value = state.blockHeight;
+      if (blockWidthInput) blockWidthInput.value = state.blockWidth;
+    },
+  },
 ];
 
 export function syncSettingsUI() {

@@ -60,6 +60,7 @@ export class TileLoader {
       const url = `${this.baseTileUrl}/${tileX}/${tileY}.png`;
       const response = await fetch(url, {
         signal: controller.signal,
+        cache: 'reload',
       });
 
       if (!response.ok) {
