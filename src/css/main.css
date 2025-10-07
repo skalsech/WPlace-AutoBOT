@@ -465,6 +465,11 @@
 .wplace-stats {
   margin-bottom: 8px;
   padding: 8px;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  cursor: default;
 
   /* Theme-specific styling applied via theme files */
 }

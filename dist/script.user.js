@@ -6863,11 +6863,6 @@ Total: ${savedData.state.artTotalPixels} pixels`
               );
               continue;
             }
-            console.debug(
-              `[COMPARE] Pixel at \u{1F4CD} (${pixelX}, ${pixelY}) in region (${batch.regionX}, ${batch.regionY})
-  \u251C\u2500\u2500 Current color: rgb(${tilePixelRGBA.join(", ")}) (id: ${mappedCanvasColor.id})
-  \u2514\u2500\u2500 Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}, ${targetPixelInfo.a}) (id: ${targetMappedColorId})`
-            );
           }
         } catch (e) {
           console.error(`[DEBUG] Error checking existing pixel at (${pixelX}, ${pixelY}):`, e);

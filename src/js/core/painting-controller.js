@@ -257,11 +257,11 @@ export async function processImage() {
             );
             continue;
           }
-          console.debug(
-            `[COMPARE] Pixel at 📍 (${pixelX}, ${pixelY}) in region (${batch.regionX}, ${batch.regionY})\n` +
-              `  ├── Current color: rgb(${tilePixelRGBA.join(', ')}) (id: ${mappedCanvasColor.id})\n` +
-              `  └── Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}, ${targetPixelInfo.a}) (id: ${targetMappedColorId})`
-          );
+          // console.debug(
+          //   `[COMPARE] Pixel at 📍 (${pixelX}, ${pixelY}) in region (${batch.regionX}, ${batch.regionY})\n` +
+          //     `  ├── Current color: rgb(${tilePixelRGBA.join(', ')}) (id: ${mappedCanvasColor.id})\n` +
+          //     `  └── Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}, ${targetPixelInfo.a}) (id: ${targetMappedColorId})`
+          // );
         }
       } catch (e) {
         console.error(`[DEBUG] Error checking existing pixel at (${pixelX}, ${pixelY}):`, e);
