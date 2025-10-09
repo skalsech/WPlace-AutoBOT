@@ -5996,24 +5996,32 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const button = document.createElement("button");
     button.id = "dev-reload-btn";
     button.className = "wplace-header-btn";
-    button.title = "Force Script Reload";
+    button.title = "Click: Local Dev Server | Shift+Click: GitHub (cached)";
     const icon = document.createElement("i");
     icon.className = "fas fa-sync-alt";
     button.appendChild(icon);
     button.onclick = (e) => {
       e.stopPropagation();
+      const isShiftPressed = e.shiftKey;
+      const localUrl = "http://127.0.0.1:8000/dist/script.user.js";
+      const githubUrl = "https://github.com/skalsech/WPlace-AutoBOT/raw/custom-main/dist/script.user.js";
+      const targetUrl = isShiftPressed ? githubUrl : localUrl;
       button.classList.add("animate-spin");
       setTimeout(() => button.classList.remove("animate-spin"), 500);
-      const updateUrl = "http://127.0.0.1:8000/dist/script.user.js";
-      const updateTab = window.open(updateUrl, "_blank");
+      const updateTab = window.open(targetUrl, "_blank");
       setTimeout(() => {
         if (updateTab && !updateTab.closed) {
           updateTab.close();
         }
-        setTimeout(() => {
+      }, 2500);
+      const handleVisibilityChange = () => {
+        if (document.visibilityState === "visible") {
+          document.removeEventListener("visibilitychange", handleVisibilityChange);
+          console.log(`\u{1F504} Reloading page after ${isShiftPressed ? "GitHub" : "local"} update...`);
           location.reload();
-        }, 500);
-      }, 1500);
+        }
+      };
+      document.addEventListener("visibilitychange", handleVisibilityChange);
     };
     const minimizeBtn = headerControls.querySelector("#settingsBtn");
     if (minimizeBtn) {
