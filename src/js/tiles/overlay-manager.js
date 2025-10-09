@@ -52,8 +52,13 @@ class OverlayManager {
     this.totalWrong = 0;
   }
 
-  toggle() {
+  async toggle() {
     this.isEnabled = !this.isEnabled;
+    try {
+      await wplaceUI.forceRefreshCanvas();
+    } catch (error) {
+      console.warn('⚠️ overlayManager.toggle: Error during wplaceUI.forceRefreshCanvas():', error);
+    }
     console.log(`Overlay ${this.isEnabled ? 'enabled' : 'disabled'}.`);
     return this.isEnabled;
   }

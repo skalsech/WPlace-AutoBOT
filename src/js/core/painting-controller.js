@@ -18,6 +18,22 @@ import { getMsToTargetCharges } from '../utils/time.js';
 import { wplaceService } from './api-service.js';
 
 /**
+ * @typedef {Object} PixelData
+ * @property {number} x - Absolute X coordinate of the pixel, measured from the template origin (0,0).
+ * @property {number} y - Absolute Y coordinate of the pixel, measured from the template origin (0,0).
+ * @property {number} color - Mapped color ID of the pixel from template.
+ * @property {number} localX - Local X coordinate within the region.
+ * @property {number} localY - Local Y coordinate within the region.
+ */
+
+/**
+ * @typedef {Object} PixelBatch
+ * @property {number} regionX - Region X coordinate.
+ * @property {number} regionY - Region Y coordinate.
+ * @property {PixelData[]} pixels - List of pixels belonging to this region.
+ */
+
+/**
  * @param {PixelBatch} batch - The batch of pixels to flush.
  * @returns {Promise<boolean>} Resolves to true if the batch was flushed successfully.
  */
@@ -34,11 +50,8 @@ async function flushPixelBatch(batch) {
       ...state.fullChargeData,
       spentSinceShot: state.fullChargeData.spentSinceShot + chargesSpent,
     };
+
     await updateStats();
-    updateUI('paintingProgress', 'default', {
-      painted: state.currentPaintedPixels,
-      total: state.artTotalPixels,
-    });
     await performSmartSave();
   } else {
     if (!state.stopFlag) {
@@ -68,22 +81,6 @@ export async function processImage() {
     state.stopFlag = true;
     return;
   }
-
-  /**
-   * @typedef {Object} PixelData
-   * @property {number} x - Absolute X coordinate of the pixel, measured from the template origin (0,0).
-   * @property {number} y - Absolute Y coordinate of the pixel, measured from the template origin (0,0).
-   * @property {number} color - Mapped color ID of the pixel from template.
-   * @property {number} localX - Local X coordinate within the region.
-   * @property {number} localY - Local Y coordinate within the region.
-   */
-
-  /**
-   * @typedef {Object} PixelBatch
-   * @property {number} regionX - Region X coordinate.
-   * @property {number} regionY - Region Y coordinate.
-   * @property {PixelData[]} pixels - List of pixels belonging to this region.
-   */
 
   /**
    * @type {Map<string, PixelBatch>}
@@ -278,7 +275,7 @@ export async function processImage() {
 
       if (globalPixelBatchTotalCount >= currentBatchSize) {
         for (const b of pixelBatches.values()) {
-          if (b.pixels.length > 0) {
+          if (b.pixels.length > 0 && !state.stopFlag) {
             const elapsed = Date.now() - lastSendTime;
             const remaining = 1500 - elapsed;
             if (remaining > 0 && state.paintingSpeedLimitEnabled) {
@@ -287,11 +284,16 @@ export async function processImage() {
 
             const success = await flushPixelBatch(b);
             lastSendTime = Date.now();
-            if (!success) {
+
+            if (!success || state.stopFlag) {
               // noinspection UnnecessaryLabelOnBreakStatementJS
               break outerLoop;
             }
-            b.pixels = [];
+
+            updateUI('paintingProgress', 'default', {
+              painted: state.currentPaintedPixels,
+              total: state.artTotalPixels,
+            });
           }
         }
 

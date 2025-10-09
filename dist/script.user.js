@@ -3056,8 +3056,13 @@
       this.totalPainted = 0;
       this.totalWrong = 0;
     }
-    toggle() {
+    async toggle() {
       this.isEnabled = !this.isEnabled;
+      try {
+        await wplaceUI.forceRefreshCanvas();
+      } catch (error) {
+        console.warn("\u26A0\uFE0F overlayManager.toggle: Error during wplaceUI.forceRefreshCanvas():", error);
+      }
       console.log(`Overlay ${this.isEnabled ? "enabled" : "disabled"}.`);
       return this.isEnabled;
     }
@@ -5607,8 +5612,8 @@ Total: ${savedData.state.artTotalPixels} pixels`
       showAlert(t("autoSaved"), "success");
     }
   }
-  function handleToggleOverlayClick() {
-    const isEnabled = overlayManager.toggle();
+  async function handleToggleOverlayClick() {
+    const isEnabled = await overlayManager.toggle();
     const btn = document.getElementById("toggleOverlayBtn");
     if (btn) {
       btn.classList.toggle("active", isEnabled);
@@ -6858,10 +6863,6 @@ Total: ${savedData.state.artTotalPixels} pixels`
         spentSinceShot: state.fullChargeData.spentSinceShot + chargesSpent
       };
       await updateStats();
-      updateUI("paintingProgress", "default", {
-        painted: state.currentPaintedPixels,
-        total: state.artTotalPixels
-      });
       await performSmartSave();
     } else {
       if (!state.stopFlag) {
@@ -7016,7 +7017,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
         globalPixelBatchTotalCount++;
         if (globalPixelBatchTotalCount >= currentBatchSize) {
           for (const b of pixelBatches.values()) {
-            if (b.pixels.length > 0) {
+            if (b.pixels.length > 0 && !state.stopFlag) {
               const elapsed = Date.now() - lastSendTime;
               const remaining = 1500 - elapsed;
               if (remaining > 0 && state.paintingSpeedLimitEnabled) {
@@ -7024,10 +7025,13 @@ Total: ${savedData.state.artTotalPixels} pixels`
               }
               const success = await flushPixelBatch(b);
               lastSendTime = Date.now();
-              if (!success) {
+              if (!success || state.stopFlag) {
                 break outerLoop;
               }
-              b.pixels = [];
+              updateUI("paintingProgress", "default", {
+                painted: state.currentPaintedPixels,
+                total: state.artTotalPixels
+              });
             }
           }
           globalPixelBatchTotalCount = 0;

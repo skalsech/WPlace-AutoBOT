@@ -35,8 +35,8 @@ export async function handleStopClick() {
   }
 }
 
-export function handleToggleOverlayClick() {
-  const isEnabled = overlayManager.toggle();
+export async function handleToggleOverlayClick() {
+  const isEnabled = await overlayManager.toggle();
   const btn = document.getElementById('toggleOverlayBtn');
   if (btn) {
     btn.classList.toggle('active', isEnabled);
