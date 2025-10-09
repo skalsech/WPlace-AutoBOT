@@ -278,7 +278,7 @@ class WPlaceService {
 
   /**
    * Validates that the experiments object matches the exact expected structure.
-   * Only allows two specific keys with exact values.
+   * Allows specific keys with exact or multiple allowed values.
    * Throws an error if validation fails.
    *
    * @param {Object} experiments - The experiments object from user data
@@ -287,7 +287,7 @@ class WPlaceService {
   validateExperiments(experiments) {
     const expected = {
       '2025-09_discord_linking': { enabled: true },
-      '2025-09_pawtect': { variant: 'koala' },
+      '2025-09_pawtect': { variant: ['koala', 'disabled'] },
     };
 
     if (!experiments || typeof experiments !== 'object') {
@@ -296,11 +296,10 @@ class WPlaceService {
 
     const keys = Object.keys(experiments);
     const expectedKeys = Object.keys(expected);
+
     if (keys.length !== expectedKeys.length) {
       throw new Error(
-        `Experiments must have exactly ${expectedKeys.length} keys, found ${keys.length}: ${keys.join(
-          ', '
-        )}`
+        `Experiments must have exactly ${expectedKeys.length} keys, found ${keys.length}: ${keys.join(', ')}`
       );
     }
 
@@ -315,11 +314,37 @@ class WPlaceService {
       }
 
       for (const [prop, expectedPropVal] of Object.entries(expectedValue)) {
-        if (actual[prop] !== expectedPropVal) {
-          throw new Error(
-            `Experiment ${key}.${prop} must be ${expectedPropVal}, got ${actual[prop]}`
-          );
+        if (!Object.prototype.hasOwnProperty.call(actual, prop)) {
+          throw new Error(`Experiment ${key}.${prop} is required`);
         }
+
+        const actualVal = actual[prop];
+
+        if (Array.isArray(expectedPropVal)) {
+          if (!expectedPropVal.includes(actualVal)) {
+            throw new Error(
+              `Experiment ${key}.${prop} must be one of 
+              [${expectedPropVal.map((v) => JSON.stringify(v)).join(', ')}], 
+              got ${JSON.stringify(actualVal)}`
+            );
+          }
+        } else {
+          if (actualVal !== expectedPropVal) {
+            throw new Error(
+              `Experiment ${key}.${prop} must be ${JSON.stringify(expectedPropVal)}, 
+              got ${JSON.stringify(actualVal)}`
+            );
+          }
+        }
+      }
+
+      const allowedProps = Object.keys(expectedValue);
+      const actualProps = Object.keys(actual);
+      const unexpectedProps = actualProps.filter((p) => !allowedProps.includes(p));
+      if (unexpectedProps.length > 0) {
+        throw new Error(
+          `Experiment ${key} has unexpected properties: ${unexpectedProps.join(', ')}`
+        );
       }
     }
 

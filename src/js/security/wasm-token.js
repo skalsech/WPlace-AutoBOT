@@ -95,9 +95,9 @@ function getMainWorldCode() {
           const me = await fetch('https://backend.wplace.live/me', { credentials: 'include' }).then(
             (r) => (r.ok ? r.json() : null)
           );
-          if (me?.id && typeof mod.i === 'function') {
+          if (me?.id && typeof mod.p === 'function') {
             try {
-              mod.i(me.id);
+              mod.p(me.id);
             } catch (userIdError) {
               console.log('[wasm-token]: ⚠️ Error setting user ID:', userIdError.message);
             }
@@ -152,8 +152,12 @@ function getMainWorldCode() {
           throw funcError;
         } finally {
           try {
-            if (wasm.__wbindgen_free && outPtr && outLen) {
-              wasm.__wbindgen_free(outPtr, outLen, 1);
+            if (wasm.__wbindgen_free) {
+              if (outPtr && outLen) {
+                wasm.__wbindgen_free(outPtr, outLen, 1);
+              }
+            } else {
+              console.log('[wasm-token]: ⚠️ Cleanup warning: __wbindgen_free function not found');
             }
           } catch (cleanupError) {
             console.log('[wasm-token]: ⚠️ Cleanup warning:', cleanupError.message);

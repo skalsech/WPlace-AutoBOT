@@ -1754,7 +1754,7 @@
     }
     /**
      * Validates that the experiments object matches the exact expected structure.
-     * Only allows two specific keys with exact values.
+     * Allows specific keys with exact or multiple allowed values.
      * Throws an error if validation fails.
      *
      * @param {Object} experiments - The experiments object from user data
@@ -1763,7 +1763,7 @@
     validateExperiments(experiments) {
       const expected = {
         "2025-09_discord_linking": { enabled: true },
-        "2025-09_pawtect": { variant: "koala" }
+        "2025-09_pawtect": { variant: ["koala", "disabled"] }
       };
       if (!experiments || typeof experiments !== "object") {
         throw new Error("Experiments must be a non-null object");
@@ -1772,9 +1772,7 @@
       const expectedKeys = Object.keys(expected);
       if (keys.length !== expectedKeys.length) {
         throw new Error(
-          `Experiments must have exactly ${expectedKeys.length} keys, found ${keys.length}: ${keys.join(
-            ", "
-          )}`
+          `Experiments must have exactly ${expectedKeys.length} keys, found ${keys.length}: ${keys.join(", ")}`
         );
       }
       for (const [key, expectedValue] of Object.entries(expected)) {
@@ -1786,11 +1784,34 @@
           throw new Error(`Experiment ${key} must be an object`);
         }
         for (const [prop, expectedPropVal] of Object.entries(expectedValue)) {
-          if (actual[prop] !== expectedPropVal) {
-            throw new Error(
-              `Experiment ${key}.${prop} must be ${expectedPropVal}, got ${actual[prop]}`
-            );
+          if (!Object.prototype.hasOwnProperty.call(actual, prop)) {
+            throw new Error(`Experiment ${key}.${prop} is required`);
           }
+          const actualVal = actual[prop];
+          if (Array.isArray(expectedPropVal)) {
+            if (!expectedPropVal.includes(actualVal)) {
+              throw new Error(
+                `Experiment ${key}.${prop} must be one of 
+              [${expectedPropVal.map((v) => JSON.stringify(v)).join(", ")}], 
+              got ${JSON.stringify(actualVal)}`
+              );
+            }
+          } else {
+            if (actualVal !== expectedPropVal) {
+              throw new Error(
+                `Experiment ${key}.${prop} must be ${JSON.stringify(expectedPropVal)}, 
+              got ${JSON.stringify(actualVal)}`
+              );
+            }
+          }
+        }
+        const allowedProps = Object.keys(expectedValue);
+        const actualProps = Object.keys(actual);
+        const unexpectedProps = actualProps.filter((p) => !allowedProps.includes(p));
+        if (unexpectedProps.length > 0) {
+          throw new Error(
+            `Experiment ${key} has unexpected properties: ${unexpectedProps.join(", ")}`
+          );
         }
       }
       const unexpectedKeys = keys.filter((k) => !Object.prototype.hasOwnProperty.call(expected, k));
@@ -6326,9 +6347,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
             const me = await fetch("https://backend.wplace.live/me", { credentials: "include" }).then(
               (r) => r.ok ? r.json() : null
             );
-            if (me?.id && typeof mod.i === "function") {
+            if (me?.id && typeof mod.p === "function") {
               try {
-                mod.i(me.id);
+                mod.p(me.id);
               } catch (userIdError) {
                 console.log("[wasm-token]: \u26A0\uFE0F Error setting user ID:", userIdError.message);
               }
@@ -6374,8 +6395,12 @@ Total: ${savedData.state.artTotalPixels} pixels`
             throw funcError;
           } finally {
             try {
-              if (wasm.__wbindgen_free && outPtr && outLen) {
-                wasm.__wbindgen_free(outPtr, outLen, 1);
+              if (wasm.__wbindgen_free) {
+                if (outPtr && outLen) {
+                  wasm.__wbindgen_free(outPtr, outLen, 1);
+                }
+              } else {
+                console.log("[wasm-token]: \u26A0\uFE0F Cleanup warning: __wbindgen_free function not found");
               }
             } catch (cleanupError) {
               console.log("[wasm-token]: \u26A0\uFE0F Cleanup warning:", cleanupError.message);
@@ -6533,121 +6558,101 @@ Total: ${savedData.state.artTotalPixels} pixels`
   }
 
   // src/js/core/pixel-batch.js
+  async function sendPixelRequest(url, payload, pawtectVariant, wasmToken) {
+    return fetch(url, {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "text/plain;charset=UTF-8",
+        "x-pawtect-token": wasmToken,
+        "x-pawtect-variant": pawtectVariant
+      },
+      body: JSON.stringify(payload)
+    });
+  }
+  async function trySendPixelBatch(pixelBatch, regionX, regionY) {
+    const fingerprint = await getFingerprint();
+    const pawtectVariant = (await wplaceService.getPawtectVariant()).value;
+    const url = `https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`;
+    if (!fingerprint) throw new Error("Missing fingerprint");
+    if (!pawtectVariant) throw new Error("Missing pawtect variant");
+    const token = getTurnstileToken();
+    if (!token) return "token_error";
+    const payload = makePayload(pixelBatch, token, fingerprint);
+    const wasmToken = pawtectVariant !== "disabled" ? await computePawtectToken(url, JSON.stringify(payload)) : "";
+    const res = await sendPixelRequest(url, payload, pawtectVariant, wasmToken);
+    if (res.status === 403) {
+      console.warn("403 Forbidden \u2014 token may be expired. Regenerating...");
+      return handle403AndRetry(pixelBatch, url, fingerprint, pawtectVariant);
+    }
+    return parsePixelResponse(res, pixelBatch.length, token);
+  }
+  async function handle403AndRetry(pixelBatch, url, fingerprint, pawtectVariant) {
+    try {
+      const newToken = await handleCaptcha();
+      const retryPayload = makePayload(pixelBatch, newToken, fingerprint);
+      const retryWasmToken = pawtectVariant !== "disabled" ? await computePawtectToken(url, JSON.stringify(retryPayload)) : "";
+      const retryRes = await sendPixelRequest(url, retryPayload, pawtectVariant, retryWasmToken);
+      if (retryRes.status === 403) {
+        console.error("Token still invalid after regeneration");
+        setTurnstileToken(null);
+        return "token_error";
+      }
+      return parsePixelResponse(retryRes, pixelBatch.length, newToken);
+    } catch (e) {
+      console.error("Token regeneration failed:", e);
+      setTurnstileToken(null);
+      return "token_error";
+    }
+  }
+  async function parsePixelResponse(res, expectedCount, tokenUsed) {
+    try {
+      const data = await res.json();
+      const success = data?.painted === expectedCount;
+      if (success) setTurnstileToken(tokenUsed);
+      return success;
+    } catch (e) {
+      console.error("Invalid server response:", e);
+      return false;
+    }
+  }
+  function makePayload(pixelBatch, token, fingerprint) {
+    const coords = new Array(pixelBatch.length * 2);
+    const colors = new Array(pixelBatch.length);
+    for (let i = 0; i < pixelBatch.length; i++) {
+      const p = pixelBatch[i];
+      coords[i * 2] = p.x;
+      coords[i * 2 + 1] = p.y;
+      colors[i] = p.color;
+    }
+    return { coords, colors, t: token, fp: fingerprint };
+  }
   async function sendBatchWithRetry(pixels, regionX, regionY, maxRetries = 5) {
     let attempt = 0;
     while (attempt < maxRetries && !state.stopFlag) {
       attempt++;
       console.log(
-        `\u{1F504} Attempting to send batch (attempt ${attempt}/${maxRetries}) for region ${regionX},${regionY} with ${pixels.length} pixels`
+        `\u{1F504} Attempt ${attempt}/${maxRetries} \u2014 region ${regionX},${regionY}, pixels=${pixels.length}`
       );
-      const result = await sendPixelBatch(pixels, regionX, regionY);
+      const result = await trySendPixelBatch(pixels, regionX, regionY);
       if (result === true) {
         console.log(`\u2705 Batch succeeded on attempt ${attempt}`);
         return true;
       }
       if (result === "token_error") {
-        console.log(`\u{1F511} Token error on attempt ${attempt}, regenerating...`);
+        console.log("\u{1F511} Token error. Will retry after captcha.");
         updateUI("captchaSolving", "warning");
-        try {
-          await handleCaptcha();
-          attempt--;
-          continue;
-        } catch (e) {
-          console.error(`\u274C Token regeneration failed on attempt ${attempt}:`, e);
-          updateUI("captchaFailed", "error");
-          await sleep(5e3);
-        }
-      } else {
-        console.warn(`\u26A0\uFE0F Batch failed on attempt ${attempt}, retrying...`);
-        const baseDelay = Math.min(1e3 * Math.pow(2, attempt - 1), 3e4);
-        const jitter = Math.random() * 1e3;
-        await sleep(baseDelay + jitter);
+        await sleep(5e3);
+        continue;
       }
+      console.warn(`\u26A0\uFE0F Batch failed (attempt ${attempt}), retrying...`);
+      const delay = Math.min(1e3 * 2 ** (attempt - 1), 3e4) + Math.random() * 1e3;
+      await sleep(delay);
     }
-    if (attempt >= maxRetries) {
-      console.error(
-        `\u274C Batch failed after ${maxRetries} attempts. Stopping to prevent infinite loops.`
-      );
-      updateUI("paintingError", "error");
-      return false;
+    if (!state.stopFlag) {
+      console.error(`\u274C Failed after ${attempt} attempts. Aborting.`);
     }
     return false;
-  }
-  async function sendPixelBatch(pixelBatch, regionX, regionY) {
-    const fingerprint = await getFingerprint();
-    const pawtectVariant = (await wplaceService.getPawtectVariant()).value;
-    const url = `https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`;
-    if (!fingerprint) {
-      throw new Error(
-        "FingerprintJS failed to generate a visitor ID. This is required for pixel painting. Check if FingerprintJS loaded properly, or if the user is blocking scripts (adblock, privacy mode, etc.)."
-      );
-    }
-    if (!pawtectVariant) {
-      throw new Error("Pawtect protection variant is unavailable.");
-    }
-    const token = getTurnstileToken();
-    if (!token) return "token_error";
-    const coords = new Array(pixelBatch.length * 2);
-    const colors = new Array(pixelBatch.length);
-    for (let i = 0; i < pixelBatch.length; i++) {
-      const pixel = pixelBatch[i];
-      coords[i * 2] = pixel.x;
-      coords[i * 2 + 1] = pixel.y;
-      colors[i] = pixel.color;
-    }
-    const payload = { coords, colors, t: token, fp: fingerprint };
-    try {
-      const wasmToken = await computePawtectToken(url, JSON.stringify(payload));
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "text/plain;charset=UTF-8",
-          "x-pawtect-token": wasmToken,
-          "x-pawtect-variant": pawtectVariant
-        },
-        credentials: "include",
-        body: JSON.stringify(payload)
-      });
-      if (res.status === 403) {
-        console.error("\u274C 403 Forbidden. Turnstile token might be invalid or expired.");
-        console.log("\u{1F504} Regenerating Turnstile token after 403...");
-        try {
-          const newToken = await handleCaptcha();
-          const retryPayload = { coords, colors, t: newToken, fp: fingerprint };
-          const retryWasmToken = await computePawtectToken(url, JSON.stringify(retryPayload));
-          const retryRes = await fetch(url, {
-            method: "POST",
-            headers: {
-              "Content-Type": "text/plain;charset=UTF-8",
-              "x-pawtect-token": retryWasmToken,
-              "x-pawtect-variant": pawtectVariant
-            },
-            credentials: "include",
-            body: JSON.stringify(retryPayload)
-          });
-          if (retryRes.status === 403) {
-            console.error("\u274C Token still invalid after regeneration");
-            setTurnstileToken(null);
-            return "token_error";
-          }
-          const retryData = await retryRes.json();
-          const retrySuccess = retryData?.painted === pixelBatch.length;
-          if (retrySuccess) setTurnstileToken(newToken);
-          return retrySuccess;
-        } catch (retryError) {
-          console.error("\u274C Token regeneration failed:", retryError);
-          setTurnstileToken(null);
-          return "token_error";
-        }
-      }
-      const data = await res.json();
-      const success = data?.painted === pixelBatch.length;
-      if (success) setTurnstileToken(token);
-      return success;
-    } catch (e) {
-      console.error("Batch paint request failed:", e);
-      return false;
-    }
   }
 
   // src/js/core/auto-save.js
@@ -6859,12 +6864,14 @@ Total: ${savedData.state.artTotalPixels} pixels`
       });
       await performSmartSave();
     } else {
-      console.error(
-        `\u274C Batch for ${batch.regionX}, ${batch.regionY} with ${batch.pixels.length} pixels
+      if (!state.stopFlag) {
+        console.error(
+          `\u274C Batch for ${batch.regionX}, ${batch.regionY} with ${batch.pixels.length} pixels
          failed permanently after retries. Stopping painting.`
-      );
-      state.stopFlag = true;
-      updateUI("paintingBatchFailed", "error");
+        );
+        state.stopFlag = true;
+        updateUI("paintingBatchFailed", "error");
+      }
     }
     batch.pixels = [];
     return success;

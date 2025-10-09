@@ -41,12 +41,14 @@ async function flushPixelBatch(batch) {
     });
     await performSmartSave();
   } else {
-    console.error(
-      `❌ Batch for ${batch.regionX}, ${batch.regionY} with ${batch.pixels.length} pixels
+    if (!state.stopFlag) {
+      console.error(
+        `❌ Batch for ${batch.regionX}, ${batch.regionY} with ${batch.pixels.length} pixels
          failed permanently after retries. Stopping painting.`
-    );
-    state.stopFlag = true;
-    updateUI('paintingBatchFailed', 'error');
+      );
+      state.stopFlag = true;
+      updateUI('paintingBatchFailed', 'error');
+    }
   }
 
   batch.pixels = [];
