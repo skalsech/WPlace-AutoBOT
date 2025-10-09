@@ -1772,7 +1772,9 @@
       const expectedKeys = Object.keys(expected);
       if (keys.length !== expectedKeys.length) {
         throw new Error(
-          `Experiments must have exactly ${expectedKeys.length} keys, found ${keys.length}: ${keys.join(", ")}`
+          `Experiments must have exactly ${expectedKeys.length} keys, found ${keys.length}: ${keys.join(
+            ", "
+          )}`
         );
       }
       for (const [key, expectedValue] of Object.entries(expected)) {
@@ -1808,6 +1810,91 @@
     async requireValidExperiments() {
       const { value: experiments } = await this.getExperiments();
       this.validateExperiments(experiments);
+    }
+    /**
+     * Closes the paint menu if it is currently open.
+     *
+     * The method locates the close button within the paint panel by searching for an SVG path
+     * unique to the close icon. If found, it dispatches a synthetic click event and waits briefly
+     * for the UI to update.
+     *
+     * @async
+     * @returns {Promise<void>} Resolves when the close action has been attempted.
+     */
+    async closePaintMenu() {
+      const closeBtnPath = "m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z";
+      const closeBtn = document.querySelector(
+        `div.absolute.bottom-0.left-0.z-50.w-full button svg path[d="${closeBtnPath}"]`
+      )?.closest("button");
+      if (closeBtn) {
+        const clickEvent = new MouseEvent("click", {
+          view: window,
+          bubbles: true,
+          cancelable: true
+        });
+        closeBtn.dispatchEvent(clickEvent);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      } else {
+        console.warn(
+          "   Close button for paint menu not found (menu might be already closed or structure changed)."
+        );
+      }
+    }
+    /**
+     * Forces a refresh of map tiles by temporarily overriding the document visibility state.
+     *
+     * This method simulates a visibility change to trigger a redraw or reload of tiles on the canvas.
+     * It works by overriding `document.hidden` to always return `false`, dispatching a
+     * `visibilitychange` event, and restoring the original state afterward.
+     *
+     * If the paint menu was open before the refresh, it will be closed automatically afterward
+     * via {@link OverlayManager#closePaintMenu | closePaintMenu()}.
+     *
+     * @async
+     * @returns {Promise<void>} Resolves when the tile refresh process is completed.
+     */
+    async forceRefreshTiles() {
+      const paintButtonContainer = document.querySelector(
+        "div.absolute.bottom-3.left-1\\/2.z-30.-translate-x-1\\/2"
+      );
+      let menuWasOpen = false;
+      if (!paintButtonContainer) {
+        menuWasOpen = true;
+      } else {
+        const paintButton = paintButtonContainer.querySelector(
+          "button.btn.btn-primary.btn-lg.sm\\:btn-xl"
+        );
+        if (paintButton) {
+          const clickEvent = new MouseEvent("click", {
+            view: window,
+            bubbles: true,
+            cancelable: true
+          });
+          paintButton.dispatchEvent(clickEvent);
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        } else {
+          menuWasOpen = true;
+          console.error("Paint button not found inside container.");
+        }
+      }
+      if (menuWasOpen) {
+        const originalHiddenDescriptor = Object.getOwnPropertyDescriptor(
+          Document.prototype,
+          "hidden"
+        );
+        Object.defineProperty(document, "hidden", {
+          get() {
+            return false;
+          },
+          configurable: true
+        });
+        document.dispatchEvent(new Event("visibilitychange"));
+        if (originalHiddenDescriptor) {
+          Object.defineProperty(document, "hidden", originalHiddenDescriptor);
+        }
+      } else {
+        await this.closePaintMenu();
+      }
     }
   };
   var wplaceService = new WPlaceService();
@@ -2960,7 +3047,6 @@
       this.chunkedTiles.clear();
       this.originalTiles.clear();
       this.originalTilesData.clear();
-      this.tileProgress.clear();
       this.lastProcessedHash = null;
       if (this.processPromise) {
         this.processPromise = null;
@@ -3307,12 +3393,28 @@
       });
     }
     /**
-     * Wait until all required tiles are loaded and cached
-     * @param {number} timeoutMs
-     * @param {number} [concurrency = 4]
-     * @returns {Promise<boolean>} true if tiles are ready
+     * Waits until all required tiles for the current viewport are loaded and cached.
+     *
+     * This method determines which tiles are needed based on the current region and pixel coordinates,
+     * then waits until all of them are present in the local tile cache ({@link OverlayManager#originalTiles}).
+     *
+     * There are two operation modes:
+     *  - **instantUpdate = true** — Forces an immediate refresh of tiles on canvas via {@link wplaceService.forceRefreshTiles | wplaceService.forceRefreshTiles()}.
+     *  - **instantUpdate = false** — Uses {@link TileLoader#loadTilesBatch | TileLoader.loadTilesBatch()} to load required tiles concurrently.
+     *
+     * The function periodically checks if all tiles have been loaded within the given timeout.
+     * If the global {@link state.stopFlag} is set, it stops early and returns `false`.
+     *
+     * @async
+     * @param {boolean} [instantUpdate=false] - If `true`, forces a full tile refresh via {@link wplaceService.forceRefreshTiles};
+     *                                          if `false`, loads tiles only via {@link TileLoader#loadTilesBatch | TileLoader}.
+     * @param {number} [timeoutMs=10000] - Maximum time (in milliseconds) to wait for tiles to load.
+     * @param {number} [concurrency=4] - Maximum number of concurrent tile loading operations (used only when `instantUpdate=false`).
+     * @returns {Promise<boolean>} Resolves to `true` if all required tiles are successfully loaded and cached,
+     *                             or `false` if timeout is reached or the operation was stopped.
+     * @throws {Error} May throw if {@link wplaceService.forceRefreshTiles} fails unexpectedly.
      */
-    async waitForTiles(timeoutMs = 1e4, concurrency = 4) {
+    async waitForTiles(instantUpdate = false, timeoutMs = 1e4, concurrency = 4) {
       if (!this.startCoords || !this.startCoords.region || !this.startCoords.pixel) {
         console.warn("OverlayManager: startCoords not set, cannot calculate tile range");
         return false;
@@ -3340,29 +3442,67 @@
         }
       }
       if (requiredTiles.length === 0) return true;
-      const tileLoader = new TileLoader(this);
-      const results = await tileLoader.loadTilesBatch(requiredTiles, concurrency);
-      const failed = results.filter((r) => !r.result.success);
-      if (failed.length > 0) {
-        console.warn(`\u274C Some tiles failed to load:`, failed);
-      }
       const requiredTileKeys = requiredTiles.map((t2) => `${t2.x},${t2.y}`);
-      const startTime = Date.now();
-      while (Date.now() - startTime < timeoutMs) {
-        if (state.stopFlag) {
-          console.log("waitForTiles: stopped by user");
-          return false;
+      if (instantUpdate) {
+        console.log(
+          "\u23F3 waitForTiles: Silent mode is OFF (instantUpdate=true). Forcing tile refresh via wplaceService..."
+        );
+        try {
+          await wplaceService.forceRefreshTiles();
+          console.log("\u2705 waitForTiles: Tile refresh via wplaceService completed.");
+        } catch (error) {
+          console.warn(
+            "\u26A0\uFE0F waitForTiles: Error during forceRefreshTiles, continuing to wait for tiles anyway:",
+            error
+          );
         }
-        const missing = requiredTileKeys.filter((key) => !this.originalTiles.has(key));
-        if (missing.length === 0) {
-          console.log(`\u2705 All ${requiredTiles.length} required tiles are loaded and cached`);
-          return true;
+        const startTime = Date.now();
+        while (Date.now() - startTime < timeoutMs) {
+          if (state.stopFlag) {
+            console.log("waitForTiles: stopped by user after forceRefreshTiles");
+            return false;
+          }
+          const missing = requiredTileKeys.filter((key) => !this.originalTiles.has(key));
+          if (missing.length === 0) {
+            console.log(
+              `\u2705 All ${requiredTiles.length} required tiles are loaded and cached (after forceRefreshTiles).`
+            );
+            return true;
+          }
+          await sleep(100);
         }
-        await sleep(100);
-      }
-      console.warn(`\u274C Timeout waiting for tiles: ${requiredTileKeys.length} required, 
+        console.warn(`\u274C Timeout waiting for tiles after forceRefreshTiles: ${requiredTileKeys.length} required, 
       ${requiredTileKeys.filter((k) => this.originalTiles.has(k)).length} loaded`);
-      return false;
+        return false;
+      } else {
+        console.log(
+          "\u23F3 waitForTiles: Silent mode is ON (instantUpdate=false). Using TileLoader only."
+        );
+        const tileLoader = new TileLoader(this);
+        const results = await tileLoader.loadTilesBatch(requiredTiles, concurrency);
+        const failed = results.filter((r) => !r.result.success);
+        if (failed.length > 0) {
+          console.warn(`\u274C Some tiles failed to load via TileLoader:`, failed);
+        }
+        const startTime = Date.now();
+        while (Date.now() - startTime < timeoutMs) {
+          if (state.stopFlag) {
+            console.log("waitForTiles: stopped by user after TileLoader batch request");
+            return false;
+          }
+          const missing = requiredTileKeys.filter((key) => !this.originalTiles.has(key));
+          if (missing.length === 0) {
+            console.log(
+              `\u2705 All ${requiredTiles.length} required tiles are loaded and cached (via TileLoader).`
+            );
+            return true;
+          }
+          await sleep(100);
+        }
+        console.warn(`\u274C Timeout waiting for tiles after TileLoader: ${requiredTileKeys.length} required, 
+      ${requiredTileKeys.filter((k) => this.originalTiles.has(k)).length} loaded`);
+        return false;
+      }
     }
     /**
      * Calculates overall progress statistics based on cached tile data.
@@ -3760,7 +3900,7 @@
     updateDataButtons();
     try {
       await restoreOverlayFromData();
-      await overlayManager.waitForTiles();
+      await overlayManager.waitForTiles(true);
       await updateStats();
     } catch (error) {
       console.error(`Failed to restore overlay from ${source}:`, error);
@@ -3866,6 +4006,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
       const imageBitmap = await createImageBitmap(processor.img);
       await overlayManager.setImage(imageBitmap);
       overlayManager.enable();
+      await overlayManager.waitForTiles(true);
       const toggleOverlayBtn2 = document.getElementById("toggleOverlayBtn");
       if (toggleOverlayBtn2) {
         toggleOverlayBtn2.disabled = false;
@@ -6750,7 +6891,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const { width, height, pixels } = state.imageData;
     const { x: startX, y: startY } = state.startPosition;
     const { x: regionX, y: regionY } = state.region;
-    const tilesReady = await overlayManager.waitForTiles();
+    const tilesReady = await overlayManager.waitForTiles(true);
     if (!tilesReady) {
       updateUI("overlayTilesNotLoaded", "error");
       state.stopFlag = true;

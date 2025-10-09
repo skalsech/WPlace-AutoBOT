@@ -10,6 +10,7 @@ import {
 } from '../../../storage/progress-manager.js';
 import { updateStats, updateUI } from '../../panel.js';
 import { overlayManager, restoreOverlayFromData } from '../../../tiles/overlay-manager.js';
+import { wplaceService } from '../../../core/api-service.js';
 
 export function updateDataButtons() {
   const container = document.getElementById('wplace-image-bot-container');
@@ -53,7 +54,8 @@ async function handleProgressLoadSuccess(savedData, source) {
 
   try {
     await restoreOverlayFromData();
-    await overlayManager.waitForTiles();
+    await overlayManager.waitForTiles(true);
+
     await updateStats();
   } catch (error) {
     console.error(`Failed to restore overlay from ${source}:`, error);

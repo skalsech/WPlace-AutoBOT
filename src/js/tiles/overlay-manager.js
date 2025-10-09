@@ -2,6 +2,7 @@ import { state } from '../core/state.js';
 import { calculateTileRange, sleep } from '../utils/helpers.js';
 import { isTransparentPixel } from '../utils/color-matching.js';
 import { TileLoader } from './tile-loader.js';
+import { wplaceService } from '../core/api-service.js';
 
 class OverlayManager {
   constructor() {
@@ -71,7 +72,7 @@ class OverlayManager {
     this.chunkedTiles.clear();
     this.originalTiles.clear();
     this.originalTilesData.clear();
-    this.tileProgress.clear();
+
     this.lastProcessedHash = null;
     if (this.processPromise) {
       this.processPromise = null;
@@ -528,12 +529,28 @@ class OverlayManager {
   }
 
   /**
-   * Wait until all required tiles are loaded and cached
-   * @param {number} timeoutMs
-   * @param {number} [concurrency = 4]
-   * @returns {Promise<boolean>} true if tiles are ready
+   * Waits until all required tiles for the current viewport are loaded and cached.
+   *
+   * This method determines which tiles are needed based on the current region and pixel coordinates,
+   * then waits until all of them are present in the local tile cache ({@link OverlayManager#originalTiles}).
+   *
+   * There are two operation modes:
+   *  - **instantUpdate = true** — Forces an immediate refresh of tiles on canvas via {@link wplaceService.forceRefreshTiles | wplaceService.forceRefreshTiles()}.
+   *  - **instantUpdate = false** — Uses {@link TileLoader#loadTilesBatch | TileLoader.loadTilesBatch()} to load required tiles concurrently.
+   *
+   * The function periodically checks if all tiles have been loaded within the given timeout.
+   * If the global {@link state.stopFlag} is set, it stops early and returns `false`.
+   *
+   * @async
+   * @param {boolean} [instantUpdate=false] - If `true`, forces a full tile refresh via {@link wplaceService.forceRefreshTiles};
+   *                                          if `false`, loads tiles only via {@link TileLoader#loadTilesBatch | TileLoader}.
+   * @param {number} [timeoutMs=10000] - Maximum time (in milliseconds) to wait for tiles to load.
+   * @param {number} [concurrency=4] - Maximum number of concurrent tile loading operations (used only when `instantUpdate=false`).
+   * @returns {Promise<boolean>} Resolves to `true` if all required tiles are successfully loaded and cached,
+   *                             or `false` if timeout is reached or the operation was stopped.
+   * @throws {Error} May throw if {@link wplaceService.forceRefreshTiles} fails unexpectedly.
    */
-  async waitForTiles(timeoutMs = 10000, concurrency = 4) {
+  async waitForTiles(instantUpdate = false, timeoutMs = 10000, concurrency = 4) {
     if (!this.startCoords || !this.startCoords.region || !this.startCoords.pixel) {
       console.warn('OverlayManager: startCoords not set, cannot calculate tile range');
       return false;
@@ -566,35 +583,78 @@ class OverlayManager {
 
     if (requiredTiles.length === 0) return true;
 
-    const tileLoader = new TileLoader(this);
-    const results = await tileLoader.loadTilesBatch(requiredTiles, concurrency);
-    const failed = results.filter((r) => !r.result.success);
-
-    if (failed.length > 0) {
-      console.warn(`❌ Some tiles failed to load:`, failed);
-    }
-
     const requiredTileKeys = requiredTiles.map((t) => `${t.x},${t.y}`);
-    const startTime = Date.now();
 
-    while (Date.now() - startTime < timeoutMs) {
-      if (state.stopFlag) {
-        console.log('waitForTiles: stopped by user');
-        return false;
+    if (instantUpdate) {
+      console.log(
+        '⏳ waitForTiles: Silent mode is OFF (instantUpdate=true). Forcing tile refresh via wplaceService...'
+      );
+      try {
+        await wplaceService.forceRefreshTiles();
+        console.log('✅ waitForTiles: Tile refresh via wplaceService completed.');
+      } catch (error) {
+        console.warn(
+          '⚠️ waitForTiles: Error during forceRefreshTiles, continuing to wait for tiles anyway:',
+          error
+        );
       }
 
-      const missing = requiredTileKeys.filter((key) => !this.originalTiles.has(key));
-      if (missing.length === 0) {
-        console.log(`✅ All ${requiredTiles.length} required tiles are loaded and cached`);
-        return true;
+      const startTime = Date.now();
+      while (Date.now() - startTime < timeoutMs) {
+        if (state.stopFlag) {
+          console.log('waitForTiles: stopped by user after forceRefreshTiles');
+          return false;
+        }
+
+        const missing = requiredTileKeys.filter((key) => !this.originalTiles.has(key));
+        if (missing.length === 0) {
+          console.log(
+            `✅ All ${requiredTiles.length} required tiles are loaded and cached (after forceRefreshTiles).`
+          );
+          return true;
+        }
+
+        await sleep(100);
       }
 
-      await sleep(100);
-    }
-
-    console.warn(`❌ Timeout waiting for tiles: ${requiredTileKeys.length} required, 
+      console.warn(`❌ Timeout waiting for tiles after forceRefreshTiles: ${requiredTileKeys.length} required, 
       ${requiredTileKeys.filter((k) => this.originalTiles.has(k)).length} loaded`);
-    return false;
+      return false;
+    } else {
+      console.log(
+        '⏳ waitForTiles: Silent mode is ON (instantUpdate=false). Using TileLoader only.'
+      );
+
+      const tileLoader = new TileLoader(this);
+      const results = await tileLoader.loadTilesBatch(requiredTiles, concurrency);
+      const failed = results.filter((r) => !r.result.success);
+
+      if (failed.length > 0) {
+        console.warn(`❌ Some tiles failed to load via TileLoader:`, failed);
+      }
+
+      const startTime = Date.now();
+      while (Date.now() - startTime < timeoutMs) {
+        if (state.stopFlag) {
+          console.log('waitForTiles: stopped by user after TileLoader batch request');
+          return false;
+        }
+
+        const missing = requiredTileKeys.filter((key) => !this.originalTiles.has(key));
+        if (missing.length === 0) {
+          console.log(
+            `✅ All ${requiredTiles.length} required tiles are loaded and cached (via TileLoader).`
+          );
+          return true;
+        }
+
+        await sleep(100);
+      }
+
+      console.warn(`❌ Timeout waiting for tiles after TileLoader: ${requiredTileKeys.length} required, 
+      ${requiredTileKeys.filter((k) => this.originalTiles.has(k)).length} loaded`);
+      return false;
+    }
   }
 
   /**

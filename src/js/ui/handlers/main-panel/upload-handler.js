@@ -7,6 +7,7 @@ import { createImageUploader } from '../../../utils/files.js';
 import { ImageProcessor } from '../../../core/image-processor.js';
 import { overlayManager } from '../../../tiles/overlay-manager.js';
 import { updateDataButtons } from './handle-data-buttons.js';
+import { wplaceService } from '../../../core/api-service.js';
 
 export async function handleUploadClick() {
   await updateStats(true);
@@ -59,6 +60,7 @@ export async function handleUploadClick() {
     const imageBitmap = await createImageBitmap(processor.img);
     await overlayManager.setImage(imageBitmap);
     overlayManager.enable();
+    await overlayManager.waitForTiles(true);
 
     const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
     if (toggleOverlayBtn) {

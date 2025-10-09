@@ -62,7 +62,8 @@ export async function processImage() {
   const { x: startX, y: startY } = state.startPosition;
   const { x: regionX, y: regionY } = state.region;
 
-  const tilesReady = await overlayManager.waitForTiles();
+  // todo add option settings to choose silent or not (instant overlay load/silent load with delay, but instant cache)
+  const tilesReady = await overlayManager.waitForTiles(true);
 
   if (!tilesReady) {
     updateUI('overlayTilesNotLoaded', 'error');
