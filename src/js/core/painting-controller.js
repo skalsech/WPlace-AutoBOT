@@ -4,10 +4,7 @@ import { sendBatchWithRetry } from './pixel-batch.js';
 import { performSmartSave } from './auto-save.js';
 import { dynamicSleep, sleep } from '../utils/helpers.js';
 import {
-  findClosestColor,
-  isTransparentPixel,
-  isWhitePixel,
-  resolveColor,
+  findClosestColor, isTransparentPixel, isWhitePixel, resolveColor,
 } from '../utils/color-matching.js';
 import { generateCoordinates } from './coordinate-generator.js';
 import { NotificationManager } from './notification-manager.js';
@@ -62,7 +59,7 @@ export async function processImage() {
   const { x: startX, y: startY } = state.startPosition;
   const { x: regionX, y: regionY } = state.region;
 
-  // todo add option settings to choose silent or not (instant overlay load/silent load with delay, but instant cache)
+  // todo add option in settings ui to choose loud instant/silent delayed canvas update (instant cache persists no matter what)
   const tilesReady = await overlayManager.waitForTiles(true);
 
   if (!tilesReady) {
@@ -94,7 +91,7 @@ export async function processImage() {
   const pixelBatches = new Map();
 
   let globalPixelBatchTotalCount = 0;
-  let currentBatchSize = calculateBatchSize();
+  let currentBatchSize = calculateBatchSize(state.batchMode);
 
   const skippedPixels = {
     transparent: 0,
@@ -295,7 +292,7 @@ export async function processImage() {
         }
 
         globalPixelBatchTotalCount = 0;
-        currentBatchSize = calculateBatchSize();
+        currentBatchSize = calculateBatchSize(state.batchMode);
       }
 
       if (state.preciseCurrentCharges < state.cooldownChargeThreshold && !state.stopFlag) {
@@ -363,24 +360,18 @@ export async function processImage() {
   await updateStats();
 }
 
-// Helper function to calculate batch size based on mode
-function calculateBatchSize() {
+function calculateBatchSize(batchMode) {
   let targetBatchSize;
 
-  if (state.batchMode === 'random') {
-    // Generate random batch size within the specified range
+  if (batchMode === 'random') {
     const min = Math.max(1, state.randomBatchMin);
     const max = Math.max(min, state.randomBatchMax);
     targetBatchSize = Math.floor(Math.random() * (max - min + 1)) + min;
     console.log(`🎲 Random batch size generated: ${targetBatchSize} (range: ${min}-${max})`);
   } else {
-    // Normal mode - use the fixed paintingSpeed value
     targetBatchSize = state.paintingSpeed;
   }
 
-  // Always limit by available charges
   const maxAllowed = Math.floor(state.preciseCurrentCharges);
-  const finalBatchSize = Math.min(targetBatchSize, maxAllowed);
-
-  return finalBatchSize;
+  return Math.min(targetBatchSize, maxAllowed);
 }
