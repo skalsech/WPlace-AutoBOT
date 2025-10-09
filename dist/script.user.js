@@ -6850,9 +6850,6 @@ Total: ${savedData.state.artTotalPixels} pixels`
         total: state.artTotalPixels
       });
       await performSmartSave();
-      if (state.paintingSpeedLimitEnabled) {
-        await sleep(1e3);
-      }
     } else {
       console.error(
         `\u274C Batch for ${batch.regionX}, ${batch.regionY} with ${batch.pixels.length} pixels
@@ -6875,6 +6872,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
       return;
     }
     const pixelBatches = /* @__PURE__ */ new Map();
+    let lastSendTime = 0;
     let globalPixelBatchTotalCount = 0;
     let currentBatchSize = calculateBatchSize(state.batchMode);
     const skippedPixels = {
@@ -7004,7 +7002,13 @@ Total: ${savedData.state.artTotalPixels} pixels`
         if (globalPixelBatchTotalCount >= currentBatchSize) {
           for (const b of pixelBatches.values()) {
             if (b.pixels.length > 0) {
+              const elapsed = Date.now() - lastSendTime;
+              const remaining = 1500 - elapsed;
+              if (remaining > 0 && state.paintingSpeedLimitEnabled) {
+                await sleep(remaining);
+              }
               const success = await flushPixelBatch(b);
+              lastSendTime = Date.now();
               if (!success) {
                 break outerLoop;
               }
@@ -7016,7 +7020,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
         }
         if (state.preciseCurrentCharges < state.cooldownChargeThreshold && !state.stopFlag) {
           await dynamicSleep(() => {
-            if (state.displayCharges >= state.cooldownChargeThreshold) {
+            if (state.preciseCurrentCharges >= state.cooldownChargeThreshold) {
               NotificationManager.maybeNotifyChargesReached(true);
               return 0;
             }
@@ -7036,6 +7040,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
         if (batch.pixels.length > 0 && !state.stopFlag) {
           console.log(`\u{1F3C1} Sending final batch`);
           const success = await flushPixelBatch(batch);
+          lastSendTime = Date.now();
           if (!success) {
             console.warn(`\u26A0\uFE0F Final batch for ${key} failed with ${batch.pixels.length} pixels.`);
           }

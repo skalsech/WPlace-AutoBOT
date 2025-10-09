@@ -2,7 +2,6 @@ import { state } from '../core/state.js';
 import { calculateTileRange, sleep } from '../utils/helpers.js';
 import { isTransparentPixel } from '../utils/color-matching.js';
 import { TileLoader } from './tile-loader.js';
-import { wplaceService } from '../core/api-service.js';
 import { wplaceUI } from '../core/wplace-ui.js';
 
 class OverlayManager {

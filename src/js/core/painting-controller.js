@@ -4,7 +4,10 @@ import { sendBatchWithRetry } from './pixel-batch.js';
 import { performSmartSave } from './auto-save.js';
 import { dynamicSleep, sleep } from '../utils/helpers.js';
 import {
-  findClosestColor, isTransparentPixel, isWhitePixel, resolveColor,
+  findClosestColor,
+  isTransparentPixel,
+  isWhitePixel,
+  resolveColor,
 } from '../utils/color-matching.js';
 import { generateCoordinates } from './coordinate-generator.js';
 import { NotificationManager } from './notification-manager.js';
@@ -37,10 +40,6 @@ async function flushPixelBatch(batch) {
       total: state.artTotalPixels,
     });
     await performSmartSave();
-
-    if (state.paintingSpeedLimitEnabled) {
-      await sleep(1000);
-    }
   } else {
     console.error(
       `❌ Batch for ${batch.regionX}, ${batch.regionY} with ${batch.pixels.length} pixels
@@ -90,6 +89,7 @@ export async function processImage() {
    */
   const pixelBatches = new Map();
 
+  let lastSendTime = 0;
   let globalPixelBatchTotalCount = 0;
   let currentBatchSize = calculateBatchSize(state.batchMode);
 
@@ -255,11 +255,6 @@ export async function processImage() {
             );
             continue;
           }
-          // console.debug(
-          //   `[COMPARE] Pixel at 📍 (${pixelX}, ${pixelY}) in region (${batch.regionX}, ${batch.regionY})\n` +
-          //     `  ├── Current color: rgb(${tilePixelRGBA.join(', ')}) (id: ${mappedCanvasColor.id})\n` +
-          //     `  └── Target color:  rgb(${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b}, ${targetPixelInfo.a}) (id: ${targetMappedColorId})`
-          // );
         }
       } catch (e) {
         console.error(`[DEBUG] Error checking existing pixel at (${pixelX}, ${pixelY}):`, e);
@@ -282,7 +277,14 @@ export async function processImage() {
       if (globalPixelBatchTotalCount >= currentBatchSize) {
         for (const b of pixelBatches.values()) {
           if (b.pixels.length > 0) {
+            const elapsed = Date.now() - lastSendTime;
+            const remaining = 1500 - elapsed;
+            if (remaining > 0 && state.paintingSpeedLimitEnabled) {
+              await sleep(remaining);
+            }
+
             const success = await flushPixelBatch(b);
+            lastSendTime = Date.now();
             if (!success) {
               // noinspection UnnecessaryLabelOnBreakStatementJS
               break outerLoop;
@@ -297,7 +299,7 @@ export async function processImage() {
 
       if (state.preciseCurrentCharges < state.cooldownChargeThreshold && !state.stopFlag) {
         await dynamicSleep(() => {
-          if (state.displayCharges >= state.cooldownChargeThreshold) {
+          if (state.preciseCurrentCharges >= state.cooldownChargeThreshold) {
             NotificationManager.maybeNotifyChargesReached(true);
             return 0;
           }
@@ -320,6 +322,7 @@ export async function processImage() {
       if (batch.pixels.length > 0 && !state.stopFlag) {
         console.log(`🏁 Sending final batch`);
         const success = await flushPixelBatch(batch);
+        lastSendTime = Date.now();
         if (!success) {
           console.warn(`⚠️ Final batch for ${key} failed with ${batch.pixels.length} pixels.`);
         }
