@@ -167,7 +167,6 @@ export async function generateCoordinates(
   }
 
   if (sortByFrequency) {
-    // todo add ui where all colors and their frequencies can be viewed, later add filter option
     if (!overlayManager || state.artColorFrequency.size === 0) {
       throw new Error(
         'overlayManager and artColorFrequency must be provided for option sort-by-color-frequency'

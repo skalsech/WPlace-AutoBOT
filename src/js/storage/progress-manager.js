@@ -126,22 +126,25 @@ export function restoreProgress(savedData) {
         throw new Error('Invalid pixels format: expected ArrayBuffer or Array');
       }
 
-      state.imageData = {
-        width,
-        height,
-        totalPixels,
-        pixels: pixelArray,
-      };
       try {
         const proc = ImageProcessor.fromPixelData(
-          state.imageData.width,
-          state.imageData.height,
-          state.imageData.pixels,
+          width,
+          height,
+          pixelArray,
           !state.paintTransparentPixels
         );
 
-        state.imageData.processor = proc;
-        state.artColorFrequency = proc.countColors(!state.paintTransparentPixels);
+        state.update({
+          imageData: {
+            width,
+            height,
+            pixels: pixelArray,
+            totalPixels,
+            processor: proc,
+          },
+          artColorFrequency: proc.countColors(!state.paintTransparentPixels),
+          artTotalPixels: totalPixels,
+        });
       } catch (e) {
         console.warn('Could not rebuild processor from saved image data:', e);
       }

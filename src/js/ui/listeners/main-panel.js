@@ -1,7 +1,6 @@
 import { safeOn } from '../../utils/dom.js';
 import { handleUploadClick } from '../handlers/main-panel/upload-handler.js';
 import {
-  handleColorFilter,
   handleCooldownSliderInput,
   handleResizeClick,
   handleToggleOverlayClick,
@@ -20,6 +19,8 @@ import {
   handleStatsClick,
 } from '../handlers/main-panel/handle-header-buttons.js';
 import { handleSelectPositionClick } from './start-position-dialog.js';
+import { handleColorFilter } from '../handlers/handle-color-filter.js';
+import { onStateChange } from '../../core/state.js';
 
 export function setupMainPanelListeners() {
   const container = document.getElementById('wplace-image-bot-container');
@@ -34,7 +35,6 @@ export function setupMainPanelListeners() {
   const uploadBtn = container.querySelector('#uploadBtn');
   const resizeBtn = container.querySelector('#resizeBtn');
   const selectPosBtn = container.querySelector('#selectPosBtn');
-  // <!-- Control Section -->
   // <!-- Control Section -->
   const controlBtn = container.querySelector('#controlBtn');
   const colorFilterBtn = container.querySelector('#colorFilterBtn');
@@ -85,4 +85,15 @@ export function setupMainPanelListeners() {
   safeOn(statsBtn, 'click', handleStatsClick);
   safeOn(minimizeBtn, 'click', handleMinimizeClick);
   safeOn(compactBtn, 'click', handleCompactClick);
+
+  onStateChange(({ keys, state }) => {
+    if (keys.includes('artColorFrequency')) {
+      updateColorFilterButton(state);
+    }
+  });
+
+  function updateColorFilterButton(state) {
+    const hasColors = state.artColorFrequency && state.artColorFrequency.size > 0;
+    colorFilterBtn.disabled = !hasColors;
+  }
 }

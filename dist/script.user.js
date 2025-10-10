@@ -251,6 +251,9 @@
       this._eventEmitter.emit("colorSettingsChange", updates);
     }
   };
+  function onStateChange(callback) {
+    state._eventEmitter.on("stateChange", callback);
+  }
   function onColorSettingsChange(callback) {
     state._eventEmitter.on("colorSettingsChange", callback);
   }
@@ -293,7 +296,6 @@
         cssClass: "wplace-theme-neon"
       }
     },
-    // --- START: Color data from colour-converter.js ---
     COLOR_MAP: {
       0: { id: 0, name: "Transparent", rgb: { r: 222, g: 250, b: 206 } },
       //deface
@@ -3567,21 +3569,24 @@
         } else {
           throw new Error("Invalid pixels format: expected ArrayBuffer or Array");
         }
-        state.imageData = {
-          width,
-          height,
-          totalPixels,
-          pixels: pixelArray
-        };
         try {
           const proc = ImageProcessor.fromPixelData(
-            state.imageData.width,
-            state.imageData.height,
-            state.imageData.pixels,
+            width,
+            height,
+            pixelArray,
             !state.paintTransparentPixels
           );
-          state.imageData.processor = proc;
-          state.artColorFrequency = proc.countColors(!state.paintTransparentPixels);
+          state.update({
+            imageData: {
+              width,
+              height,
+              pixels: pixelArray,
+              totalPixels,
+              processor: proc
+            },
+            artColorFrequency: proc.countColors(!state.paintTransparentPixels),
+            artTotalPixels: totalPixels
+          });
         } catch (e) {
           console.warn("Could not rebuild processor from saved image data:", e);
         }
@@ -4266,19 +4271,21 @@ Total: ${savedData.state.artTotalPixels} pixels`
       for (const count of artColorFrequency.values()) {
         totalValidPixels += count;
       }
-      state.imageData = {
-        width,
-        height,
-        pixels,
-        totalPixels: totalValidPixels,
-        processor
-      };
-      state.artTotalPixels = totalValidPixels;
-      state.artColorFrequency = artColorFrequency;
-      state.totalPaintedPixels = 0;
-      state.resizeSettings = null;
-      state.resizeIgnoreMask = null;
-      state.originalImage = { dataUrl: imageSrc, width, height };
+      state.update({
+        imageData: {
+          width,
+          height,
+          pixels,
+          totalPixels: totalValidPixels,
+          processor
+        },
+        artColorFrequency,
+        artTotalPixels: totalValidPixels,
+        totalPaintedPixels: 0,
+        resizeSettings: null,
+        resizeIgnoreMask: null,
+        originalImage: { dataUrl: imageSrc, width, height }
+      });
       saveBotSettings();
       const imageBitmap = await createImageBitmap(processor.img);
       await overlayManager.setImage(imageBitmap);
@@ -7367,8 +7374,6 @@ Total: ${savedData.state.artTotalPixels} pixels`
     }
     updateControlButtonState();
   }
-  async function handleColorFilter() {
-  }
   async function handleToggleOverlayClick() {
     const isEnabled = await overlayManager.toggle();
     const btn = document.getElementById("toggleOverlayBtn");
@@ -7453,6 +7458,120 @@ Total: ${savedData.state.artTotalPixels} pixels`
     }
   }
 
+  // src/js/ui/components/create-color-filter-dialog.js
+  function createColorFilterDialog() {
+    const dialog = document.createElement("div");
+    dialog.id = "wplace-color-filter-dialog";
+    dialog.className = "wplace-dialog wplace-start-position-container";
+    dialog.style.display = "none";
+    dialog.innerHTML = `
+    <div class="wplace-header">
+      <div class="wplace-header-title">
+        <i class="fas fa-palette" style="color: var(--wplace-icon-palette);"></i>
+        <span data-i18n-key="colorFilter">Color Filter</span>
+      </div>
+      <div class="wplace-header-controls">
+        <button id="closeColorFilterDialogBtn" class="wplace-header-btn" title="${t("close")}">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <div class="wplace-content">
+      <!-- Sort controls (placeholder) -->
+      <div class="wplace-color-filter-sort" style="padding: 8px 0; display: flex; gap: 6px; align-items: center; font-size: 11px;">
+        <span>${t("sortBy")}:</span>
+        <button class="wplace-btn wplace-btn-primary" disabled style="padding: 4px 8px; font-size: 10px;">${t("frequency")}</button>
+        <button class="wplace-btn" disabled style="padding: 4px 8px; font-size: 10px;">${t("name")}</button>
+        <button class="wplace-btn" disabled style="padding: 4px 8px; font-size: 10px;">${t("id")}</button>
+      </div>
+
+      <!-- Color list -->
+      <div id="wplace-color-list" class="wplace-color-grid" style="grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; padding-top: 8px;">
+        <!-- populated dynamically -->
+      </div>
+
+      <div id="wplace-no-colors" class="wplace-colors-placeholder" style="display: none; padding: 20px; text-align: center; color: var(--wplace-text-muted); font-style: italic;">
+        ${t("noColorsDetected")}
+      </div>
+    </div>
+  `;
+    return dialog;
+  }
+
+  // src/js/ui/handlers/handle-color-filter.js
+  var colorFilterDialog = null;
+  async function handleColorFilter() {
+    if (!state.artColorFrequency || state.artColorFrequency.size === 0) {
+      showAlert(t("noColorsDetected"), "warning");
+      return;
+    }
+    if (!colorFilterDialog) {
+      colorFilterDialog = createColorFilterDialog();
+      document.body.appendChild(colorFilterDialog);
+      makeDraggable(colorFilterDialog);
+      const closeBtn = document.getElementById("closeColorFilterDialogBtn");
+      if (closeBtn) {
+        closeBtn.addEventListener("click", () => {
+          colorFilterDialog.style.display = "none";
+        });
+      }
+    }
+    const listContainer = document.getElementById("wplace-color-list");
+    const noColorsEl = document.getElementById("wplace-no-colors");
+    if (!listContainer || !noColorsEl) return;
+    listContainer.innerHTML = "";
+    const colorEntries = [];
+    for (const [colorKey, frequency] of state.artColorFrequency.entries()) {
+      const [r, g, b] = colorKey.split(",").map(Number);
+      if ([r, g, b].some(isNaN)) continue;
+      let matchedColor = null;
+      for (const [idStr, def] of Object.entries(APP_CONSTANTS.COLOR_MAP)) {
+        const id = Number(idStr);
+        if (def.rgb.r === r && def.rgb.g === g && def.rgb.b === b) {
+          matchedColor = { id, name: def.name, rgb: [r, g, b] };
+          break;
+        }
+      }
+      if (matchedColor) {
+        colorEntries.push({ ...matchedColor, frequency });
+      }
+    }
+    colorEntries.sort((a, b) => b.frequency - a.frequency);
+    if (colorEntries.length === 0) {
+      noColorsEl.style.display = "block";
+    } else {
+      noColorsEl.style.display = "none";
+      colorEntries.forEach((entry) => {
+        const rgbStr = `rgb(${entry.rgb.join(",")})`;
+        const item = document.createElement("div");
+        item.className = "wplace-color-item";
+        const swatch = document.createElement("div");
+        swatch.className = "wplace-color-swatch active";
+        swatch.style.backgroundColor = rgbStr;
+        swatch.style.width = "22px";
+        swatch.style.height = "22px";
+        swatch.style.cursor = "pointer";
+        swatch.addEventListener("click", (e) => {
+          e.preventDefault();
+        });
+        const nameEl = document.createElement("div");
+        nameEl.className = "wplace-color-item-name";
+        nameEl.title = `${entry.name} (${entry.frequency})`;
+        nameEl.textContent = entry.name;
+        const freqEl = document.createElement("div");
+        freqEl.style.fontSize = "10px";
+        freqEl.style.color = "var(--wplace-text-muted)";
+        freqEl.style.textAlign = "center";
+        freqEl.textContent = entry.frequency.toString();
+        item.appendChild(swatch);
+        item.appendChild(nameEl);
+        item.appendChild(freqEl);
+        listContainer.appendChild(item);
+      });
+    }
+    colorFilterDialog.style.display = "block";
+  }
+
   // src/js/ui/listeners/main-panel.js
   function setupMainPanelListeners() {
     const container = document.getElementById("wplace-image-bot-container");
@@ -7498,6 +7617,15 @@ Total: ${savedData.state.artTotalPixels} pixels`
     safeOn(statsBtn, "click", handleStatsClick);
     safeOn(minimizeBtn, "click", handleMinimizeClick);
     safeOn(compactBtn, "click", handleCompactClick);
+    onStateChange(({ keys, state: state2 }) => {
+      if (keys.includes("artColorFrequency")) {
+        updateColorFilterButton(state2);
+      }
+    });
+    function updateColorFilterButton(state2) {
+      const hasColors = state2.artColorFrequency && state2.artColorFrequency.size > 0;
+      colorFilterBtn.disabled = !hasColors;
+    }
   }
 
   // src/js/ui/panel.js

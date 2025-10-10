@@ -117,10 +117,6 @@ export async function handleTogglePainting() {
   updateControlButtonState();
 }
 
-export async function handleColorFilter() {
-  /* do nothing for now */
-}
-
 export async function handleToggleOverlayClick() {
   const isEnabled = await overlayManager.toggle();
   const btn = document.getElementById('toggleOverlayBtn');

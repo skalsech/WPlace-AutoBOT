@@ -1,9 +1,8 @@
 import { t } from '../../i18n/i18.js';
 
-// todo add new button to start position dialog to enable interactive coords choose when editing start position
+// todo add new button to dialog to enable interactive coords choose when editing start position
 /**
  * Creates a draggable dialog for setting starting position (region + pixel).
- * Fully styled to match wplace UI conventions.
  */
 export function createStartPositionDialog() {
   const dialog = document.createElement('div');

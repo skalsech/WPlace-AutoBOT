@@ -1,3 +1,5 @@
+// todo add currently painted color (if mode is by color freq)
+
 export function createStatsContainer() {
   const statsContainer = document.createElement('div');
   statsContainer.id = 'wplace-stats-container';

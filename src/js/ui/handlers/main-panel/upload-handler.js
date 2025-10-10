@@ -7,7 +7,6 @@ import { createImageUploader } from '../../../utils/files.js';
 import { ImageProcessor } from '../../../core/image-processor.js';
 import { overlayManager } from '../../../tiles/overlay-manager.js';
 import { updateDataButtons } from './handle-data-buttons.js';
-import { wplaceService } from '../../../core/api-service.js';
 
 export async function handleUploadClick() {
   await updateStats(true);
@@ -41,20 +40,22 @@ export async function handleUploadClick() {
       totalValidPixels += count;
     }
 
-    state.imageData = {
-      width,
-      height,
-      pixels,
-      totalPixels: totalValidPixels,
-      processor,
-    };
-    state.artTotalPixels = totalValidPixels;
-    state.artColorFrequency = artColorFrequency;
-    state.totalPaintedPixels = 0;
+    state.update({
+      imageData: {
+        width,
+        height,
+        pixels,
+        totalPixels: totalValidPixels,
+        processor,
+      },
+      artColorFrequency,
+      artTotalPixels: totalValidPixels,
+      totalPaintedPixels: 0,
+      resizeSettings: null,
+      resizeIgnoreMask: null,
+      originalImage: { dataUrl: imageSrc, width, height },
+    });
 
-    state.resizeSettings = null;
-    state.resizeIgnoreMask = null;
-    state.originalImage = { dataUrl: imageSrc, width, height };
     saveBotSettings();
 
     const imageBitmap = await createImageBitmap(processor.img);

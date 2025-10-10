@@ -20,7 +20,6 @@ export const APP_CONSTANTS = {
       cssClass: 'wplace-theme-neon',
     },
   },
-  // --- START: Color data from colour-converter.js ---
   COLOR_MAP: {
     0: { id: 0, name: 'Transparent', rgb: { r: 222, g: 250, b: 206 } }, //deface
     1: { id: 1, name: 'Black', rgb: { r: 0, g: 0, b: 0 } },
