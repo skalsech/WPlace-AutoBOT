@@ -1,6 +1,5 @@
 import { state } from '../../core/state.js';
 
-// todo merge start/stop button to 1. then update of all btn logic is needed
 export function createMainContainer() {
   const container = document.createElement('div');
   container.id = 'wplace-image-bot-container';
@@ -62,20 +61,20 @@ export function createMainContainer() {
         <div class="wplace-section-title"><span data-i18n-key="paintingControl"></span></div>
           <div class="wplace-controls">
             <div class="wplace-row">
-              <button id="startBtn" class="wplace-btn wplace-btn-start" disabled>
+              <button id="controlBtn" class="wplace-btn wplace-btn-start" disabled>
                 <i class="fas fa-play"></i>
-              <span data-i18n-key="startPainting"></span>
+                <span data-i18n-key="startPainting"></span>
               </button>
-              <button id="stopBtn" class="wplace-btn wplace-btn-stop" disabled>
-                <i class="fas fa-stop"></i>
-              <span data-i18n-key="stopPainting"></span>
+              <button id="colorFilterBtn" class="wplace-btn wplace-btn-filter" disabled>
+                <i class="fas fa-sliders-h"></i>
+                <span data-i18n-key="colorFilter"></span>
               </button>
             </div>
             <div class="wplace-row single">
-                <button id="toggleOverlayBtn" class="wplace-btn wplace-btn-overlay" disabled>
-                    <i class="fas fa-eye"></i>
-              <span data-i18n-key="toggleOverlay"></span>
-                </button>
+              <button id="toggleOverlayBtn" class="wplace-btn wplace-btn-overlay" disabled>
+                <i class="fas fa-eye"></i>
+                <span data-i18n-key="toggleOverlay"></span>
+              </button>
             </div>
           </div>
         </div>

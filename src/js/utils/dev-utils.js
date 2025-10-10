@@ -8,7 +8,7 @@ export function createDevReloadButton() {
   const button = document.createElement('button');
   button.id = 'dev-reload-btn';
   button.className = 'wplace-header-btn';
-  button.title = 'Click: Local Dev Server | Shift+Click: GitHub (cached)';
+  button.title = 'Click: Local Dev Server | Alt+Click: GitHub (cached)';
 
   const icon = document.createElement('i');
   icon.className = 'fas fa-sync-alt';
@@ -17,13 +17,13 @@ export function createDevReloadButton() {
   button.onclick = (e) => {
     e.stopPropagation();
 
-    const isShiftPressed = e.shiftKey;
+    const isAltPressed = e.altKey;
 
     const localUrl = 'http://127.0.0.1:8000/dist/script.user.js';
     const githubUrl =
       'https://github.com/skalsech/WPlace-AutoBOT/raw/custom-main/dist/script.user.js';
 
-    const targetUrl = isShiftPressed ? githubUrl : localUrl;
+    const targetUrl = isAltPressed ? githubUrl : localUrl;
 
     button.classList.add('animate-spin');
     setTimeout(() => button.classList.remove('animate-spin'), 500);
@@ -39,7 +39,7 @@ export function createDevReloadButton() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         document.removeEventListener('visibilitychange', handleVisibilityChange);
-        console.log(`🔄 Reloading page after ${isShiftPressed ? 'GitHub' : 'local'} update...`);
+        console.log(`🔄 Reloading page after ${isAltPressed ? 'GitHub' : 'local'} update...`);
         location.reload();
       }
     };

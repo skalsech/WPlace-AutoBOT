@@ -1,13 +1,13 @@
 import { safeOn } from '../../utils/dom.js';
 import { handleUploadClick } from '../handlers/main-panel/upload-handler.js';
 import {
+  handleColorFilter,
   handleCooldownSliderInput,
   handleResizeClick,
-  handleStopClick,
   handleToggleOverlayClick,
+  handleTogglePainting,
 } from '../handlers/main-panel/main-panel-handler.js';
 import { handleSelectPositionClick } from '../handlers/main-panel/handle-select-position-click.js';
-import { handleStartPainting } from '../handlers/main-panel/handle-start-painting.js';
 import {
   handleLoadClick,
   handleLoadFromFileClick,
@@ -35,8 +35,9 @@ export function setupMainPanelListeners() {
   const resizeBtn = container.querySelector('#resizeBtn');
   const selectPosBtn = container.querySelector('#selectPosBtn');
   // <!-- Control Section -->
-  const startBtn = container.querySelector('#startBtn');
-  const stopBtn = container.querySelector('#stopBtn');
+  // <!-- Control Section -->
+  const controlBtn = container.querySelector('#controlBtn');
+  const colorFilterBtn = container.querySelector('#colorFilterBtn');
   const toggleOverlayBtn = container.querySelector('#toggleOverlayBtn');
   // <!-- Cooldown Section -->
   const cooldownSlider = container.querySelector('#cooldownSlider');
@@ -66,8 +67,8 @@ export function setupMainPanelListeners() {
   safeOn(selectPosBtn, 'click', handleSelectPositionClick);
 
   // --- Control Section ---
-  safeOn(startBtn, 'click', handleStartPainting);
-  safeOn(stopBtn, 'click', handleStopClick);
+  safeOn(controlBtn, 'click', handleTogglePainting);
+  safeOn(colorFilterBtn, 'click', handleColorFilter);
   safeOn(toggleOverlayBtn, 'click', handleToggleOverlayClick);
 
   // --- Cooldown Section ---

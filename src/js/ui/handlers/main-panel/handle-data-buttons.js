@@ -73,9 +73,9 @@ async function handleProgressLoadSuccess(savedData, source) {
     if (uploadBtn) uploadBtn.disabled = false;
   }
 
-  const startBtn = document.getElementById('startBtn');
+  const controlBtn = document.getElementById('controlBtn');
   if (state.imageLoaded && state.startPosition && state.region && state.hasAvailableColors) {
-    if (startBtn) startBtn.disabled = false;
+    if (controlBtn) controlBtn.disabled = false;
   }
 }
 

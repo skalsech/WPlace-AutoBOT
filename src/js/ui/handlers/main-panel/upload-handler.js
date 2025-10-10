@@ -76,9 +76,9 @@ export async function handleUploadClick() {
     const saveBtn = document.getElementById('saveBtn');
     if (saveBtn) saveBtn.disabled = false;
 
-    const startBtn = document.getElementById('startBtn');
-    if (state.startPosition && startBtn) {
-      startBtn.disabled = false;
+    const controlBtn = document.getElementById('controlBtn');
+    if (state.startPosition && controlBtn) {
+      controlBtn.disabled = false;
     }
 
     await updateStats();

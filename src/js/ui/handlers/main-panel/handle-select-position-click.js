@@ -11,8 +11,8 @@ export function handleSelectPositionClick() {
   state.startPosition = null;
   state.region = null;
 
-  const startBtn = document.getElementById('startBtn');
-  if (startBtn) startBtn.disabled = true;
+  const controlBtn = document.getElementById('controlBtn');
+  if (controlBtn) controlBtn.disabled = true;
 
   showAlert(t('selectPositionAlert'), 'info');
   updateUI('waitingPosition', 'default');
@@ -47,8 +47,8 @@ export function handleSelectPositionClick() {
             await overlayManager.setPosition(state.startPosition, state.region);
 
             if (state.imageLoaded) {
-              const startBtn = document.getElementById('startBtn');
-              if (startBtn) startBtn.disabled = false;
+              const controlBtn = document.getElementById('controlBtn');
+              if (controlBtn) controlBtn.disabled = false;
             }
 
             window.fetch = originalFetch;

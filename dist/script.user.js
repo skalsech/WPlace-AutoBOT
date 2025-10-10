@@ -845,20 +845,20 @@
         <div class="wplace-section-title"><span data-i18n-key="paintingControl"></span></div>
           <div class="wplace-controls">
             <div class="wplace-row">
-              <button id="startBtn" class="wplace-btn wplace-btn-start" disabled>
+              <button id="controlBtn" class="wplace-btn wplace-btn-start" disabled>
                 <i class="fas fa-play"></i>
-              <span data-i18n-key="startPainting"></span>
+                <span data-i18n-key="startPainting"></span>
               </button>
-              <button id="stopBtn" class="wplace-btn wplace-btn-stop" disabled>
-                <i class="fas fa-stop"></i>
-              <span data-i18n-key="stopPainting"></span>
+              <button id="colorFilterBtn" class="wplace-btn wplace-btn-filter" disabled>
+                <i class="fas fa-sliders-h"></i>
+                <span data-i18n-key="colorFilter"></span>
               </button>
             </div>
             <div class="wplace-row single">
-                <button id="toggleOverlayBtn" class="wplace-btn wplace-btn-overlay" disabled>
-                    <i class="fas fa-eye"></i>
-              <span data-i18n-key="toggleOverlay"></span>
-                </button>
+              <button id="toggleOverlayBtn" class="wplace-btn wplace-btn-overlay" disabled>
+                <i class="fas fa-eye"></i>
+                <span data-i18n-key="toggleOverlay"></span>
+              </button>
             </div>
           </div>
         </div>
@@ -3918,9 +3918,9 @@
     } else {
       if (uploadBtn) uploadBtn.disabled = false;
     }
-    const startBtn = document.getElementById("startBtn");
+    const controlBtn = document.getElementById("controlBtn");
     if (state.imageLoaded && state.startPosition && state.region && state.hasAvailableColors) {
-      if (startBtn) startBtn.disabled = false;
+      if (controlBtn) controlBtn.disabled = false;
     }
   }
   async function handleLoadClick(needConfirm = false) {
@@ -4021,9 +4021,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
       }
       const saveBtn = document.getElementById("saveBtn");
       if (saveBtn) saveBtn.disabled = false;
-      const startBtn = document.getElementById("startBtn");
-      if (state.startPosition && startBtn) {
-        startBtn.disabled = false;
+      const controlBtn = document.getElementById("controlBtn");
+      if (state.startPosition && controlBtn) {
+        controlBtn.disabled = false;
       }
       await updateStats();
       updateDataButtons();
@@ -5590,108 +5590,6 @@ Total: ${savedData.state.artTotalPixels} pixels`
     _resizeDialogCleanup = null;
   }
 
-  // src/js/ui/handlers/main-panel/main-panel-handler.js
-  function handleResizeClick(e) {
-    e?.preventDefault();
-    if (state.imageLoaded && state.imageData.processor && state.hasAvailableColors) {
-      const resizeContainer2 = document.querySelector(".resize-container");
-      const resizeOverlay2 = document.querySelector(".resize-overlay");
-      showResizeDialog(state.imageData.processor, resizeContainer2, resizeOverlay2);
-    } else if (!state.hasAvailableColors) {
-      showAlert(t("uploadImageFirstColors"), "warning");
-    }
-  }
-  async function handleStopClick() {
-    state.stopFlag = true;
-    state.running = false;
-    const stopBtn = document.getElementById("stopBtn");
-    if (stopBtn) stopBtn.disabled = true;
-    updateUI("paintingStoppedByUser", "warning");
-    if (state.imageLoaded && state.totalPaintedPixels > 0) {
-      await saveProgress();
-      showAlert(t("autoSaved"), "success");
-    }
-  }
-  async function handleToggleOverlayClick() {
-    const isEnabled = await overlayManager.toggle();
-    const btn = document.getElementById("toggleOverlayBtn");
-    if (btn) {
-      btn.classList.toggle("active", isEnabled);
-      btn.setAttribute("aria-pressed", isEnabled ? "true" : "false");
-    }
-    showAlert(isEnabled ? t("overlayEnabled") : t("overlayDisabled"), "info");
-  }
-  function handleCooldownSliderInput(e) {
-    const threshold = parseInt(e.target.value, 10);
-    state.cooldownChargeThreshold = threshold;
-    const cooldownValue = document.getElementById("cooldownValue");
-    if (cooldownValue) {
-      cooldownValue.textContent = threshold.toString();
-    }
-    saveBotSettings();
-    NotificationManager.resetEdgeTracking();
-  }
-
-  // src/js/ui/handlers/main-panel/handle-select-position-click.js
-  function handleSelectPositionClick() {
-    if (state.selectingPosition) return;
-    state.selectingPosition = true;
-    state.startPosition = null;
-    state.region = null;
-    const startBtn = document.getElementById("startBtn");
-    if (startBtn) startBtn.disabled = true;
-    showAlert(t("selectPositionAlert"), "info");
-    updateUI("waitingPosition", "default");
-    const tempFetch = async (url, options) => {
-      if (typeof url === "string" && url.includes("https://backend.wplace.live/s0/pixel/") && options?.method?.toUpperCase() === "POST") {
-        try {
-          const response = await originalFetch(url, options);
-          const clonedResponse = response.clone();
-          const data = await clonedResponse.json();
-          if (data?.painted === 1) {
-            const regionMatch = url.match(/\/pixel\/(\d+)\/(\d+)/);
-            if (regionMatch && regionMatch.length >= 3) {
-              state.region = {
-                x: Number.parseInt(regionMatch[1]),
-                y: Number.parseInt(regionMatch[2])
-              };
-            }
-            const payload = JSON.parse(options.body);
-            if (payload?.coords && Array.isArray(payload.coords)) {
-              state.startPosition = {
-                x: payload.coords[0],
-                y: payload.coords[1]
-              };
-              await overlayManager.setPosition(state.startPosition, state.region);
-              if (state.imageLoaded) {
-                const startBtn2 = document.getElementById("startBtn");
-                if (startBtn2) startBtn2.disabled = false;
-              }
-              window.fetch = originalFetch;
-              state.selectingPosition = false;
-              updateUI("positionSet", "success");
-            }
-          }
-          return response;
-        } catch (error) {
-          console.error("Fetch hook error:", error);
-          return originalFetch(url, options);
-        }
-      }
-      return originalFetch(url, options);
-    };
-    const originalFetch = window.fetch;
-    window.fetch = tempFetch;
-    setTimeout(() => {
-      if (state.selectingPosition) {
-        window.fetch = originalFetch;
-        state.selectingPosition = false;
-        updateUI("positionTimeout", "error");
-        showAlert(t("positionTimeout"), "error");
-      }
-    }, 12e4);
-  }
-
   // src/js/security/turnstile.js
   var turnstileLoaded = false;
   var _turnstileContainer = null;
@@ -6022,16 +5920,16 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const button = document.createElement("button");
     button.id = "dev-reload-btn";
     button.className = "wplace-header-btn";
-    button.title = "Click: Local Dev Server | Shift+Click: GitHub (cached)";
+    button.title = "Click: Local Dev Server | Alt+Click: GitHub (cached)";
     const icon = document.createElement("i");
     icon.className = "fas fa-sync-alt";
     button.appendChild(icon);
     button.onclick = (e) => {
       e.stopPropagation();
-      const isShiftPressed = e.shiftKey;
+      const isAltPressed = e.altKey;
       const localUrl = "http://127.0.0.1:8000/dist/script.user.js";
       const githubUrl = "https://github.com/skalsech/WPlace-AutoBOT/raw/custom-main/dist/script.user.js";
-      const targetUrl = isShiftPressed ? githubUrl : localUrl;
+      const targetUrl = isAltPressed ? githubUrl : localUrl;
       button.classList.add("animate-spin");
       setTimeout(() => button.classList.remove("animate-spin"), 500);
       const updateTab = window.open(targetUrl, "_blank");
@@ -6043,7 +5941,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
       const handleVisibilityChange = () => {
         if (document.visibilityState === "visible") {
           document.removeEventListener("visibilitychange", handleVisibilityChange);
-          console.log(`\u{1F504} Reloading page after ${isShiftPressed ? "GitHub" : "local"} update...`);
+          console.log(`\u{1F504} Reloading page after ${isAltPressed ? "GitHub" : "local"} update...`);
           location.reload();
         }
       };
@@ -7104,7 +7002,50 @@ Total: ${savedData.state.artTotalPixels} pixels`
     return Math.min(targetBatchSize, maxAllowed);
   }
 
-  // src/js/ui/handlers/main-panel/handle-start-painting.js
+  // src/js/ui/handlers/main-panel/main-panel-handler.js
+  function handleResizeClick(e) {
+    e?.preventDefault();
+    if (state.imageLoaded && state.imageData.processor && state.hasAvailableColors) {
+      const resizeContainer2 = document.querySelector(".resize-container");
+      const resizeOverlay2 = document.querySelector(".resize-overlay");
+      showResizeDialog(state.imageData.processor, resizeContainer2, resizeOverlay2);
+    } else if (!state.hasAvailableColors) {
+      showAlert(t("uploadImageFirstColors"), "warning");
+    }
+  }
+  async function handleStopClick() {
+    state.stopFlag = true;
+    state.running = false;
+    updateControlButtonState();
+    updateUI("paintingStoppedByUser", "warning");
+    if (state.imageLoaded && state.totalPaintedPixels > 0) {
+      await saveProgress();
+      showAlert(t("autoSaved"), "success");
+    }
+  }
+  function updateControlButtonState() {
+    const controlBtn = document.getElementById("controlBtn");
+    if (!state.imageLoaded || !state.startPosition || !state.region) {
+      controlBtn.disabled = true;
+      return;
+    }
+    controlBtn.disabled = false;
+    if (state.running) {
+      controlBtn.classList.remove("wplace-btn-start");
+      controlBtn.classList.add("wplace-btn-stop");
+      controlBtn.innerHTML = `
+      <i class="fas fa-stop"></i>
+      <span data-i18n-key="stopPainting">${t("stopPainting")}</span>
+    `;
+    } else {
+      controlBtn.classList.remove("wplace-btn-stop");
+      controlBtn.classList.add("wplace-btn-start");
+      controlBtn.innerHTML = `
+      <i class="fas fa-play"></i>
+      <span data-i18n-key="startPainting">${t("startPainting")}</span>
+    `;
+    }
+  }
   async function handleStartPainting() {
     if (!state.imageLoaded || !state.startPosition || !state.region) {
       updateUI("missingRequirements", "error");
@@ -7114,15 +7055,12 @@ Total: ${savedData.state.artTotalPixels} pixels`
     if (!getTurnstileToken()) return;
     state.running = true;
     state.stopFlag = false;
-    const startBtn = document.getElementById("startBtn");
-    const stopBtn = document.getElementById("stopBtn");
+    updateControlButtonState();
     const uploadBtn = document.getElementById("uploadBtn");
     const selectPosBtn = document.getElementById("selectPosBtn");
     const resizeBtn = document.getElementById("resizeBtn");
     const saveBtn = document.getElementById("saveBtn");
     const toggleOverlayBtn2 = document.getElementById("toggleOverlayBtn");
-    if (startBtn) startBtn.disabled = true;
-    if (stopBtn) stopBtn.disabled = false;
     if (uploadBtn) uploadBtn.disabled = true;
     if (selectPosBtn) selectPosBtn.disabled = true;
     if (resizeBtn) resizeBtn.disabled = true;
@@ -7136,18 +7074,105 @@ Total: ${savedData.state.artTotalPixels} pixels`
       updateUI("paintingError", "error");
     } finally {
       state.running = false;
-      if (stopBtn) stopBtn.disabled = true;
+      updateControlButtonState();
       if (saveBtn) saveBtn.disabled = false;
-      if (state.stopFlag) {
-        if (startBtn) startBtn.disabled = false;
-      } else {
-        if (startBtn) startBtn.disabled = true;
+      if (!state.stopFlag) {
         if (uploadBtn) uploadBtn.disabled = false;
         if (selectPosBtn) selectPosBtn.disabled = false;
         if (resizeBtn) resizeBtn.disabled = false;
       }
       if (toggleOverlayBtn2) toggleOverlayBtn2.disabled = false;
     }
+  }
+  async function handleTogglePainting() {
+    const isRunning = state.running;
+    if (isRunning) {
+      await handleStopClick();
+    } else {
+      await handleStartPainting();
+    }
+    updateControlButtonState();
+  }
+  async function handleColorFilter() {
+  }
+  async function handleToggleOverlayClick() {
+    const isEnabled = await overlayManager.toggle();
+    const btn = document.getElementById("toggleOverlayBtn");
+    if (btn) {
+      btn.classList.toggle("active", isEnabled);
+      btn.setAttribute("aria-pressed", isEnabled ? "true" : "false");
+    }
+    showAlert(isEnabled ? t("overlayEnabled") : t("overlayDisabled"), "info");
+  }
+  function handleCooldownSliderInput(e) {
+    const threshold = parseInt(e.target.value, 10);
+    state.cooldownChargeThreshold = threshold;
+    const cooldownValue = document.getElementById("cooldownValue");
+    if (cooldownValue) {
+      cooldownValue.textContent = threshold.toString();
+    }
+    saveBotSettings();
+    NotificationManager.resetEdgeTracking();
+  }
+
+  // src/js/ui/handlers/main-panel/handle-select-position-click.js
+  function handleSelectPositionClick() {
+    if (state.selectingPosition) return;
+    state.selectingPosition = true;
+    state.startPosition = null;
+    state.region = null;
+    const controlBtn = document.getElementById("controlBtn");
+    if (controlBtn) controlBtn.disabled = true;
+    showAlert(t("selectPositionAlert"), "info");
+    updateUI("waitingPosition", "default");
+    const tempFetch = async (url, options) => {
+      if (typeof url === "string" && url.includes("https://backend.wplace.live/s0/pixel/") && options?.method?.toUpperCase() === "POST") {
+        try {
+          const response = await originalFetch(url, options);
+          const clonedResponse = response.clone();
+          const data = await clonedResponse.json();
+          if (data?.painted === 1) {
+            const regionMatch = url.match(/\/pixel\/(\d+)\/(\d+)/);
+            if (regionMatch && regionMatch.length >= 3) {
+              state.region = {
+                x: Number.parseInt(regionMatch[1]),
+                y: Number.parseInt(regionMatch[2])
+              };
+            }
+            const payload = JSON.parse(options.body);
+            if (payload?.coords && Array.isArray(payload.coords)) {
+              state.startPosition = {
+                x: payload.coords[0],
+                y: payload.coords[1]
+              };
+              await overlayManager.setPosition(state.startPosition, state.region);
+              if (state.imageLoaded) {
+                const controlBtn2 = document.getElementById("controlBtn");
+                if (controlBtn2) controlBtn2.disabled = false;
+              }
+              window.fetch = originalFetch;
+              state.selectingPosition = false;
+              updateUI("positionSet", "success");
+            }
+          }
+          return response;
+        } catch (error) {
+          console.error("Fetch hook error:", error);
+          return originalFetch(url, options);
+        }
+      }
+      return originalFetch(url, options);
+    };
+    const originalFetch = window.fetch;
+    window.fetch = tempFetch;
+    setTimeout(() => {
+      if (state.selectingPosition) {
+        window.fetch = originalFetch;
+        state.selectingPosition = false;
+        updateUI("positionTimeout", "error");
+        showAlert(t("positionTimeout"), "error");
+      }
+    }, 12e4);
   }
 
   // src/js/ui/handlers/main-panel/handle-header-buttons.js
@@ -7225,8 +7250,8 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const uploadBtn = container.querySelector("#uploadBtn");
     const resizeBtn = container.querySelector("#resizeBtn");
     const selectPosBtn = container.querySelector("#selectPosBtn");
-    const startBtn = container.querySelector("#startBtn");
-    const stopBtn = container.querySelector("#stopBtn");
+    const controlBtn = container.querySelector("#controlBtn");
+    const colorFilterBtn = container.querySelector("#colorFilterBtn");
     const toggleOverlayBtn2 = container.querySelector("#toggleOverlayBtn");
     const cooldownSlider = container.querySelector("#cooldownSlider");
     const saveBtn = container.querySelector("#saveBtn");
@@ -7247,8 +7272,8 @@ Total: ${savedData.state.artTotalPixels} pixels`
     safeOn(uploadBtn, "click", handleUploadClick);
     safeOn(resizeBtn, "click", handleResizeClick);
     safeOn(selectPosBtn, "click", handleSelectPositionClick);
-    safeOn(startBtn, "click", handleStartPainting);
-    safeOn(stopBtn, "click", handleStopClick);
+    safeOn(controlBtn, "click", handleTogglePainting);
+    safeOn(colorFilterBtn, "click", handleColorFilter);
     safeOn(toggleOverlayBtn2, "click", handleToggleOverlayClick);
     safeOn(cooldownSlider, "input", handleCooldownSliderInput);
     safeOn(saveBtn, "click", handleSaveClick);
