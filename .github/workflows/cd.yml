@@ -1,8 +1,8 @@
-name: Pages – aggregate all branches
+name: Pages – aggregate approved branches
 
 on:
   push:
-    branches: ["**"]
+    branches: ["custom-main"]
   workflow_dispatch:
 
 permissions:
@@ -60,11 +60,9 @@ jobs:
             "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'><text y='14' font-size='14'>🚀</text></svg>" \
             > public/favicon.svg
 
-          # List remote branches
-          mapfile -t BRANCHES < <(
-            git ls-remote --heads origin | awk '{print $2}' \
-            | sed 's@refs/heads/@@'
-          )
+          # List of approved branches to include
+          # Add or remove branch names here as needed
+          APPROVED_BRANCHES=("custom-main")  # Add more branches here if needed
 
           # Landing page (no globals except window.__branches)
           cat > public/index.html <<'HTML'
@@ -127,8 +125,8 @@ jobs:
             } > "$DIR/index.html"
           }
 
-          # Build per-branch trees and indexes
-          for BR in "${BRANCHES[@]}"; do
+          # Build per-approved-branch trees and indexes
+          for BR in "${APPROVED_BRANCHES[@]}"; do
             echo "Building branch: $BR"
             SAFE="$(echo "$BR" | tr '/:@ ' '----' | sed 's/[^A-Za-z0-9._-]/-/g')"
             mkdir -p "public/$SAFE"
@@ -185,6 +183,7 @@ jobs:
             })();
           </script>
           HTML
+
           # minification
           find public -type f -name '*.js' -print0 | while IFS= read -r -d '' file; do
             if ! terser "$file" -c -m -o "$file"; then
