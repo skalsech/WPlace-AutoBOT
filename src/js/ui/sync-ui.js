@@ -1,5 +1,5 @@
 import { state } from '../core/state.js';
-import { updateCoordinateUI } from './coordinate-ui.js';
+import { updateCoordinateUI } from './handlers/settings/coordinate-ui.js';
 
 export const UI_BINDINGS = [
   // Coordinate Mode

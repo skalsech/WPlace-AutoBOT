@@ -3,7 +3,7 @@ import { state } from '../src/js/core/state.js';
 import { syncSettingsUI, UI_BINDINGS } from '../src/js/ui/sync-ui.js';
 import { createSettingsContainer } from '../src/js/ui/components/create-settings.js';
 import { createResizeContainer } from '../src/js/ui/components/create-resize.js';
-import { updateCoordinateUI } from '../src/js/ui/coordinate-ui.js';
+import { updateCoordinateUI } from '../src/js/ui/handlers/settings/coordinate-ui.js';
 import { cloneDeep } from 'lodash';
 import { handleCoordinateModeChange } from '../src/js/ui/handlers/settings/coordinate-handler.js';
 

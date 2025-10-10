@@ -81,9 +81,13 @@ export const handleSpeedSliderInput = createSliderHandler(
   (speed) => `${speed}`
 );
 
-let pendingMin = state.randomBatchMin;
-let pendingMax = state.randomBatchMax;
+let pendingMin, pendingMax;
 let lastEdited = 'max';
+
+export function resetPendingBatchRangeToState() {
+  pendingMin = state.randomBatchMin;
+  pendingMax = state.randomBatchMax;
+}
 
 function updateUIOnly() {
   const minInput = document.querySelector('#randomBatchMin');
@@ -108,21 +112,41 @@ const applyBatchRangeSettings = debounce(() => {
 }, 350);
 
 export function handleRandomBatchMinInput(e) {
-  const value = parseInt(e.target.value, 10);
-  if (isNaN(value) || value < 1 || value > 1000) return;
+  resetPendingBatchRangeToState();
+  const input = e.target;
+  const rawValue = input.value;
+  const numValue = parseInt(rawValue, 10);
 
-  pendingMin = value;
-  lastEdited = 'min';
-  applyBatchRangeSettings();
+  if (!isNaN(numValue)) {
+    const clamped = Math.min(Math.max(1, numValue), 1000);
+    pendingMin = clamped;
+    lastEdited = 'min';
+    applyBatchRangeSettings();
+    if (clamped !== numValue) {
+      input.value = clamped;
+    }
+  } else {
+    input.value = state.randomBatchMin;
+  }
 }
 
 export function handleRandomBatchMaxInput(e) {
-  const value = parseInt(e.target.value, 10);
-  if (isNaN(value) || value < 1 || value > 1000) return;
+  resetPendingBatchRangeToState();
+  const input = e.target;
+  const rawValue = input.value;
+  const numValue = parseInt(rawValue, 10);
 
-  pendingMax = value;
-  lastEdited = 'max';
-  applyBatchRangeSettings();
+  if (!isNaN(numValue)) {
+    const clamped = Math.min(Math.max(1, numValue), 1000);
+    pendingMax = clamped;
+    lastEdited = 'max';
+    applyBatchRangeSettings();
+    if (clamped !== numValue) {
+      input.value = clamped;
+    }
+  } else {
+    input.value = state.randomBatchMax;
+  }
 }
 
 export const handlePaintSpeedToggle = createCheckboxHandler(

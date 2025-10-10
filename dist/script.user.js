@@ -2764,7 +2764,7 @@
     return result;
   }
 
-  // src/js/ui/coordinate-ui.js
+  // src/js/ui/handlers/settings/coordinate-ui.js
   function updateCoordinateUI({ mode, directionControls, snakeControls, blockControls }) {
     const isLinear = mode === "rows" || mode === "columns";
     const isBlock = mode === "blocks" || mode === "shuffle-blocks";
@@ -3673,9 +3673,13 @@
     "#speedValue",
     (speed) => `${speed}`
   );
-  var pendingMin = state.randomBatchMin;
-  var pendingMax = state.randomBatchMax;
+  var pendingMin;
+  var pendingMax;
   var lastEdited = "max";
+  function resetPendingBatchRangeToState() {
+    pendingMin = state.randomBatchMin;
+    pendingMax = state.randomBatchMax;
+  }
   function updateUIOnly() {
     const minInput = document.querySelector("#randomBatchMin");
     const maxInput = document.querySelector("#randomBatchMax");
@@ -3694,18 +3698,38 @@
     updateUIOnly();
   }, 350);
   function handleRandomBatchMinInput(e) {
-    const value = parseInt(e.target.value, 10);
-    if (isNaN(value) || value < 1 || value > 1e3) return;
-    pendingMin = value;
-    lastEdited = "min";
-    applyBatchRangeSettings();
+    resetPendingBatchRangeToState();
+    const input = e.target;
+    const rawValue = input.value;
+    const numValue = parseInt(rawValue, 10);
+    if (!isNaN(numValue)) {
+      const clamped = Math.min(Math.max(1, numValue), 1e3);
+      pendingMin = clamped;
+      lastEdited = "min";
+      applyBatchRangeSettings();
+      if (clamped !== numValue) {
+        input.value = clamped;
+      }
+    } else {
+      input.value = state.randomBatchMin;
+    }
   }
   function handleRandomBatchMaxInput(e) {
-    const value = parseInt(e.target.value, 10);
-    if (isNaN(value) || value < 1 || value > 1e3) return;
-    pendingMax = value;
-    lastEdited = "max";
-    applyBatchRangeSettings();
+    resetPendingBatchRangeToState();
+    const input = e.target;
+    const rawValue = input.value;
+    const numValue = parseInt(rawValue, 10);
+    if (!isNaN(numValue)) {
+      const clamped = Math.min(Math.max(1, numValue), 1e3);
+      pendingMax = clamped;
+      lastEdited = "max";
+      applyBatchRangeSettings();
+      if (clamped !== numValue) {
+        input.value = clamped;
+      }
+    } else {
+      input.value = state.randomBatchMax;
+    }
   }
   var handlePaintSpeedToggle = createCheckboxHandler(
     "paintingSpeedLimitEnabled",

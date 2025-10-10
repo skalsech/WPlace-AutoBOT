@@ -2,7 +2,7 @@ import { state } from '../../../core/state.js';
 import { saveBotSettings } from '../../../storage/settings-manager.js';
 import { showAlert } from '../../alerts.js';
 import { t } from '../../../i18n/i18.js';
-import { updateCoordinateUI } from '../../coordinate-ui.js';
+import { updateCoordinateUI } from './coordinate-ui.js';
 
 export function handleCoordinateModeChange(e) {
   state.coordinateMode = e.target.value;
