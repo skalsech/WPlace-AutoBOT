@@ -4,9 +4,9 @@ import { cleanupTurnstile } from './security/turnstile.js';
 import { setupFetchInterceptor } from './core/fetch-interceptor.js';
 import { initPawtect } from './security/wasm-token.js';
 import { loadAllLibraries } from './lib/load-all.js';
-import { handleLoadClick } from './ui/handlers/main-panel/handle-data-buttons.js';
 import { wplaceService } from './core/api-service.js';
 import { showAlert } from './ui/alerts.js';
+import { handleLoadClick } from './ui/handlers/main-panel/handle-data-buttons.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   loadAllLibraries().then(() => {

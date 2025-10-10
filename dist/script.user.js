@@ -2312,251 +2312,160 @@
     }
   };
 
-  // src/js/storage/progress-manager.js
-  function buildProgressData() {
-    return {
-      timestamp: Date.now(),
-      version: "2.4",
-      state: {
-        artTotalPixels: state.artTotalPixels,
-        startPosition: state.startPosition,
-        region: state.region
-      },
-      imageData: state.imageLoaded ? {
-        width: state.imageData.width,
-        height: state.imageData.height,
-        totalPixels: state.imageData.totalPixels,
-        pixels: state.imageData.pixels.buffer
-      } : null
-    };
-  }
-  function migrateProgress(saved) {
-    if (!saved) return null;
-    let data = saved;
-    const ver = data.version;
-    if (!ver || ver === "1" || ver === "1.0" || ver === "1.1") {
-      data = migrateProgressToV2(data);
-    }
-    if (data.version === "2" || data.version === "2.0") {
-      data = migrateProgressToV21(data);
-    }
-    if (data.version === "2.1") {
-      data = migrateProgressToV22(data);
-    }
-    if (data.version === "2.2") {
-      data = migrateProgressToV23(data);
-    }
-    if (data.version === "2.3") {
-      data = migrateProgressToV24(data);
-    }
-    return data;
-  }
-  async function saveProgress() {
-    try {
-      const progressData = buildProgressData();
-      return await saveToIndexDB("wplace-bot-progress", progressData);
-    } catch (error) {
-      console.error("Error saving progress:", error);
-      return false;
-    }
-  }
-  async function loadProgress() {
-    try {
-      const savedData = await loadFromIndexDB("wplace-bot-progress");
-      if (!savedData) return null;
-      const migrated = migrateProgress(savedData);
-      if (migrated && migrated !== savedData) {
-        await saveToIndexDB("wplace-bot-progress", migrated);
-      }
-      return migrated;
-    } catch (error) {
-      console.error("Error loading progress:", error);
-      return null;
-    }
-  }
-  function restoreProgress(savedData) {
-    try {
-      const migrated = migrateProgress(savedData);
-      if (!migrated) return false;
-      Object.assign(state, migrated.state);
-      if (migrated.imageData) {
-        const { width, height, totalPixels, pixels } = migrated.imageData;
-        let pixelArray;
-        if (pixels instanceof ArrayBuffer) {
-          pixelArray = new Uint8ClampedArray(pixels);
-        } else if (Array.isArray(pixels)) {
-          pixelArray = new Uint8ClampedArray(pixels);
-        } else {
-          throw new Error("Invalid pixels format: expected ArrayBuffer or Array");
-        }
-        state.imageData = {
-          width,
-          height,
-          totalPixels,
-          pixels: pixelArray
-        };
-        try {
-          const proc = ImageProcessor.fromPixelData(
-            state.imageData.width,
-            state.imageData.height,
-            state.imageData.pixels,
-            !state.paintTransparentPixels
-          );
-          state.imageData.processor = proc;
-          state.artColorFrequency = proc.countColors(!state.paintTransparentPixels);
-        } catch (e) {
-          console.warn("Could not rebuild processor from saved image data:", e);
-        }
-      }
-      return true;
-    } catch (error) {
-      console.error("Error restoring progress:", error);
-      return false;
-    }
-  }
-  function saveProgressToFile() {
-    try {
-      const progressData = buildProgressData();
-      if (progressData.imageData) {
-        progressData.imageData.pixels = Array.from(
-          new Uint8ClampedArray(progressData.imageData.pixels)
+  // src/js/core/wplace-ui.js
+  var WPlaceUI = class {
+    /**
+     * Closes the paint menu if it is currently open.
+     *
+     * The method locates the close button within the paint panel by searching for an SVG path
+     * unique to the close icon. If found, it dispatches a synthetic click event and waits briefly
+     * for the UI to update.
+     *
+     * @async
+     * @returns {Promise<void>} Resolves when the close action has been attempted.
+     */
+    async closePaintMenu() {
+      const closeBtnPath = "m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z";
+      const closeBtn = document.querySelector(
+        `div.absolute.bottom-0.left-0.z-50.w-full button svg path[d="${closeBtnPath}"]`
+      )?.closest("button");
+      if (closeBtn) {
+        const clickEvent = new MouseEvent("click", {
+          view: window,
+          bubbles: true,
+          cancelable: true
+        });
+        closeBtn.dispatchEvent(clickEvent);
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      } else {
+        console.warn(
+          "   Close button for paint menu not found (menu might be already closed or structure changed)."
         );
       }
-      const filename = `wplace-bot-progress-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 19).replace(/:/g, "-")}.json`;
-      createFileDownloader(JSON.stringify(progressData, null, 2), filename);
-      return true;
-    } catch (error) {
-      console.error("Error saving to file:", error);
-      return false;
     }
-  }
-  async function loadProgressFromFile() {
-    try {
-      const data = await createFileUploader();
-      if (!data || !data.state) {
-        throw new Error("Invalid file format");
-      }
-      if (data.imageData && Array.isArray(data.imageData.pixels)) {
-        data.imageData.pixels = new Uint8ClampedArray(data.imageData.pixels).buffer;
-      }
-      return restoreProgress(data);
-    } catch (error) {
-      console.error("Error loading from file:", error);
-      throw error;
-    }
-  }
-
-  // src/js/utils/time.js
-  function formatTime(ms) {
-    const seconds = Math.floor(ms / 1e3 % 60);
-    const minutes = Math.floor(ms / (1e3 * 60) % 60);
-    const hours = Math.floor(ms / (1e3 * 60 * 60) % 24);
-    const days = Math.floor(ms / (1e3 * 60 * 60 * 24));
-    let result = "";
-    if (days > 0) result += `${days}d `;
-    if (hours > 0 || days > 0) result += `${hours}h `;
-    if (minutes > 0 || hours > 0 || days > 0) result += `${minutes}m `;
-    result += `${seconds}s`;
-    return result;
-  }
-  function calculateEstimatedTime(intervalMs = 0, efficientAccountsCount = 1, normalAccountsCount = 9) {
-    const totalAccounts = normalAccountsCount + efficientAccountsCount;
-    const remainingPixels = state.artTotalPixels - state.currentPaintedPixels - state.preciseCurrentCharges * totalAccounts;
-    const efficiencyRatio = (normalAccountsCount + efficientAccountsCount * 0.9) / totalAccounts;
-    const totalChargeCost = efficiencyRatio * remainingPixels;
-    const result = totalChargeCost * state.cooldown / totalAccounts;
-    return Math.max(0, result - intervalMs);
-  }
-  function getMsToTargetCharges(current, target, cooldown, intervalMs = 0) {
-    const remainingCharges = target - current;
-    return Math.max(0, remainingCharges * cooldown - intervalMs);
-  }
-
-  // src/js/utils/painting-helpers.js
-  function updateChargesThresholdUI(intervalMs) {
-    if (state.stopFlag) return;
-    const threshold = state.cooldownChargeThreshold;
-    const remainingMs = getMsToTargetCharges(
-      state.preciseCurrentCharges,
-      threshold,
-      state.cooldown,
-      intervalMs
-    );
-    const timeText = msToTimeText(remainingMs);
-    updateUI(
-      "noChargesThreshold",
-      "warning",
-      {
-        threshold,
-        current: state.displayCharges,
-        time: timeText
-      },
-      true
-    );
-  }
-
-  // src/js/utils/dom.js
-  function createElement(tag, props = {}, children = []) {
-    const element = document.createElement(tag);
-    Object.entries(props).forEach(([key, value]) => {
-      if (key === "style" && typeof value === "object") {
-        Object.assign(element.style, value);
-      } else if (key === "className") {
-        element.className = value;
-      } else if (key === "innerHTML") {
-        element.innerHTML = value;
+    /**
+     * Forces a refresh of map tiles by temporarily overriding the document visibility state.
+     *
+     * This method simulates a visibility change to trigger a redraw with reload of tiles currently visible on the canvas.
+     * It works by overriding `document.hidden` to always return `false`, dispatching a
+     * `visibilitychange` event, and restoring the original state afterward.
+     *
+     * If the paint menu was open before the refresh, it will be closed automatically afterward
+     * via {@link WPlaceUI#closePaintMenu closePaintMenu()}.
+     *
+     * @async
+     * @returns {Promise<void>} Resolves when the tile refresh process is completed.
+     */
+    async forceRefreshCanvas() {
+      const paintButtonContainer = document.querySelector(
+        "div.absolute.bottom-3.left-1\\/2.z-30.-translate-x-1\\/2"
+      );
+      let menuWasOpen = false;
+      if (!paintButtonContainer) {
+        menuWasOpen = true;
       } else {
-        element.setAttribute(key, value);
-      }
-    });
-    if (typeof children === "string") {
-      element.textContent = children;
-    } else if (Array.isArray(children)) {
-      children.forEach((child) => {
-        if (typeof child === "string") {
-          element.appendChild(document.createTextNode(child));
-        } else {
-          element.appendChild(child);
-        }
-      });
-    }
-    return element;
-  }
-  function hasColor(colorId, extraColorsBitmap) {
-    if (colorId < 32) {
-      return true;
-    }
-    const bitPosition = colorId - 32;
-    return (extraColorsBitmap & 1 << bitPosition) !== 0;
-  }
-  function getAvailableColors(extraColorsBitmap) {
-    const available = [];
-    for (const colorIdStr of Object.keys(APP_CONSTANTS.COLOR_MAP)) {
-      const colorId = Number(colorIdStr);
-      if (isNaN(colorId) || colorId < 0 || colorId > 63) {
-        console.warn(`Invalid color id in COLOR_MAP: ${colorId}`);
-        continue;
-      }
-      if (hasColor(colorId, extraColorsBitmap)) {
-        const color = APP_CONSTANTS.COLOR_MAP[colorId];
-        if (color && color.id === colorId) {
-          available.push({
-            id: color.id,
-            name: color.name,
-            rgb: [color.rgb.r, color.rgb.g, color.rgb.b]
+        const paintButton = paintButtonContainer.querySelector(
+          "button.btn.btn-primary.btn-lg.sm\\:btn-xl"
+        );
+        if (paintButton) {
+          const clickEvent = new MouseEvent("click", {
+            view: window,
+            bubbles: true,
+            cancelable: true
           });
-        } else if (color) {
-          console.warn(
-            `COLOR_MAP[${colorId}] has an invalid id: ${color.id}. Expected ${colorId}.`,
-            color
-          );
+          paintButton.dispatchEvent(clickEvent);
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        } else {
+          menuWasOpen = true;
+          console.error("Paint button not found inside container.");
         }
       }
+      if (menuWasOpen) {
+        const originalHiddenDescriptor = Object.getOwnPropertyDescriptor(
+          Document.prototype,
+          "hidden"
+        );
+        Object.defineProperty(document, "hidden", {
+          get() {
+            return false;
+          },
+          configurable: true
+        });
+        document.dispatchEvent(new Event("visibilitychange"));
+        if (originalHiddenDescriptor) {
+          Object.defineProperty(document, "hidden", originalHiddenDescriptor);
+        }
+      } else {
+        await this.closePaintMenu();
+      }
     }
-    return available;
-  }
-  function safeOn(el, event, handler) {
-    if (el) el.addEventListener(event, handler);
+  };
+  var wplaceUI = new WPlaceUI();
+
+  // src/js/ui/components/create-start-position-dialog.js
+  function createStartPositionDialog() {
+    const dialog = document.createElement("div");
+    dialog.id = "wplace-start-position-dialog";
+    dialog.className = "wplace-dialog wplace-start-position-container";
+    dialog.style.display = "none";
+    dialog.innerHTML = `
+    <div class="wplace-header">
+      <div class="wplace-header-title">
+        <i class="fas fa-crosshairs"></i>
+        <span data-i18n-key="startPositionSettings">Starting Position Settings</span>
+      </div>
+      <div class="wplace-header-controls">
+        <button id="closeStartPositionDialogBtn" class="wplace-header-btn" title="" data-i18n-key="close" data-i18n-attr="title">
+          <i class="fas fa-times"></i>
+        </button>
+      </div>
+    </div>
+    <div class="wplace-content">
+      <!-- Tile Coordinates Section -->
+      <div class="wplace-coordinate-group">
+        <div class="wplace-coordinate-group-title">
+          <i class="fas fa-layer-group"></i>
+          <span data-i18n-key="tileCoordinates">Tile Coordinates</span>
+        </div>
+        <div class="wplace-coordinate-row">
+      <div class="wplace-input-group">
+        <label for="startPosTileX">${t("tileX")}:</label>
+        <input type="number" id="startPosTileX" class="wplace-start-settings-number-input" min="0" step="1">
+      </div>
+      <div class="wplace-input-group">
+        <label for="startPosTileY">${t("tileY")}:</label>
+        <input type="number" id="startPosTileY" class="wplace-start-settings-number-input" min="0" step="1">
+      </div>
+        </div>
+      </div>
+
+      <!-- Pixel Coordinates Section -->
+      <div class="wplace-coordinate-group">
+        <div class="wplace-coordinate-group-title">
+          <i class="fas fa-dot-circle"></i>
+          <span data-i18n-key="pixelCoordinates">Pixel Coordinates</span>
+        </div>
+        <div class="wplace-coordinate-row">
+      <div class="wplace-input-group">
+        <label for="startPosPixelX">${t("pixelX")}:</label>
+        <input type="number" id="startPosPixelX" class="wplace-start-settings-number-input" min="0" step="1">
+      </div>
+      <div class="wplace-input-group">
+        <label for="startPosPixelY">${t("pixelY")}:</label>
+        <input type="number" id="startPosPixelY" class="wplace-start-settings-number-input" min="0" step="1">
+      </div>
+        </div>
+      </div>
+
+      <div class="wplace-dialog-actions" style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px;">
+        <button id="applyStartPositionBtn" class="wplace-btn wplace-btn-primary">
+          <i class="fas fa-check"></i>
+          <span data-i18n-key="apply">Apply</span>
+        </button>
+      </div>
+    </div>
+  `;
+    return dialog;
   }
 
   // src/js/utils/color-matching.js
@@ -2764,98 +2673,6 @@
     return result;
   }
 
-  // src/js/ui/handlers/settings/coordinate-ui.js
-  function updateCoordinateUI({ mode, directionControls, snakeControls, blockControls }) {
-    const isLinear = mode === "rows" || mode === "columns";
-    const isBlock = mode === "blocks" || mode === "shuffle-blocks";
-    if (directionControls) directionControls.style.display = isLinear ? "block" : "none";
-    if (snakeControls) snakeControls.style.display = isLinear ? "block" : "none";
-    if (blockControls) blockControls.style.display = isBlock ? "block" : "none";
-  }
-
-  // src/js/ui/handlers/settings/coordinate-handler.js
-  function handleCoordinateModeChange(e) {
-    state.coordinateMode = e.target.value;
-    updateCoordinateUI({
-      mode: state.coordinateMode,
-      directionControls: document.getElementById("directionControls"),
-      snakeControls: document.getElementById("snakeControls"),
-      blockControls: document.getElementById("blockControls")
-    });
-    saveBotSettings();
-    console.log(`\u{1F504} Coordinate mode changed to: ${state.coordinateMode}`);
-    showAlert(
-      t("coordinateModeSet", { mode: t(`mode${capitalize(state.coordinateMode)}`) }),
-      "success"
-    );
-  }
-  function handleCoordinateDirectionChange(e) {
-    state.coordinateDirection = e.target.value;
-    saveBotSettings();
-    console.log(`\u{1F9ED} Coordinate direction changed to: ${state.coordinateDirection}`);
-    showAlert(t("coordinateDirectionSet", { direction: t(state.coordinateDirection) }), "success");
-  }
-  function handleCoordinateSnakeChange(e) {
-    state.coordinateSnake = e.target.checked;
-    saveBotSettings();
-    console.log(`\u{1F40D} Snake pattern ${state.coordinateSnake ? "enabled" : "disabled"}`);
-    showAlert(t(state.coordinateSnake ? "snakeEnabled" : "snakeDisabled"), "success");
-  }
-  function handleSortCoordinateByFrequencyChange(e) {
-    state.sortCoordinateByFrequency = e.target.checked;
-    saveBotSettings();
-    console.log(`SortCoordinateByFrequency ${e.target.checked ? "enabled" : "disabled"}`);
-    showAlert(
-      t(e.target.checked ? "SortCoordinateByFrequencyEnabled" : "SortCoordinateByFrequencyDisabled"),
-      "success"
-    );
-  }
-  function handleBlockWidthInput(e) {
-    const width = parseInt(e.target.value, 10);
-    if (width >= 1 && width <= 50) {
-      state.blockWidth = width;
-      saveBotSettings();
-    }
-  }
-  function handleBlockHeightInput(e) {
-    const height = parseInt(e.target.value, 10);
-    if (height >= 1 && height <= 50) {
-      state.blockHeight = height;
-      saveBotSettings();
-    }
-  }
-  function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
-  }
-
-  // src/js/ui/handlers/checkbox-handlers.js
-  function createCheckboxHandler(settingKey, onMessageKey, offMessageKey) {
-    return function(e) {
-      const isChecked = e.target.checked;
-      state[settingKey] = isChecked;
-      saveBotSettings();
-      console.log(`\u{1F3A8} ${settingKey}: ${isChecked ? "ON" : "OFF"}`);
-      const message = t(isChecked ? onMessageKey : offMessageKey);
-      showAlert(message, "success");
-    };
-  }
-  function createSliderHandler(settingKey, valueElementSelector, formatFn = null) {
-    const defaultFormat = (value) => `${Math.round(value * 100)}%`;
-    const formatter = formatFn || defaultFormat;
-    return function(e) {
-      const value = parseFloat(e.target.value);
-      state[settingKey] = value;
-      saveBotSettings();
-      console.log(`\u{1F39A}\uFE0F ${settingKey}: ${value}`);
-      if (valueElementSelector) {
-        const valueEl = document.querySelector(valueElementSelector);
-        if (valueEl) {
-          valueEl.textContent = formatter(value);
-        }
-      }
-    };
-  }
-
   // src/js/tiles/tile-loader.js
   var TileLoader = class {
     constructor(overlayManager2) {
@@ -2947,96 +2764,6 @@
       this.activeRequests.clear();
     }
   };
-
-  // src/js/core/wplace-ui.js
-  var WPlaceUI = class {
-    /**
-     * Closes the paint menu if it is currently open.
-     *
-     * The method locates the close button within the paint panel by searching for an SVG path
-     * unique to the close icon. If found, it dispatches a synthetic click event and waits briefly
-     * for the UI to update.
-     *
-     * @async
-     * @returns {Promise<void>} Resolves when the close action has been attempted.
-     */
-    async closePaintMenu() {
-      const closeBtnPath = "m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z";
-      const closeBtn = document.querySelector(
-        `div.absolute.bottom-0.left-0.z-50.w-full button svg path[d="${closeBtnPath}"]`
-      )?.closest("button");
-      if (closeBtn) {
-        const clickEvent = new MouseEvent("click", {
-          view: window,
-          bubbles: true,
-          cancelable: true
-        });
-        closeBtn.dispatchEvent(clickEvent);
-        await new Promise((resolve) => setTimeout(resolve, 250));
-      } else {
-        console.warn(
-          "   Close button for paint menu not found (menu might be already closed or structure changed)."
-        );
-      }
-    }
-    /**
-     * Forces a refresh of map tiles by temporarily overriding the document visibility state.
-     *
-     * This method simulates a visibility change to trigger a redraw with reload of tiles currently visible on the canvas.
-     * It works by overriding `document.hidden` to always return `false`, dispatching a
-     * `visibilitychange` event, and restoring the original state afterward.
-     *
-     * If the paint menu was open before the refresh, it will be closed automatically afterward
-     * via {@link WPlaceUI#closePaintMenu closePaintMenu()}.
-     *
-     * @async
-     * @returns {Promise<void>} Resolves when the tile refresh process is completed.
-     */
-    async forceRefreshCanvas() {
-      const paintButtonContainer = document.querySelector(
-        "div.absolute.bottom-3.left-1\\/2.z-30.-translate-x-1\\/2"
-      );
-      let menuWasOpen = false;
-      if (!paintButtonContainer) {
-        menuWasOpen = true;
-      } else {
-        const paintButton = paintButtonContainer.querySelector(
-          "button.btn.btn-primary.btn-lg.sm\\:btn-xl"
-        );
-        if (paintButton) {
-          const clickEvent = new MouseEvent("click", {
-            view: window,
-            bubbles: true,
-            cancelable: true
-          });
-          paintButton.dispatchEvent(clickEvent);
-          await new Promise((resolve) => setTimeout(resolve, 100));
-        } else {
-          menuWasOpen = true;
-          console.error("Paint button not found inside container.");
-        }
-      }
-      if (menuWasOpen) {
-        const originalHiddenDescriptor = Object.getOwnPropertyDescriptor(
-          Document.prototype,
-          "hidden"
-        );
-        Object.defineProperty(document, "hidden", {
-          get() {
-            return false;
-          },
-          configurable: true
-        });
-        document.dispatchEvent(new Event("visibilitychange"));
-        if (originalHiddenDescriptor) {
-          Object.defineProperty(document, "hidden", originalHiddenDescriptor);
-        }
-      } else {
-        await this.closePaintMenu();
-      }
-    }
-  };
-  var wplaceUI = new WPlaceUI();
 
   // src/js/tiles/overlay-manager.js
   var OverlayManager = class {
@@ -3580,6 +3307,529 @@
   }
   var overlayManager = new OverlayManager();
 
+  // src/js/core/selection-controller.js
+  var SelectionController = class {
+    constructor() {
+      this.originalFetch = window.fetch;
+      this.timeoutId = null;
+      this.timeoutMs = 12e4;
+    }
+    enable() {
+      if (state.selectingPosition) return;
+      state.selectingPosition = true;
+      state.startPosition = null;
+      state.region = null;
+      this.disableControlButton();
+      showAlert(t("selectPositionAlert"), "info");
+      updateUI("waitingPosition", "default");
+      window.fetch = this.fetchInterceptor.bind(this);
+      this.timeoutId = setTimeout(() => {
+        if (state.selectingPosition) {
+          this.cleanup();
+          updateUI("positionTimeout", "error");
+          showAlert(t("positionTimeout"), "error");
+        }
+      }, this.timeoutMs);
+    }
+    disableControlButton() {
+      const btn = document.getElementById("controlBtn");
+      if (btn) btn.disabled = true;
+    }
+    restoreControlButton() {
+      if (state.imageLoaded) {
+        const btn = document.getElementById("controlBtn");
+        if (btn) btn.disabled = false;
+      }
+    }
+    cleanup() {
+      if (this.originalFetch) {
+        window.fetch = this.originalFetch;
+        this.originalFetch = null;
+      }
+      if (this.timeoutId) {
+        clearTimeout(this.timeoutId);
+        this.timeoutId = null;
+      }
+      state.selectingPosition = false;
+    }
+    async fetchInterceptor(url, options) {
+      const method = options?.method?.toUpperCase?.() ?? "GET";
+      const isPixelRequest = typeof url === "string" && url.includes("https://backend.wplace.live/s0/pixel/") && method === "GET";
+      if (!isPixelRequest) {
+        return this.originalFetch(url, options);
+      }
+      try {
+        const { region, startPosition } = parsePixelUrl(url);
+        if (!region || !startPosition) {
+          return this.originalFetch(url, options);
+        }
+        Object.assign(state, { region, startPosition });
+        await overlayManager.setPosition(state.startPosition, state.region);
+        await wplaceUI.forceRefreshCanvas();
+        onPositionSet();
+        return this.originalFetch(url, options);
+      } catch (error) {
+        console.error("Fetch hook error:", error);
+        this.cleanup();
+        updateUI("positionError", "error");
+        return this.originalFetch(url, options);
+      }
+    }
+  };
+  function parsePixelUrl(url) {
+    try {
+      const urlObj = new URL(url);
+      const x = Number.parseInt(urlObj.searchParams.get("x"), 10);
+      const y = Number.parseInt(urlObj.searchParams.get("y"), 10);
+      const match = url.match(/\/pixel\/(\d+)\/(\d+)/);
+      if (!match || Number.isNaN(x) || Number.isNaN(y)) return {};
+      return {
+        region: { x: Number.parseInt(match[1], 10), y: Number.parseInt(match[2], 10) },
+        startPosition: { x, y }
+      };
+    } catch {
+      return {};
+    }
+  }
+
+  // src/js/ui/listeners/start-position-dialog.js
+  var startPositionDialog = null;
+  var selectionController = null;
+  var selectPosBtn = null;
+  function setDialogValues(region, position) {
+    document.getElementById("startPosTileX").value = region?.x ?? "";
+    document.getElementById("startPosTileY").value = region?.y ?? "";
+    document.getElementById("startPosPixelX").value = position?.x ?? "";
+    document.getElementById("startPosPixelY").value = position?.y ?? "";
+  }
+  function updateSelectPositionButton(hasPosition) {
+    if (!selectPosBtn) return;
+    const icon = hasPosition ? "fa-edit" : "fa-crosshairs";
+    const textKey = hasPosition ? "editPosition" : "selectPosition";
+    const mainClass = hasPosition ? "wplace-btn-primary" : "wplace-btn-select";
+    const altClass = hasPosition ? "wplace-btn-select" : "wplace-btn-primary";
+    selectPosBtn.innerHTML = `
+    <i class="fas ${icon}"></i>
+    <span data-i18n-key="${textKey}">${t(textKey)}</span>
+  `;
+    selectPosBtn.classList.add(mainClass);
+    selectPosBtn.classList.remove(altClass);
+  }
+  function openDialog() {
+    if (startPositionDialog?.style.display === "block") return;
+    if (!startPositionDialog) {
+      startPositionDialog = createStartPositionDialog();
+      document.body.appendChild(startPositionDialog);
+      makeDraggable(startPositionDialog);
+      attachDialogListeners();
+    }
+    setDialogValues(state.region, state.startPosition);
+    startPositionDialog.style.display = "block";
+  }
+  function attachDialogListeners() {
+    const closeBtn = document.getElementById("closeStartPositionDialogBtn");
+    const applyBtn = document.getElementById("applyStartPositionBtn");
+    closeBtn?.addEventListener("click", () => {
+      startPositionDialog.style.display = "none";
+    });
+    applyBtn?.addEventListener("click", onDialogApply);
+  }
+  async function onDialogApply() {
+    const parseInput = (id) => {
+      const val = document.getElementById(id).value;
+      return val === "" ? null : Number.parseInt(val, 10);
+    };
+    const tileX = parseInput("startPosTileX");
+    const tileY = parseInput("startPosTileY");
+    const pixelX = parseInput("startPosPixelX");
+    const pixelY = parseInput("startPosPixelY");
+    const isValid = [tileX, tileY, pixelX, pixelY].every(
+      (v) => v === null || Number.isInteger(v) && v >= 0
+    );
+    if (!isValid) {
+      showAlert(t("invalidPositionValues"), "error");
+      return;
+    }
+    state.region = {
+      x: tileX ?? state.region?.x ?? 0,
+      y: tileY ?? state.region?.y ?? 0
+    };
+    state.startPosition = {
+      x: pixelX ?? state.startPosition?.x ?? 0,
+      y: pixelY ?? state.startPosition?.y ?? 0
+    };
+    try {
+      await overlayManager.setPosition(state.startPosition, state.region);
+      await wplaceUI.forceRefreshCanvas();
+    } catch (error) {
+      console.warn("\u26A0\uFE0F Error during forceRefreshCanvas():", error);
+    }
+    onPositionSet();
+  }
+  function onPositionSet() {
+    selectionController?.restoreControlButton();
+    updateUI("positionSet", "success");
+    updateSelectPositionButton(true);
+    if (startPositionDialog?.style.display === "block") {
+      setDialogValues(state.region, state.startPosition);
+    }
+    selectionController?.cleanup();
+  }
+  function setupStartPositionButton() {
+    selectPosBtn = document.getElementById("selectPosBtn");
+    if (!selectPosBtn) return;
+    const hasPosition = !!(state.startPosition && state.region);
+    updateSelectPositionButton(hasPosition);
+  }
+  function handleSelectPositionClick() {
+    const hasPosition = !!(state.startPosition && state.region);
+    if (!hasPosition) {
+      selectionController = new SelectionController();
+      selectionController.enable();
+    }
+    openDialog();
+  }
+
+  // src/js/storage/progress-manager.js
+  function buildProgressData() {
+    return {
+      timestamp: Date.now(),
+      version: "2.4",
+      state: {
+        artTotalPixels: state.artTotalPixels,
+        startPosition: state.startPosition,
+        region: state.region
+      },
+      imageData: state.imageLoaded ? {
+        width: state.imageData.width,
+        height: state.imageData.height,
+        totalPixels: state.imageData.totalPixels,
+        pixels: state.imageData.pixels.buffer
+      } : null
+    };
+  }
+  function migrateProgress(saved) {
+    if (!saved) return null;
+    let data = saved;
+    const ver = data.version;
+    if (!ver || ver === "1" || ver === "1.0" || ver === "1.1") {
+      data = migrateProgressToV2(data);
+    }
+    if (data.version === "2" || data.version === "2.0") {
+      data = migrateProgressToV21(data);
+    }
+    if (data.version === "2.1") {
+      data = migrateProgressToV22(data);
+    }
+    if (data.version === "2.2") {
+      data = migrateProgressToV23(data);
+    }
+    if (data.version === "2.3") {
+      data = migrateProgressToV24(data);
+    }
+    return data;
+  }
+  async function saveProgress() {
+    try {
+      const progressData = buildProgressData();
+      return await saveToIndexDB("wplace-bot-progress", progressData);
+    } catch (error) {
+      console.error("Error saving progress:", error);
+      return false;
+    }
+  }
+  async function loadProgress() {
+    try {
+      const savedData = await loadFromIndexDB("wplace-bot-progress");
+      if (!savedData) return null;
+      const migrated = migrateProgress(savedData);
+      if (migrated && migrated !== savedData) {
+        await saveToIndexDB("wplace-bot-progress", migrated);
+      }
+      return migrated;
+    } catch (error) {
+      console.error("Error loading progress:", error);
+      return null;
+    }
+  }
+  function restoreProgress(savedData) {
+    try {
+      const migrated = migrateProgress(savedData);
+      if (!migrated) return false;
+      Object.assign(state, migrated.state);
+      if (migrated.imageData) {
+        const { width, height, totalPixels, pixels } = migrated.imageData;
+        let pixelArray;
+        if (pixels instanceof ArrayBuffer) {
+          pixelArray = new Uint8ClampedArray(pixels);
+        } else if (Array.isArray(pixels)) {
+          pixelArray = new Uint8ClampedArray(pixels);
+        } else {
+          throw new Error("Invalid pixels format: expected ArrayBuffer or Array");
+        }
+        state.imageData = {
+          width,
+          height,
+          totalPixels,
+          pixels: pixelArray
+        };
+        try {
+          const proc = ImageProcessor.fromPixelData(
+            state.imageData.width,
+            state.imageData.height,
+            state.imageData.pixels,
+            !state.paintTransparentPixels
+          );
+          state.imageData.processor = proc;
+          state.artColorFrequency = proc.countColors(!state.paintTransparentPixels);
+        } catch (e) {
+          console.warn("Could not rebuild processor from saved image data:", e);
+        }
+      }
+      setupStartPositionButton();
+      return true;
+    } catch (error) {
+      console.error("Error restoring progress:", error);
+      return false;
+    }
+  }
+  function saveProgressToFile() {
+    try {
+      const progressData = buildProgressData();
+      if (progressData.imageData) {
+        progressData.imageData.pixels = Array.from(
+          new Uint8ClampedArray(progressData.imageData.pixels)
+        );
+      }
+      const filename = `wplace-bot-progress-${(/* @__PURE__ */ new Date()).toISOString().slice(0, 19).replace(/:/g, "-")}.json`;
+      createFileDownloader(JSON.stringify(progressData, null, 2), filename);
+      return true;
+    } catch (error) {
+      console.error("Error saving to file:", error);
+      return false;
+    }
+  }
+  async function loadProgressFromFile() {
+    try {
+      const data = await createFileUploader();
+      if (!data || !data.state) {
+        throw new Error("Invalid file format");
+      }
+      if (data.imageData && Array.isArray(data.imageData.pixels)) {
+        data.imageData.pixels = new Uint8ClampedArray(data.imageData.pixels).buffer;
+      }
+      return restoreProgress(data);
+    } catch (error) {
+      console.error("Error loading from file:", error);
+      throw error;
+    }
+  }
+
+  // src/js/utils/time.js
+  function formatTime(ms) {
+    const seconds = Math.floor(ms / 1e3 % 60);
+    const minutes = Math.floor(ms / (1e3 * 60) % 60);
+    const hours = Math.floor(ms / (1e3 * 60 * 60) % 24);
+    const days = Math.floor(ms / (1e3 * 60 * 60 * 24));
+    let result = "";
+    if (days > 0) result += `${days}d `;
+    if (hours > 0 || days > 0) result += `${hours}h `;
+    if (minutes > 0 || hours > 0 || days > 0) result += `${minutes}m `;
+    result += `${seconds}s`;
+    return result;
+  }
+  function calculateEstimatedTime(intervalMs = 0, efficientAccountsCount = 1, normalAccountsCount = 9) {
+    const totalAccounts = normalAccountsCount + efficientAccountsCount;
+    const remainingPixels = state.artTotalPixels - state.currentPaintedPixels - state.preciseCurrentCharges * totalAccounts;
+    const efficiencyRatio = (normalAccountsCount + efficientAccountsCount * 0.9) / totalAccounts;
+    const totalChargeCost = efficiencyRatio * remainingPixels;
+    const result = totalChargeCost * state.cooldown / totalAccounts;
+    return Math.max(0, result - intervalMs);
+  }
+  function getMsToTargetCharges(current, target, cooldown, intervalMs = 0) {
+    const remainingCharges = target - current;
+    return Math.max(0, remainingCharges * cooldown - intervalMs);
+  }
+
+  // src/js/utils/painting-helpers.js
+  function updateChargesThresholdUI(intervalMs) {
+    if (state.stopFlag) return;
+    const threshold = state.cooldownChargeThreshold;
+    const remainingMs = getMsToTargetCharges(
+      state.preciseCurrentCharges,
+      threshold,
+      state.cooldown,
+      intervalMs
+    );
+    const timeText = msToTimeText(remainingMs);
+    updateUI(
+      "noChargesThreshold",
+      "warning",
+      {
+        threshold,
+        current: state.displayCharges,
+        time: timeText
+      },
+      true
+    );
+  }
+
+  // src/js/utils/dom.js
+  function createElement(tag, props = {}, children = []) {
+    const element = document.createElement(tag);
+    Object.entries(props).forEach(([key, value]) => {
+      if (key === "style" && typeof value === "object") {
+        Object.assign(element.style, value);
+      } else if (key === "className") {
+        element.className = value;
+      } else if (key === "innerHTML") {
+        element.innerHTML = value;
+      } else {
+        element.setAttribute(key, value);
+      }
+    });
+    if (typeof children === "string") {
+      element.textContent = children;
+    } else if (Array.isArray(children)) {
+      children.forEach((child) => {
+        if (typeof child === "string") {
+          element.appendChild(document.createTextNode(child));
+        } else {
+          element.appendChild(child);
+        }
+      });
+    }
+    return element;
+  }
+  function hasColor(colorId, extraColorsBitmap) {
+    if (colorId < 32) {
+      return true;
+    }
+    const bitPosition = colorId - 32;
+    return (extraColorsBitmap & 1 << bitPosition) !== 0;
+  }
+  function getAvailableColors(extraColorsBitmap) {
+    const available = [];
+    for (const colorIdStr of Object.keys(APP_CONSTANTS.COLOR_MAP)) {
+      const colorId = Number(colorIdStr);
+      if (isNaN(colorId) || colorId < 0 || colorId > 63) {
+        console.warn(`Invalid color id in COLOR_MAP: ${colorId}`);
+        continue;
+      }
+      if (hasColor(colorId, extraColorsBitmap)) {
+        const color = APP_CONSTANTS.COLOR_MAP[colorId];
+        if (color && color.id === colorId) {
+          available.push({
+            id: color.id,
+            name: color.name,
+            rgb: [color.rgb.r, color.rgb.g, color.rgb.b]
+          });
+        } else if (color) {
+          console.warn(
+            `COLOR_MAP[${colorId}] has an invalid id: ${color.id}. Expected ${colorId}.`,
+            color
+          );
+        }
+      }
+    }
+    return available;
+  }
+  function safeOn(el, event, handler) {
+    if (el) el.addEventListener(event, handler);
+  }
+
+  // src/js/ui/handlers/settings/coordinate-ui.js
+  function updateCoordinateUI({ mode, directionControls, snakeControls, blockControls }) {
+    const isLinear = mode === "rows" || mode === "columns";
+    const isBlock = mode === "blocks" || mode === "shuffle-blocks";
+    if (directionControls) directionControls.style.display = isLinear ? "block" : "none";
+    if (snakeControls) snakeControls.style.display = isLinear ? "block" : "none";
+    if (blockControls) blockControls.style.display = isBlock ? "block" : "none";
+  }
+
+  // src/js/ui/handlers/settings/coordinate-handler.js
+  function handleCoordinateModeChange(e) {
+    state.coordinateMode = e.target.value;
+    updateCoordinateUI({
+      mode: state.coordinateMode,
+      directionControls: document.getElementById("directionControls"),
+      snakeControls: document.getElementById("snakeControls"),
+      blockControls: document.getElementById("blockControls")
+    });
+    saveBotSettings();
+    console.log(`\u{1F504} Coordinate mode changed to: ${state.coordinateMode}`);
+    showAlert(
+      t("coordinateModeSet", { mode: t(`mode${capitalize(state.coordinateMode)}`) }),
+      "success"
+    );
+  }
+  function handleCoordinateDirectionChange(e) {
+    state.coordinateDirection = e.target.value;
+    saveBotSettings();
+    console.log(`\u{1F9ED} Coordinate direction changed to: ${state.coordinateDirection}`);
+    showAlert(t("coordinateDirectionSet", { direction: t(state.coordinateDirection) }), "success");
+  }
+  function handleCoordinateSnakeChange(e) {
+    state.coordinateSnake = e.target.checked;
+    saveBotSettings();
+    console.log(`\u{1F40D} Snake pattern ${state.coordinateSnake ? "enabled" : "disabled"}`);
+    showAlert(t(state.coordinateSnake ? "snakeEnabled" : "snakeDisabled"), "success");
+  }
+  function handleSortCoordinateByFrequencyChange(e) {
+    state.sortCoordinateByFrequency = e.target.checked;
+    saveBotSettings();
+    console.log(`SortCoordinateByFrequency ${e.target.checked ? "enabled" : "disabled"}`);
+    showAlert(
+      t(e.target.checked ? "SortCoordinateByFrequencyEnabled" : "SortCoordinateByFrequencyDisabled"),
+      "success"
+    );
+  }
+  function handleBlockWidthInput(e) {
+    const width = parseInt(e.target.value, 10);
+    if (width >= 1 && width <= 50) {
+      state.blockWidth = width;
+      saveBotSettings();
+    }
+  }
+  function handleBlockHeightInput(e) {
+    const height = parseInt(e.target.value, 10);
+    if (height >= 1 && height <= 50) {
+      state.blockHeight = height;
+      saveBotSettings();
+    }
+  }
+  function capitalize(str) {
+    return str.charAt(0).toUpperCase() + str.slice(1);
+  }
+
+  // src/js/ui/handlers/checkbox-handlers.js
+  function createCheckboxHandler(settingKey, onMessageKey, offMessageKey) {
+    return function(e) {
+      const isChecked = e.target.checked;
+      state[settingKey] = isChecked;
+      saveBotSettings();
+      console.log(`\u{1F3A8} ${settingKey}: ${isChecked ? "ON" : "OFF"}`);
+      const message = t(isChecked ? onMessageKey : offMessageKey);
+      showAlert(message, "success");
+    };
+  }
+  function createSliderHandler(settingKey, valueElementSelector, formatFn = null) {
+    const defaultFormat = (value) => `${Math.round(value * 100)}%`;
+    const formatter = formatFn || defaultFormat;
+    return function(e) {
+      const value = parseFloat(e.target.value);
+      state[settingKey] = value;
+      saveBotSettings();
+      console.log(`\u{1F39A}\uFE0F ${settingKey}: ${value}`);
+      if (valueElementSelector) {
+        const valueEl = document.querySelector(valueElementSelector);
+        if (valueEl) {
+          valueEl.textContent = formatter(value);
+        }
+      }
+    };
+  }
+
   // src/js/ui/theme.js
   function applyThemeWithKey(themeKey) {
     const theme = APP_CONSTANTS.THEMES[themeKey];
@@ -3933,11 +4183,11 @@
       console.error(`Failed to restore overlay from ${source}:`, error);
     }
     const uploadBtn = document.getElementById("uploadBtn");
-    const selectPosBtn = document.getElementById("selectPosBtn");
+    const selectPosBtn2 = document.getElementById("selectPosBtn");
     const resizeBtn = document.getElementById("resizeBtn");
     if (state.hasAvailableColors) {
       if (uploadBtn) uploadBtn.disabled = false;
-      if (selectPosBtn) selectPosBtn.disabled = false;
+      if (selectPosBtn2) selectPosBtn2.disabled = false;
       if (resizeBtn) resizeBtn.disabled = false;
     } else {
       if (uploadBtn) uploadBtn.disabled = false;
@@ -3997,9 +4247,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
       showAlert(t("noColorsKnown"), "error");
       return;
     }
-    const selectPosBtn = document.getElementById("selectPosBtn");
+    const selectPosBtn2 = document.getElementById("selectPosBtn");
     const resizeBtn = document.getElementById("resizeBtn");
-    if (selectPosBtn) selectPosBtn.disabled = false;
+    if (selectPosBtn2) selectPosBtn2.disabled = false;
     try {
       updateUI("loadingImage", "default");
       const imageSrc = await createImageUploader();
@@ -7081,12 +7331,12 @@ Total: ${savedData.state.artTotalPixels} pixels`
     state.stopFlag = false;
     updateControlButtonState();
     const uploadBtn = document.getElementById("uploadBtn");
-    const selectPosBtn = document.getElementById("selectPosBtn");
+    const selectPosBtn2 = document.getElementById("selectPosBtn");
     const resizeBtn = document.getElementById("resizeBtn");
     const saveBtn = document.getElementById("saveBtn");
     const toggleOverlayBtn2 = document.getElementById("toggleOverlayBtn");
     if (uploadBtn) uploadBtn.disabled = true;
-    if (selectPosBtn) selectPosBtn.disabled = true;
+    if (selectPosBtn2) selectPosBtn2.disabled = true;
     if (resizeBtn) resizeBtn.disabled = true;
     if (saveBtn) saveBtn.disabled = true;
     if (toggleOverlayBtn2) toggleOverlayBtn2.disabled = true;
@@ -7102,7 +7352,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
       if (saveBtn) saveBtn.disabled = false;
       if (!state.stopFlag) {
         if (uploadBtn) uploadBtn.disabled = false;
-        if (selectPosBtn) selectPosBtn.disabled = false;
+        if (selectPosBtn2) selectPosBtn2.disabled = false;
         if (resizeBtn) resizeBtn.disabled = false;
       }
       if (toggleOverlayBtn2) toggleOverlayBtn2.disabled = false;
@@ -7137,69 +7387,6 @@ Total: ${savedData.state.artTotalPixels} pixels`
     }
     saveBotSettings();
     NotificationManager.resetEdgeTracking();
-  }
-
-  // src/js/ui/handlers/main-panel/handle-select-position-click.js
-  function handleSelectPositionClick() {
-    if (state.selectingPosition) {
-      return;
-    }
-    state.selectingPosition = true;
-    state.startPosition = null;
-    state.region = null;
-    const controlBtn = document.getElementById("controlBtn");
-    if (controlBtn) {
-      controlBtn.disabled = true;
-    }
-    showAlert(t("selectPositionAlert"), "info");
-    updateUI("waitingPosition", "default");
-    const tempFetch = async (url, options) => {
-      const method = options?.method ? options.method.toUpperCase() : "GET";
-      if (typeof url === "string" && url.includes("https://backend.wplace.live/s0/pixel/") && method === "GET") {
-        try {
-          const urlObj = new URL(url);
-          const x = parseInt(urlObj.searchParams.get("x"), 10);
-          const y = parseInt(urlObj.searchParams.get("y"), 10);
-          const regionMatch = url.match(/\/pixel\/(\d+)\/(\d+)/);
-          if (!regionMatch || regionMatch.length < 3 || isNaN(x) || isNaN(y)) {
-            return originalFetch(url, options);
-          }
-          state.region = {
-            x: Number.parseInt(regionMatch[1]),
-            y: Number.parseInt(regionMatch[2])
-          };
-          state.startPosition = { x, y };
-          await overlayManager.setPosition(state.startPosition, state.region);
-          if (state.imageLoaded) {
-            const controlBtn2 = document.getElementById("controlBtn");
-            if (controlBtn2) {
-              controlBtn2.disabled = false;
-            }
-          }
-          window.fetch = originalFetch;
-          state.selectingPosition = false;
-          updateUI("positionSet", "success");
-          return originalFetch(url, options);
-        } catch (error) {
-          console.error("Fetch hook error:", error);
-          window.fetch = originalFetch;
-          state.selectingPosition = false;
-          updateUI("positionError", "error");
-          return originalFetch(url, options);
-        }
-      }
-      return originalFetch(url, options);
-    };
-    const originalFetch = window.fetch;
-    window.fetch = tempFetch;
-    setTimeout(() => {
-      if (state.selectingPosition) {
-        window.fetch = originalFetch;
-        state.selectingPosition = false;
-        updateUI("positionTimeout", "error");
-        showAlert(t("positionTimeout"), "error");
-      }
-    }, 12e4);
   }
 
   // src/js/ui/handlers/main-panel/handle-header-buttons.js
@@ -7276,7 +7463,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const compactBtn = container.querySelector("#compactBtn");
     const uploadBtn = container.querySelector("#uploadBtn");
     const resizeBtn = container.querySelector("#resizeBtn");
-    const selectPosBtn = container.querySelector("#selectPosBtn");
+    const selectPosBtn2 = container.querySelector("#selectPosBtn");
     const controlBtn = container.querySelector("#controlBtn");
     const colorFilterBtn = container.querySelector("#colorFilterBtn");
     const toggleOverlayBtn2 = container.querySelector("#toggleOverlayBtn");
@@ -7298,7 +7485,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
     });
     safeOn(uploadBtn, "click", handleUploadClick);
     safeOn(resizeBtn, "click", handleResizeClick);
-    safeOn(selectPosBtn, "click", handleSelectPositionClick);
+    safeOn(selectPosBtn2, "click", handleSelectPositionClick);
     safeOn(controlBtn, "click", handleTogglePainting);
     safeOn(colorFilterBtn, "click", handleColorFilter);
     safeOn(toggleOverlayBtn2, "click", handleToggleOverlayClick);

@@ -52,7 +52,7 @@ async function initializeDependencies() {
   );
 }
 
-function makeDraggable(element) {
+export function makeDraggable(element) {
   let pos1 = 0,
     pos2 = 0,
     pos3 = 0,

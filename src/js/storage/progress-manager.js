@@ -9,6 +9,7 @@ import {
   migrateProgressToV24,
 } from './migrations.js';
 import { clearIndexDBStorage, loadFromIndexDB, saveToIndexDB } from './indexed-db-storage.js';
+import { setupStartPositionButton } from '../ui/listeners/start-position-dialog.js';
 
 export function buildProgressData() {
   return {
@@ -131,7 +132,6 @@ export function restoreProgress(savedData) {
         totalPixels,
         pixels: pixelArray,
       };
-
       try {
         const proc = ImageProcessor.fromPixelData(
           state.imageData.width,
@@ -147,6 +147,7 @@ export function restoreProgress(savedData) {
       }
     }
 
+    setupStartPositionButton();
     return true;
   } catch (error) {
     console.error('Error restoring progress:', error);

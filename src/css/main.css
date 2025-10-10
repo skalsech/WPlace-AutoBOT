@@ -257,6 +257,72 @@
   z-index: 9999;
 }
 
+.wplace-start-position-container {
+  position: fixed;
+  z-index: 10001;
+  top: 360px;
+  left: 310px;
+  background: var(--wplace-primary);
+  color: var(--wplace-text);
+  border-radius: var(--wplace-radius);
+  box-shadow: var(--wplace-shadow);
+  font-family: var(--wplace-font);
+  backdrop-filter: var(--wplace-backdrop);
+  border: var(--wplace-border-width) var(--wplace-border-style) var(--wplace-border-color);
+  min-width: 280px;
+  max-width: 320px;
+  overflow-y: auto;
+}
+
+.wplace-coordinate-group {
+  margin-bottom: 16px;
+}
+
+.wplace-coordinate-group-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--wplace-highlight);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.wplace-coordinate-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.wplace-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.wplace-input-group label {
+  font-size: 11px;
+  color: var(--wplace-text-muted);
+  margin-bottom: 2px;
+}
+
+.wplace-start-settings-number-input {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--wplace-bg-input);
+  color: var(--wplace-text);
+  border: 1px solid var(--wplace-border-subtle);
+  border-radius: 6px;
+  font-size: 13px;
+  outline: none;
+}
+
+.wplace-start-settings-number-input:focus {
+  border-color: var(--wplace-highlight);
+}
+
 /* ========================= */
 /* Header and content blocks */
 /* ========================= */

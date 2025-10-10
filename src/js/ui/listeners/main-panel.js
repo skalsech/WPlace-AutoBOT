@@ -7,7 +7,6 @@ import {
   handleToggleOverlayClick,
   handleTogglePainting,
 } from '../handlers/main-panel/main-panel-handler.js';
-import { handleSelectPositionClick } from '../handlers/main-panel/handle-select-position-click.js';
 import {
   handleLoadClick,
   handleLoadFromFileClick,
@@ -20,6 +19,7 @@ import {
   handleSettingsClick,
   handleStatsClick,
 } from '../handlers/main-panel/handle-header-buttons.js';
+import { handleSelectPositionClick } from './start-position-dialog.js';
 
 export function setupMainPanelListeners() {
   const container = document.getElementById('wplace-image-bot-container');
