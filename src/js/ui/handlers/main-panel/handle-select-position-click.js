@@ -4,62 +4,70 @@ import { t } from '../../../i18n/i18.js';
 import { updateUI } from '../../panel.js';
 import { overlayManager } from '../../../tiles/overlay-manager.js';
 
+// todo create a floating UI on clicking, where region and pixel position can be adjusted by input
+//  and by clicking apply, the changes force update to canvas
 export function handleSelectPositionClick() {
-  if (state.selectingPosition) return;
+  if (state.selectingPosition) {
+    return;
+  }
 
   state.selectingPosition = true;
   state.startPosition = null;
   state.region = null;
 
   const controlBtn = document.getElementById('controlBtn');
-  if (controlBtn) controlBtn.disabled = true;
+  if (controlBtn) {
+    controlBtn.disabled = true;
+  }
 
   showAlert(t('selectPositionAlert'), 'info');
   updateUI('waitingPosition', 'default');
 
   const tempFetch = async (url, options) => {
+    const method = options?.method ? options.method.toUpperCase() : 'GET';
+
     if (
       typeof url === 'string' &&
       url.includes('https://backend.wplace.live/s0/pixel/') &&
-      options?.method?.toUpperCase() === 'POST'
+      method === 'GET'
     ) {
       try {
-        const response = await originalFetch(url, options);
-        const clonedResponse = response.clone();
-        const data = await clonedResponse.json();
+        const urlObj = new URL(url);
+        const x = parseInt(urlObj.searchParams.get('x'), 10);
+        const y = parseInt(urlObj.searchParams.get('y'), 10);
 
-        if (data?.painted === 1) {
-          const regionMatch = url.match(/\/pixel\/(\d+)\/(\d+)/);
-          if (regionMatch && regionMatch.length >= 3) {
-            state.region = {
-              x: Number.parseInt(regionMatch[1]),
-              y: Number.parseInt(regionMatch[2]),
-            };
-          }
+        const regionMatch = url.match(/\/pixel\/(\d+)\/(\d+)/);
 
-          const payload = JSON.parse(options.body);
-          if (payload?.coords && Array.isArray(payload.coords)) {
-            state.startPosition = {
-              x: payload.coords[0],
-              y: payload.coords[1],
-            };
+        if (!regionMatch || regionMatch.length < 3 || isNaN(x) || isNaN(y)) {
+          return originalFetch(url, options);
+        }
 
-            await overlayManager.setPosition(state.startPosition, state.region);
+        state.region = {
+          x: Number.parseInt(regionMatch[1]),
+          y: Number.parseInt(regionMatch[2]),
+        };
+        state.startPosition = { x, y };
 
-            if (state.imageLoaded) {
-              const controlBtn = document.getElementById('controlBtn');
-              if (controlBtn) controlBtn.disabled = false;
-            }
+        await overlayManager.setPosition(state.startPosition, state.region);
 
-            window.fetch = originalFetch;
-            state.selectingPosition = false;
-            updateUI('positionSet', 'success');
+        if (state.imageLoaded) {
+          const controlBtn = document.getElementById('controlBtn');
+          if (controlBtn) {
+            controlBtn.disabled = false;
           }
         }
 
-        return response;
+        window.fetch = originalFetch;
+        state.selectingPosition = false;
+        updateUI('positionSet', 'success');
+
+        return originalFetch(url, options);
       } catch (error) {
         console.error('Fetch hook error:', error);
+
+        window.fetch = originalFetch;
+        state.selectingPosition = false;
+        updateUI('positionError', 'error');
         return originalFetch(url, options);
       }
     }

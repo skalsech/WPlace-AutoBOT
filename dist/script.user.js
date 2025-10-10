@@ -7117,47 +7117,50 @@ Total: ${savedData.state.artTotalPixels} pixels`
 
   // src/js/ui/handlers/main-panel/handle-select-position-click.js
   function handleSelectPositionClick() {
-    if (state.selectingPosition) return;
+    if (state.selectingPosition) {
+      return;
+    }
     state.selectingPosition = true;
     state.startPosition = null;
     state.region = null;
     const controlBtn = document.getElementById("controlBtn");
-    if (controlBtn) controlBtn.disabled = true;
+    if (controlBtn) {
+      controlBtn.disabled = true;
+    }
     showAlert(t("selectPositionAlert"), "info");
     updateUI("waitingPosition", "default");
     const tempFetch = async (url, options) => {
-      if (typeof url === "string" && url.includes("https://backend.wplace.live/s0/pixel/") && options?.method?.toUpperCase() === "POST") {
+      const method = options?.method ? options.method.toUpperCase() : "GET";
+      if (typeof url === "string" && url.includes("https://backend.wplace.live/s0/pixel/") && method === "GET") {
         try {
-          const response = await originalFetch(url, options);
-          const clonedResponse = response.clone();
-          const data = await clonedResponse.json();
-          if (data?.painted === 1) {
-            const regionMatch = url.match(/\/pixel\/(\d+)\/(\d+)/);
-            if (regionMatch && regionMatch.length >= 3) {
-              state.region = {
-                x: Number.parseInt(regionMatch[1]),
-                y: Number.parseInt(regionMatch[2])
-              };
-            }
-            const payload = JSON.parse(options.body);
-            if (payload?.coords && Array.isArray(payload.coords)) {
-              state.startPosition = {
-                x: payload.coords[0],
-                y: payload.coords[1]
-              };
-              await overlayManager.setPosition(state.startPosition, state.region);
-              if (state.imageLoaded) {
-                const controlBtn2 = document.getElementById("controlBtn");
-                if (controlBtn2) controlBtn2.disabled = false;
-              }
-              window.fetch = originalFetch;
-              state.selectingPosition = false;
-              updateUI("positionSet", "success");
+          const urlObj = new URL(url);
+          const x = parseInt(urlObj.searchParams.get("x"), 10);
+          const y = parseInt(urlObj.searchParams.get("y"), 10);
+          const regionMatch = url.match(/\/pixel\/(\d+)\/(\d+)/);
+          if (!regionMatch || regionMatch.length < 3 || isNaN(x) || isNaN(y)) {
+            return originalFetch(url, options);
+          }
+          state.region = {
+            x: Number.parseInt(regionMatch[1]),
+            y: Number.parseInt(regionMatch[2])
+          };
+          state.startPosition = { x, y };
+          await overlayManager.setPosition(state.startPosition, state.region);
+          if (state.imageLoaded) {
+            const controlBtn2 = document.getElementById("controlBtn");
+            if (controlBtn2) {
+              controlBtn2.disabled = false;
             }
           }
-          return response;
+          window.fetch = originalFetch;
+          state.selectingPosition = false;
+          updateUI("positionSet", "success");
+          return originalFetch(url, options);
         } catch (error) {
           console.error("Fetch hook error:", error);
+          window.fetch = originalFetch;
+          state.selectingPosition = false;
+          updateUI("positionError", "error");
           return originalFetch(url, options);
         }
       }
