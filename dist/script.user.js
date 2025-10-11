@@ -12,6 +12,113 @@
 // ==/UserScript==
 
 (() => {
+  // src/js/config/AUTO_GENERATED_LANGUAGES.js
+  var GENERATED_LANGUAGES = [
+    "en",
+    "es-MX",
+    "fr",
+    "id",
+    "ja",
+    "ko",
+    "pt",
+    "ru",
+    "tr",
+    "uk",
+    "vi",
+    "zh-CN",
+    "zh-TW"
+  ];
+
+  // src/js/config/APP_CONSTANTS.js
+  var APP_CONSTANTS = {
+    LANGUAGES: GENERATED_LANGUAGES,
+    PAINTING_SPEED: {
+      MIN: 1,
+      MAX: 1e3
+    },
+    THEMES: {
+      classic: {
+        name: "Classic",
+        cssClass: "wplace-theme-classic"
+      },
+      "classic-light": {
+        name: "Classic Light",
+        cssClass: "wplace-theme-classic-light"
+      },
+      "neon-retro": {
+        name: "Neon Retro",
+        cssClass: "wplace-theme-neon"
+      }
+    },
+    COLOR_MAP: {
+      0: { id: 0, name: "Transparent", rgb: { r: 222, g: 250, b: 206 } },
+      //deface
+      1: { id: 1, name: "Black", rgb: { r: 0, g: 0, b: 0 } },
+      2: { id: 2, name: "Dark Gray", rgb: { r: 60, g: 60, b: 60 } },
+      3: { id: 3, name: "Gray", rgb: { r: 120, g: 120, b: 120 } },
+      4: { id: 4, name: "Light Gray", rgb: { r: 210, g: 210, b: 210 } },
+      5: { id: 5, name: "White", rgb: { r: 255, g: 255, b: 255 } },
+      6: { id: 6, name: "Deep Red", rgb: { r: 96, g: 0, b: 24 } },
+      7: { id: 7, name: "Red", rgb: { r: 237, g: 28, b: 36 } },
+      8: { id: 8, name: "Orange", rgb: { r: 255, g: 127, b: 39 } },
+      9: { id: 9, name: "Gold", rgb: { r: 246, g: 170, b: 9 } },
+      10: { id: 10, name: "Yellow", rgb: { r: 249, g: 221, b: 59 } },
+      11: { id: 11, name: "Light Yellow", rgb: { r: 255, g: 250, b: 188 } },
+      12: { id: 12, name: "Dark Green", rgb: { r: 14, g: 185, b: 104 } },
+      13: { id: 13, name: "Green", rgb: { r: 19, g: 230, b: 123 } },
+      14: { id: 14, name: "Light Green", rgb: { r: 135, g: 255, b: 94 } },
+      15: { id: 15, name: "Dark Teal", rgb: { r: 12, g: 129, b: 110 } },
+      16: { id: 16, name: "Teal", rgb: { r: 16, g: 174, b: 166 } },
+      17: { id: 17, name: "Light Teal", rgb: { r: 19, g: 225, b: 190 } },
+      18: { id: 18, name: "Dark Blue", rgb: { r: 40, g: 80, b: 158 } },
+      19: { id: 19, name: "Blue", rgb: { r: 64, g: 147, b: 228 } },
+      20: { id: 20, name: "Cyan", rgb: { r: 96, g: 247, b: 242 } },
+      21: { id: 21, name: "Indigo", rgb: { r: 107, g: 80, b: 246 } },
+      22: { id: 22, name: "Light Indigo", rgb: { r: 153, g: 177, b: 251 } },
+      23: { id: 23, name: "Dark Purple", rgb: { r: 120, g: 12, b: 153 } },
+      24: { id: 24, name: "Purple", rgb: { r: 170, g: 56, b: 185 } },
+      25: { id: 25, name: "Light Purple", rgb: { r: 224, g: 159, b: 249 } },
+      26: { id: 26, name: "Dark Pink", rgb: { r: 203, g: 0, b: 122 } },
+      27: { id: 27, name: "Pink", rgb: { r: 236, g: 31, b: 128 } },
+      28: { id: 28, name: "Light Pink", rgb: { r: 243, g: 141, b: 169 } },
+      29: { id: 29, name: "Dark Brown", rgb: { r: 104, g: 70, b: 52 } },
+      30: { id: 30, name: "Brown", rgb: { r: 149, g: 104, b: 42 } },
+      31: { id: 31, name: "Beige", rgb: { r: 248, g: 178, b: 119 } },
+      32: { id: 32, name: "Medium Gray", rgb: { r: 170, g: 170, b: 170 } },
+      33: { id: 33, name: "Dark Red", rgb: { r: 165, g: 14, b: 30 } },
+      34: { id: 34, name: "Light Red", rgb: { r: 250, g: 128, b: 114 } },
+      35: { id: 35, name: "Dark Orange", rgb: { r: 228, g: 92, b: 26 } },
+      36: { id: 36, name: "Light Tan", rgb: { r: 214, g: 181, b: 148 } },
+      37: { id: 37, name: "Dark Goldenrod", rgb: { r: 156, g: 132, b: 49 } },
+      38: { id: 38, name: "Goldenrod", rgb: { r: 197, g: 173, b: 49 } },
+      39: { id: 39, name: "Light Goldenrod", rgb: { r: 232, g: 212, b: 95 } },
+      40: { id: 40, name: "Dark Olive", rgb: { r: 74, g: 107, b: 58 } },
+      41: { id: 41, name: "Olive", rgb: { r: 90, g: 148, b: 74 } },
+      42: { id: 42, name: "Light Olive", rgb: { r: 132, g: 197, b: 115 } },
+      43: { id: 43, name: "Dark Cyan", rgb: { r: 15, g: 121, b: 159 } },
+      44: { id: 44, name: "Light Cyan", rgb: { r: 187, g: 250, b: 242 } },
+      45: { id: 45, name: "Light Blue", rgb: { r: 125, g: 199, b: 255 } },
+      46: { id: 46, name: "Dark Indigo", rgb: { r: 77, g: 49, b: 184 } },
+      47: { id: 47, name: "Dark Slate Blue", rgb: { r: 74, g: 66, b: 132 } },
+      48: { id: 48, name: "Slate Blue", rgb: { r: 122, g: 113, b: 196 } },
+      49: { id: 49, name: "Light Slate Blue", rgb: { r: 181, g: 174, b: 241 } },
+      50: { id: 50, name: "Light Brown", rgb: { r: 219, g: 164, b: 99 } },
+      51: { id: 51, name: "Dark Beige", rgb: { r: 209, g: 128, b: 81 } },
+      52: { id: 52, name: "Light Beige", rgb: { r: 255, g: 197, b: 165 } },
+      53: { id: 53, name: "Dark Peach", rgb: { r: 155, g: 82, b: 73 } },
+      54: { id: 54, name: "Peach", rgb: { r: 209, g: 128, b: 120 } },
+      55: { id: 55, name: "Light Peach", rgb: { r: 250, g: 182, b: 164 } },
+      56: { id: 56, name: "Dark Tan", rgb: { r: 123, g: 99, b: 82 } },
+      57: { id: 57, name: "Tan", rgb: { r: 156, g: 132, b: 107 } },
+      58: { id: 58, name: "Dark Slate", rgb: { r: 51, g: 57, b: 65 } },
+      59: { id: 59, name: "Slate", rgb: { r: 109, g: 117, b: 141 } },
+      60: { id: 60, name: "Light Slate", rgb: { r: 179, g: 185, b: 209 } },
+      61: { id: 61, name: "Dark Stone", rgb: { r: 109, g: 100, b: 63 } },
+      62: { id: 62, name: "Stone", rgb: { r: 148, g: 140, b: 107 } },
+      63: { id: 63, name: "Light Stone", rgb: { r: 205, g: 197, b: 158 } }
+    }
+  };
+
   // src/js/utils/helpers.js
   var sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   function debounce(fn, delay) {
@@ -120,6 +227,39 @@
       bytes[i] = binaryString.charCodeAt(i);
     }
     return bytes;
+  }
+  function hasColor(colorId, extraColorsBitmap) {
+    if (colorId < 32) {
+      return true;
+    }
+    const bitPosition = colorId - 32;
+    return (extraColorsBitmap & 1 << bitPosition) !== 0;
+  }
+  function getAvailableColors(extraColorsBitmap) {
+    const available = [];
+    for (const colorIdStr of Object.keys(APP_CONSTANTS.COLOR_MAP)) {
+      const colorId = Number(colorIdStr);
+      if (isNaN(colorId) || colorId < 0 || colorId > 63) {
+        console.warn(`Invalid color id in COLOR_MAP: ${colorId}`);
+        continue;
+      }
+      if (hasColor(colorId, extraColorsBitmap)) {
+        const color = APP_CONSTANTS.COLOR_MAP[colorId];
+        if (color && color.id === colorId) {
+          available.push({
+            id: color.id,
+            name: color.name,
+            rgb: [color.rgb.r, color.rgb.g, color.rgb.b]
+          });
+        } else if (color) {
+          console.warn(
+            `COLOR_MAP[${colorId}] has an invalid id: ${color.id}. Expected ${colorId}.`,
+            color
+          );
+        }
+      }
+    }
+    return available;
   }
 
   // src/js/config/DEFAULT_SETTINGS.js
@@ -257,113 +397,6 @@
   function onColorSettingsChange(callback) {
     state._eventEmitter.on("colorSettingsChange", callback);
   }
-
-  // src/js/config/AUTO_GENERATED_LANGUAGES.js
-  var GENERATED_LANGUAGES = [
-    "en",
-    "es-MX",
-    "fr",
-    "id",
-    "ja",
-    "ko",
-    "pt",
-    "ru",
-    "tr",
-    "uk",
-    "vi",
-    "zh-CN",
-    "zh-TW"
-  ];
-
-  // src/js/config/APP_CONSTANTS.js
-  var APP_CONSTANTS = {
-    LANGUAGES: GENERATED_LANGUAGES,
-    PAINTING_SPEED: {
-      MIN: 1,
-      MAX: 1e3
-    },
-    THEMES: {
-      classic: {
-        name: "Classic",
-        cssClass: "wplace-theme-classic"
-      },
-      "classic-light": {
-        name: "Classic Light",
-        cssClass: "wplace-theme-classic-light"
-      },
-      "neon-retro": {
-        name: "Neon Retro",
-        cssClass: "wplace-theme-neon"
-      }
-    },
-    COLOR_MAP: {
-      0: { id: 0, name: "Transparent", rgb: { r: 222, g: 250, b: 206 } },
-      //deface
-      1: { id: 1, name: "Black", rgb: { r: 0, g: 0, b: 0 } },
-      2: { id: 2, name: "Dark Gray", rgb: { r: 60, g: 60, b: 60 } },
-      3: { id: 3, name: "Gray", rgb: { r: 120, g: 120, b: 120 } },
-      4: { id: 4, name: "Light Gray", rgb: { r: 210, g: 210, b: 210 } },
-      5: { id: 5, name: "White", rgb: { r: 255, g: 255, b: 255 } },
-      6: { id: 6, name: "Deep Red", rgb: { r: 96, g: 0, b: 24 } },
-      7: { id: 7, name: "Red", rgb: { r: 237, g: 28, b: 36 } },
-      8: { id: 8, name: "Orange", rgb: { r: 255, g: 127, b: 39 } },
-      9: { id: 9, name: "Gold", rgb: { r: 246, g: 170, b: 9 } },
-      10: { id: 10, name: "Yellow", rgb: { r: 249, g: 221, b: 59 } },
-      11: { id: 11, name: "Light Yellow", rgb: { r: 255, g: 250, b: 188 } },
-      12: { id: 12, name: "Dark Green", rgb: { r: 14, g: 185, b: 104 } },
-      13: { id: 13, name: "Green", rgb: { r: 19, g: 230, b: 123 } },
-      14: { id: 14, name: "Light Green", rgb: { r: 135, g: 255, b: 94 } },
-      15: { id: 15, name: "Dark Teal", rgb: { r: 12, g: 129, b: 110 } },
-      16: { id: 16, name: "Teal", rgb: { r: 16, g: 174, b: 166 } },
-      17: { id: 17, name: "Light Teal", rgb: { r: 19, g: 225, b: 190 } },
-      18: { id: 18, name: "Dark Blue", rgb: { r: 40, g: 80, b: 158 } },
-      19: { id: 19, name: "Blue", rgb: { r: 64, g: 147, b: 228 } },
-      20: { id: 20, name: "Cyan", rgb: { r: 96, g: 247, b: 242 } },
-      21: { id: 21, name: "Indigo", rgb: { r: 107, g: 80, b: 246 } },
-      22: { id: 22, name: "Light Indigo", rgb: { r: 153, g: 177, b: 251 } },
-      23: { id: 23, name: "Dark Purple", rgb: { r: 120, g: 12, b: 153 } },
-      24: { id: 24, name: "Purple", rgb: { r: 170, g: 56, b: 185 } },
-      25: { id: 25, name: "Light Purple", rgb: { r: 224, g: 159, b: 249 } },
-      26: { id: 26, name: "Dark Pink", rgb: { r: 203, g: 0, b: 122 } },
-      27: { id: 27, name: "Pink", rgb: { r: 236, g: 31, b: 128 } },
-      28: { id: 28, name: "Light Pink", rgb: { r: 243, g: 141, b: 169 } },
-      29: { id: 29, name: "Dark Brown", rgb: { r: 104, g: 70, b: 52 } },
-      30: { id: 30, name: "Brown", rgb: { r: 149, g: 104, b: 42 } },
-      31: { id: 31, name: "Beige", rgb: { r: 248, g: 178, b: 119 } },
-      32: { id: 32, name: "Medium Gray", rgb: { r: 170, g: 170, b: 170 } },
-      33: { id: 33, name: "Dark Red", rgb: { r: 165, g: 14, b: 30 } },
-      34: { id: 34, name: "Light Red", rgb: { r: 250, g: 128, b: 114 } },
-      35: { id: 35, name: "Dark Orange", rgb: { r: 228, g: 92, b: 26 } },
-      36: { id: 36, name: "Light Tan", rgb: { r: 214, g: 181, b: 148 } },
-      37: { id: 37, name: "Dark Goldenrod", rgb: { r: 156, g: 132, b: 49 } },
-      38: { id: 38, name: "Goldenrod", rgb: { r: 197, g: 173, b: 49 } },
-      39: { id: 39, name: "Light Goldenrod", rgb: { r: 232, g: 212, b: 95 } },
-      40: { id: 40, name: "Dark Olive", rgb: { r: 74, g: 107, b: 58 } },
-      41: { id: 41, name: "Olive", rgb: { r: 90, g: 148, b: 74 } },
-      42: { id: 42, name: "Light Olive", rgb: { r: 132, g: 197, b: 115 } },
-      43: { id: 43, name: "Dark Cyan", rgb: { r: 15, g: 121, b: 159 } },
-      44: { id: 44, name: "Light Cyan", rgb: { r: 187, g: 250, b: 242 } },
-      45: { id: 45, name: "Light Blue", rgb: { r: 125, g: 199, b: 255 } },
-      46: { id: 46, name: "Dark Indigo", rgb: { r: 77, g: 49, b: 184 } },
-      47: { id: 47, name: "Dark Slate Blue", rgb: { r: 74, g: 66, b: 132 } },
-      48: { id: 48, name: "Slate Blue", rgb: { r: 122, g: 113, b: 196 } },
-      49: { id: 49, name: "Light Slate Blue", rgb: { r: 181, g: 174, b: 241 } },
-      50: { id: 50, name: "Light Brown", rgb: { r: 219, g: 164, b: 99 } },
-      51: { id: 51, name: "Dark Beige", rgb: { r: 209, g: 128, b: 81 } },
-      52: { id: 52, name: "Light Beige", rgb: { r: 255, g: 197, b: 165 } },
-      53: { id: 53, name: "Dark Peach", rgb: { r: 155, g: 82, b: 73 } },
-      54: { id: 54, name: "Peach", rgb: { r: 209, g: 128, b: 120 } },
-      55: { id: 55, name: "Light Peach", rgb: { r: 250, g: 182, b: 164 } },
-      56: { id: 56, name: "Dark Tan", rgb: { r: 123, g: 99, b: 82 } },
-      57: { id: 57, name: "Tan", rgb: { r: 156, g: 132, b: 107 } },
-      58: { id: 58, name: "Dark Slate", rgb: { r: 51, g: 57, b: 65 } },
-      59: { id: 59, name: "Slate", rgb: { r: 109, g: 117, b: 141 } },
-      60: { id: 60, name: "Light Slate", rgb: { r: 179, g: 185, b: 209 } },
-      61: { id: 61, name: "Dark Stone", rgb: { r: 109, g: 100, b: 63 } },
-      62: { id: 62, name: "Stone", rgb: { r: 148, g: 140, b: 107 } },
-      63: { id: 63, name: "Light Stone", rgb: { r: 205, g: 197, b: 158 } }
-    }
-  };
 
   // src/js/ui/components/create-settings.js
   function createSettingsContainer() {
@@ -2432,11 +2465,11 @@
         <div class="wplace-coordinate-row">
       <div class="wplace-input-group">
         <label for="startPosTileX">${t("tileX")}:</label>
-        <input type="number" id="startPosTileX" class="wplace-start-settings-number-input" min="0" step="1">
+        <input type="text" id="startPosTileX" class="wplace-start-settings-number-input" placeholder="${t("mathExpressionHint")}">
       </div>
       <div class="wplace-input-group">
         <label for="startPosTileY">${t("tileY")}:</label>
-        <input type="number" id="startPosTileY" class="wplace-start-settings-number-input" min="0" step="1">
+        <input type="text" id="startPosTileY" class="wplace-start-settings-number-input" placeholder="${t("mathExpressionHint")}">
       </div>
         </div>
       </div>
@@ -2450,11 +2483,11 @@
         <div class="wplace-coordinate-row">
       <div class="wplace-input-group">
         <label for="startPosPixelX">${t("pixelX")}:</label>
-        <input type="number" id="startPosPixelX" class="wplace-start-settings-number-input" min="0" step="1">
+        <input type="text" id="startPosPixelX" class="wplace-start-settings-number-input" placeholder="${t("mathExpressionHint")}">
       </div>
       <div class="wplace-input-group">
         <label for="startPosPixelY">${t("pixelY")}:</label>
-        <input type="number" id="startPosPixelY" class="wplace-start-settings-number-input" min="0" step="1">
+        <input type="text" id="startPosPixelY" class="wplace-start-settings-number-input" placeholder="${t("mathExpressionHint")}">
       </div>
         </div>
       </div>
@@ -3394,63 +3427,416 @@
     }
   }
 
-  // src/js/ui/listeners/start-position-dialog.js
-  var startPositionDialog = null;
-  var selectionController = null;
-  var selectPosBtn = null;
-  function setDialogValues(region, position) {
-    document.getElementById("startPosTileX").value = region?.x ?? "";
-    document.getElementById("startPosTileY").value = region?.y ?? "";
-    document.getElementById("startPosPixelX").value = position?.x ?? "";
-    document.getElementById("startPosPixelY").value = position?.y ?? "";
-  }
-  function updateSelectPositionButton(hasPosition) {
-    if (!selectPosBtn) return;
-    const icon = hasPosition ? "fa-edit" : "fa-crosshairs";
-    const textKey = hasPosition ? "editPosition" : "selectPosition";
-    const mainClass = hasPosition ? "wplace-btn-primary" : "wplace-btn-select";
-    const altClass = hasPosition ? "wplace-btn-select" : "wplace-btn-primary";
-    selectPosBtn.innerHTML = `
-    <i class="fas ${icon}"></i>
-    <span data-i18n-key="${textKey}">${t(textKey)}</span>
-  `;
-    selectPosBtn.classList.add(mainClass);
-    selectPosBtn.classList.remove(altClass);
-  }
-  function openDialog() {
-    if (startPositionDialog?.style.display === "block") return;
-    if (!startPositionDialog) {
-      startPositionDialog = createStartPositionDialog();
-      document.body.appendChild(startPositionDialog);
-      makeDraggable(startPositionDialog);
-      attachDialogListeners();
+  // src/js/utils/math-utils.js
+  function safeEvalMathExpression(expr) {
+    if (typeof expr !== "string" || !expr.trim()) {
+      return null;
     }
-    setDialogValues(state.region, state.startPosition);
-    startPositionDialog.style.display = "block";
+    const cleanExpr = expr.replace(/\s+/g, "");
+    if (!/^[0-9+\-*/().]+$/.test(cleanExpr)) {
+      throw new Error("Invalid characters in expression");
+    }
+    if (cleanExpr.includes("**") || cleanExpr.includes("Math") || cleanExpr.includes("eval") || cleanExpr.includes("[") || cleanExpr.includes("]") || cleanExpr.includes("{") || cleanExpr.includes("}")) {
+      throw new Error("Unsafe expression");
+    }
+    const openBrackets = (cleanExpr.match(/\(/g) || []).length;
+    const closeBrackets = (cleanExpr.match(/\)/g) || []).length;
+    if (openBrackets !== closeBrackets) {
+      throw new Error("Unbalanced brackets in expression");
+    }
+    try {
+      const result = evaluateExpression(cleanExpr);
+      if (typeof result !== "number" || isNaN(result) || !isFinite(result)) {
+        throw new Error("Invalid result");
+      }
+      if (Math.abs(result) > Number.MAX_SAFE_INTEGER) {
+        throw new Error("Result too large");
+      }
+      return Math.floor(result);
+    } catch (error) {
+      throw new Error("Invalid mathematical expression: " + error.message);
+    }
   }
-  function attachDialogListeners() {
-    const closeBtn = document.getElementById("closeStartPositionDialogBtn");
-    const applyBtn = document.getElementById("applyStartPositionBtn");
-    closeBtn?.addEventListener("click", () => {
-      startPositionDialog.style.display = "none";
+  function evaluateExpression(expr) {
+    while (expr.startsWith("(") && expr.endsWith(")")) {
+      const inner = expr.slice(1, -1);
+      if (isBalanced(inner)) {
+        expr = inner;
+      } else {
+        break;
+      }
+    }
+    return parseAddSubtract(expr);
+  }
+  function isBalanced(str) {
+    let count = 0;
+    for (let i = 0; i < str.length; i++) {
+      if (str[i] === "(") count++;
+      if (str[i] === ")") count--;
+      if (count < 0) return false;
+    }
+    return count === 0;
+  }
+  function parseAddSubtract(expr) {
+    let result = 0;
+    let current = "";
+    let operator = "+";
+    let bracketLevel = 0;
+    for (let i = 0; i < expr.length; i++) {
+      const char = expr[i];
+      if (char === "(") {
+        bracketLevel++;
+        current += char;
+      } else if (char === ")") {
+        bracketLevel--;
+        current += char;
+      } else if ((char === "+" || char === "-") && bracketLevel === 0) {
+        if (current) {
+          const value = parseMultiplyDivide(current);
+          result = operator === "+" ? result + value : result - value;
+        }
+        operator = char;
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    if (current) {
+      const value = parseMultiplyDivide(current);
+      result = operator === "+" ? result + value : result - value;
+    }
+    return result;
+  }
+  function parseMultiplyDivide(expr) {
+    let result = 1;
+    let current = "";
+    let operator = "*";
+    let bracketLevel = 0;
+    for (let i = 0; i < expr.length; i++) {
+      const char = expr[i];
+      if (char === "(") {
+        bracketLevel++;
+        current += char;
+      } else if (char === ")") {
+        bracketLevel--;
+        current += char;
+      } else if ((char === "*" || char === "/") && bracketLevel === 0) {
+        if (current) {
+          const value = parseNumberOrParentheses(current);
+          result = operator === "*" ? result * value : result / value;
+          if (operator === "/" && value === 0) {
+            throw new Error("Division by zero");
+          }
+        }
+        operator = char;
+        current = "";
+      } else {
+        current += char;
+      }
+    }
+    if (current) {
+      const value = parseNumberOrParentheses(current);
+      result = operator === "*" ? result * value : result / value;
+      if (operator === "/" && value === 0) {
+        throw new Error("Division by zero");
+      }
+    }
+    return result;
+  }
+  function parseNumberOrParentheses(expr) {
+    expr = expr.trim();
+    if (expr.startsWith("(") && expr.endsWith(")") && isBalanced(expr.slice(1, -1))) {
+      return parseAddSubtract(expr.slice(1, -1));
+    } else {
+      const num = parseFloat(expr);
+      if (isNaN(num)) {
+        throw new Error("Invalid number: " + expr);
+      }
+      return num;
+    }
+  }
+
+  // src/js/ui/utils/dom.js
+  function createElement(tag, props = {}, children = []) {
+    const element = document.createElement(tag);
+    Object.entries(props).forEach(([key, value]) => {
+      if (key === "style" && typeof value === "object") {
+        Object.assign(element.style, value);
+      } else if (key === "className") {
+        element.className = value;
+      } else if (key === "innerHTML") {
+        element.innerHTML = value;
+      } else {
+        element.setAttribute(key, value);
+      }
     });
-    applyBtn?.addEventListener("click", onDialogApply);
+    if (typeof children === "string") {
+      element.textContent = children;
+    } else if (Array.isArray(children)) {
+      children.forEach((child) => {
+        if (typeof child === "string") {
+          element.appendChild(document.createTextNode(child));
+        } else {
+          element.appendChild(child);
+        }
+      });
+    }
+    return element;
   }
-  async function onDialogApply() {
+  function safeOn(el, event, handler) {
+    if (el) el.addEventListener(event, handler);
+  }
+  function modifyColorOpacity(colorString, newAlpha) {
+    colorString = colorString.trim();
+    if (colorString.startsWith("rgb")) {
+      const match = colorString.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+      if (match) {
+        const r = parseInt(match[1], 10);
+        const g = parseInt(match[2], 10);
+        const b = parseInt(match[3], 10);
+        const currentAlpha = match[4] !== void 0 ? parseFloat(match[4]) : 1;
+        const finalAlpha = currentAlpha * newAlpha;
+        return `rgba(${r}, ${g}, ${b}, ${finalAlpha})`;
+      }
+    }
+    if (colorString.startsWith("#")) {
+      const hex = colorString.substring(1);
+      if (hex.length === 6) {
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, ${newAlpha})`;
+      }
+      if (hex.length === 3) {
+        const r = parseInt(hex[0] + hex[0], 16);
+        const g = parseInt(hex[1] + hex[1], 16);
+        const b = parseInt(hex[2] + hex[2], 16);
+        return `rgba(${r}, ${g}, ${b}, ${newAlpha})`;
+      }
+    }
+    if (colorString.startsWith("hsl")) {
+      const match = colorString.match(/hsla?\(([\d.]+),\s*([\d.]+%),\s*([\d.]+%)(?:,\s*([\d.]+))?\)/);
+      if (match) {
+        const h = parseFloat(match[1]);
+        const s = parseFloat(match[2]);
+        const l = parseFloat(match[3]);
+        const currentAlpha = match[4] !== void 0 ? parseFloat(match[4]) : 1;
+        const finalAlpha = currentAlpha * newAlpha;
+        return `hsla(${h}, ${s}, ${l}, ${finalAlpha})`;
+      }
+    }
+    console.warn(`Could not parse color: ${colorString}`);
+    try {
+      const tempDiv = document.createElement("div");
+      tempDiv.style.color = colorString;
+      document.body.appendChild(tempDiv);
+      const computedRgb = getComputedStyle(tempDiv).color;
+      document.body.removeChild(tempDiv);
+      if (computedRgb && computedRgb.startsWith("rgb")) {
+        if (computedRgb.match(/rgba?\(\d+,\s*\d+,\s*\d+(?:,\s*[\d.]+)?\)/)) {
+          return modifyColorOpacity(computedRgb, newAlpha);
+        }
+      }
+    } catch (e) {
+      console.warn(`Fallback used for color: ${colorString}`);
+    }
+    return `rgba(0, 255, 0, ${newAlpha})`;
+  }
+
+  // src/js/ui/utils/dialog-utils.js
+  function isMathExpressionValid(expr) {
+    if (typeof expr !== "string" || !expr.trim()) {
+      return true;
+    }
+    try {
+      const result = safeEvalMathExpression(expr);
+      return result === null || typeof result === "number" && !isNaN(result);
+    } catch {
+      return false;
+    }
+  }
+  function updateInputFeedback(input, isValid, wasModified, wasInvalid) {
+    if (isValid) {
+      if (wasModified || wasInvalid) {
+        const successColor = getComputedStyle(input).getPropertyValue("--wplace-success").trim();
+        input.style.transition = "background-color 0.3s ease";
+        input.style.backgroundColor = modifyColorOpacity(successColor, 0.5);
+        const timeoutId = setTimeout(() => {
+          if (input.dataset.feedbackTimeout === timeoutId.toString()) {
+            input.style.backgroundColor = "";
+          }
+        }, 500);
+        input.dataset.feedbackTimeout = timeoutId.toString();
+      }
+    } else {
+      if (!wasInvalid) {
+        const errorColor = getComputedStyle(input).getPropertyValue("--wplace-error").trim();
+        input.style.backgroundColor = modifyColorOpacity(errorColor, 0.5);
+      }
+    }
+  }
+  function updateApplyButtonState(applyBtn, errorCount) {
+    if (!applyBtn) return;
+    applyBtn.disabled = errorCount > 0;
+    applyBtn.title = errorCount > 0 ? t("applyDisabledDueToErrors") : "";
+  }
+
+  // src/js/ui/dialogs/StartPositionDialog.js
+  var StartPositionDialog = class {
+    constructor() {
+      this.dialog = null;
+      this.applyBtn = null;
+      this.closeBtn = null;
+      this.inputElements = {};
+      this.errorFields = /* @__PURE__ */ new Set();
+      this.initialValues = {};
+      this.selectionController = null;
+    }
+    open(createDialogFn, selectionControllerInstance = null) {
+      if (this.dialog?.style.display === "block") return;
+      if (!this.dialog) {
+        this.dialog = createDialogFn();
+        document.body.appendChild(this.dialog);
+        makeDraggable(this.dialog);
+        this._attachDialogListeners();
+      }
+      this.selectionController = selectionControllerInstance;
+      this.errorFields.clear();
+      this._updateApplyButton();
+      this.dialog.style.display = "block";
+    }
+    close() {
+      if (this.dialog) {
+        this.dialog.style.display = "none";
+        this.selectionController?.cleanup();
+        this.selectionController = null;
+      }
+    }
+    setValues(region, position) {
+      if (!this.dialog) return;
+      this.inputElements.startPosTileX.value = region?.x ?? "";
+      this.inputElements.startPosTileY.value = region?.y ?? "";
+      this.inputElements.startPosPixelX.value = position?.x ?? "";
+      this.inputElements.startPosPixelY.value = position?.y ?? "";
+    }
+    saveInitialValues(region, position) {
+      if (!this.dialog) return;
+      this.initialValues = {
+        startPosTileX: (region?.x ?? "").toString(),
+        startPosTileY: (region?.y ?? "").toString(),
+        startPosPixelX: (position?.x ?? "").toString(),
+        startPosPixelY: (position?.y ?? "").toString()
+      };
+    }
+    isValueModified(inputId) {
+      if (!this.initialValues) return false;
+      const currentValue = this.inputElements[inputId]?.value;
+      return currentValue !== this.initialValues[inputId];
+    }
+    _attachDialogListeners() {
+      this.closeBtn = document.getElementById("closeStartPositionDialogBtn");
+      this.applyBtn = document.getElementById("applyStartPositionBtn");
+      const inputIds = ["startPosTileX", "startPosTileY", "startPosPixelX", "startPosPixelY"];
+      inputIds.forEach((id) => {
+        this.inputElements[id] = document.getElementById(id);
+        if (this.inputElements[id]) {
+          this.inputElements[id].addEventListener(
+            "blur",
+            () => this._evaluateInput(this.inputElements[id])
+          );
+          this.inputElements[id].addEventListener("keypress", (e) => {
+            if (e.key === "Enter") {
+              this._evaluateInput(this.inputElements[id]);
+            }
+          });
+        }
+      });
+      this.closeBtn?.addEventListener("click", () => this.close());
+    }
+    _evaluateInput(input) {
+      const originalValue = input.value.trim();
+      const inputId = input.id;
+      if (originalValue === "") {
+        input.style.backgroundColor = "";
+        delete input.dataset.feedbackTimeout;
+        this._removeError(inputId);
+        this._updateApplyButton();
+        return;
+      }
+      const isValid = isMathExpressionValid(originalValue);
+      const wasInvalid = this.errorFields.has(inputId);
+      const wasModified = this.isValueModified(inputId);
+      updateInputFeedback(input, isValid, wasModified, wasInvalid);
+      if (isValid) {
+        if (wasModified || wasInvalid) {
+          try {
+            const result = safeEvalMathExpression(originalValue);
+            if (result !== null) {
+              input.value = result.toString();
+            }
+          } catch (e) {
+            console.error("Unexpected error in safeEvalMathExpression during update:", e);
+          }
+        }
+        this._removeError(inputId);
+      } else {
+        this._addError(inputId);
+        console.warn(`Math expression error in ${inputId}:`, originalValue);
+      }
+      this._updateApplyButton();
+    }
+    _addError(inputId) {
+      this.errorFields.add(inputId);
+    }
+    _removeError(inputId) {
+      this.errorFields.delete(inputId);
+    }
+    _updateApplyButton() {
+      updateApplyButtonState(this.applyBtn, this.errorFields.size);
+    }
+    getApplyBtn() {
+      return this.applyBtn;
+    }
+    getDialog() {
+      return this.dialog;
+    }
+    getErrorFields() {
+      return this.errorFields;
+    }
+    getInputValue(id) {
+      return this.inputElements[id]?.value ?? null;
+    }
+  };
+
+  // src/js/ui/listeners/start-position-dialog.js
+  var startPositionDialogInstance = new StartPositionDialog();
+  var selectPosBtn = null;
+  async function _applyDialogChanges() {
     const parseInput = (id) => {
-      const val = document.getElementById(id).value;
-      return val === "" ? null : Number.parseInt(val, 10);
+      const value = startPositionDialogInstance.getInputValue(id);
+      if (!value) return null;
+      try {
+        return safeEvalMathExpression(value.trim());
+      } catch (error) {
+        throw new Error(`Invalid expression in ${id}: ${error.message}`);
+      }
     };
-    const tileX = parseInput("startPosTileX");
-    const tileY = parseInput("startPosTileY");
-    const pixelX = parseInput("startPosPixelX");
-    const pixelY = parseInput("startPosPixelY");
+    let tileX, tileY, pixelX, pixelY;
+    try {
+      tileX = parseInput("startPosTileX");
+      tileY = parseInput("startPosTileY");
+      pixelX = parseInput("startPosPixelX");
+      pixelY = parseInput("startPosPixelY");
+    } catch (error) {
+      showAlert(error.message, "error");
+      return false;
+    }
     const isValid = [tileX, tileY, pixelX, pixelY].every(
       (v) => v === null || Number.isInteger(v) && v >= 0
     );
     if (!isValid) {
       showAlert(t("invalidPositionValues"), "error");
-      return;
+      return false;
     }
     state.region = {
       x: tileX ?? state.region?.x ?? 0,
@@ -3466,16 +3852,15 @@
     } catch (error) {
       console.warn("\u26A0\uFE0F Error during forceRefreshCanvas():", error);
     }
-    onPositionSet();
+    return true;
   }
   function onPositionSet() {
-    selectionController?.restoreControlButton();
     updateUI("positionSet", "success");
-    updateSelectPositionButton(true);
-    if (startPositionDialog?.style.display === "block") {
-      setDialogValues(state.region, state.startPosition);
+    updateSelectPositionButton(!!(state.startPosition && state.region));
+    if (startPositionDialogInstance.getDialog()?.style.display === "block") {
+      startPositionDialogInstance.setValues(state.region, state.startPosition);
+      startPositionDialogInstance.saveInitialValues(state.region, state.startPosition);
     }
-    selectionController?.cleanup();
   }
   function setupStartPositionButton() {
     selectPosBtn = document.getElementById("selectPosBtn");
@@ -3485,11 +3870,35 @@
   }
   function handleSelectPositionClick() {
     const hasPosition = !!(state.startPosition && state.region);
+    let selectionControllerInstance = null;
     if (!hasPosition) {
-      selectionController = new SelectionController();
-      selectionController.enable();
+      selectionControllerInstance = new SelectionController();
+      selectionControllerInstance.enable();
     }
-    openDialog();
+    startPositionDialogInstance.open(createStartPositionDialog, selectionControllerInstance);
+    startPositionDialogInstance.setValues(state.region, state.startPosition);
+    startPositionDialogInstance.saveInitialValues(state.region, state.startPosition);
+    const applyBtn = startPositionDialogInstance.getApplyBtn();
+    if (applyBtn) {
+      applyBtn.onclick = async () => {
+        if (await _applyDialogChanges()) {
+          onPositionSet();
+        }
+      };
+    }
+  }
+  function updateSelectPositionButton(hasPosition) {
+    if (!selectPosBtn) return;
+    const icon = hasPosition ? "fa-edit" : "fa-crosshairs";
+    const textKey = hasPosition ? "editPosition" : "selectPosition";
+    const mainClass = hasPosition ? "wplace-btn-primary" : "wplace-btn-select";
+    const altClass = hasPosition ? "wplace-btn-select" : "wplace-btn-primary";
+    selectPosBtn.innerHTML = `
+    <i class="fas ${icon}"></i>
+    <span data-i18n-key="${textKey}">${t(textKey)}</span>
+  `;
+    selectPosBtn.classList.add(mainClass);
+    selectPosBtn.classList.remove(altClass);
   }
 
   // src/js/storage/progress-manager.js
@@ -3677,70 +4086,6 @@
       },
       true
     );
-  }
-
-  // src/js/utils/dom.js
-  function createElement(tag, props = {}, children = []) {
-    const element = document.createElement(tag);
-    Object.entries(props).forEach(([key, value]) => {
-      if (key === "style" && typeof value === "object") {
-        Object.assign(element.style, value);
-      } else if (key === "className") {
-        element.className = value;
-      } else if (key === "innerHTML") {
-        element.innerHTML = value;
-      } else {
-        element.setAttribute(key, value);
-      }
-    });
-    if (typeof children === "string") {
-      element.textContent = children;
-    } else if (Array.isArray(children)) {
-      children.forEach((child) => {
-        if (typeof child === "string") {
-          element.appendChild(document.createTextNode(child));
-        } else {
-          element.appendChild(child);
-        }
-      });
-    }
-    return element;
-  }
-  function hasColor(colorId, extraColorsBitmap) {
-    if (colorId < 32) {
-      return true;
-    }
-    const bitPosition = colorId - 32;
-    return (extraColorsBitmap & 1 << bitPosition) !== 0;
-  }
-  function getAvailableColors(extraColorsBitmap) {
-    const available = [];
-    for (const colorIdStr of Object.keys(APP_CONSTANTS.COLOR_MAP)) {
-      const colorId = Number(colorIdStr);
-      if (isNaN(colorId) || colorId < 0 || colorId > 63) {
-        console.warn(`Invalid color id in COLOR_MAP: ${colorId}`);
-        continue;
-      }
-      if (hasColor(colorId, extraColorsBitmap)) {
-        const color = APP_CONSTANTS.COLOR_MAP[colorId];
-        if (color && color.id === colorId) {
-          available.push({
-            id: color.id,
-            name: color.name,
-            rgb: [color.rgb.r, color.rgb.g, color.rgb.b]
-          });
-        } else if (color) {
-          console.warn(
-            `COLOR_MAP[${colorId}] has an invalid id: ${color.id}. Expected ${colorId}.`,
-            color
-          );
-        }
-      }
-    }
-    return available;
-  }
-  function safeOn(el, event, handler) {
-    if (el) el.addEventListener(event, handler);
   }
 
   // src/js/ui/handlers/settings/coordinate-ui.js

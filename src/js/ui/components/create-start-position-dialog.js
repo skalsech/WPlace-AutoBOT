@@ -32,11 +32,11 @@ export function createStartPositionDialog() {
         <div class="wplace-coordinate-row">
       <div class="wplace-input-group">
         <label for="startPosTileX">${t('tileX')}:</label>
-        <input type="number" id="startPosTileX" class="wplace-start-settings-number-input" min="0" step="1">
+        <input type="text" id="startPosTileX" class="wplace-start-settings-number-input" placeholder="${t('mathExpressionHint')}">
       </div>
       <div class="wplace-input-group">
         <label for="startPosTileY">${t('tileY')}:</label>
-        <input type="number" id="startPosTileY" class="wplace-start-settings-number-input" min="0" step="1">
+        <input type="text" id="startPosTileY" class="wplace-start-settings-number-input" placeholder="${t('mathExpressionHint')}">
       </div>
         </div>
       </div>
@@ -50,11 +50,11 @@ export function createStartPositionDialog() {
         <div class="wplace-coordinate-row">
       <div class="wplace-input-group">
         <label for="startPosPixelX">${t('pixelX')}:</label>
-        <input type="number" id="startPosPixelX" class="wplace-start-settings-number-input" min="0" step="1">
+        <input type="text" id="startPosPixelX" class="wplace-start-settings-number-input" placeholder="${t('mathExpressionHint')}">
       </div>
       <div class="wplace-input-group">
         <label for="startPosPixelY">${t('pixelY')}:</label>
-        <input type="number" id="startPosPixelY" class="wplace-start-settings-number-input" min="0" step="1">
+        <input type="text" id="startPosPixelY" class="wplace-start-settings-number-input" placeholder="${t('mathExpressionHint')}">
       </div>
         </div>
       </div>

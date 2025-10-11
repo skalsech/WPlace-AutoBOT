@@ -1,5 +1,5 @@
 import { createSettingsContainer } from './components/create-settings.js';
-import { appendResourceOnce, msToTimeText } from '../utils/helpers.js';
+import { appendResourceOnce, getAvailableColors, msToTimeText } from '../utils/helpers.js';
 import { createMainContainer } from './components/create-panel.js';
 import { createStatsContainer, tryRemoveStatsInitMessage } from './components/create-stats.js';
 import { createResizeContainer } from './components/create-resize.js';
@@ -12,7 +12,6 @@ import { loadProgress } from '../storage/progress-manager.js';
 import { wplaceService } from '../core/api-service.js';
 import { calculateEstimatedTime, formatTime, getMsToTargetCharges } from '../utils/time.js';
 import { updateChargesThresholdUI } from '../utils/painting-helpers.js';
-import { getAvailableColors } from '../utils/dom.js';
 import { colorsChanged, invalidateColorCache } from '../utils/color-matching.js';
 import { setupSettingsListeners } from './listeners/settings.js';
 import { setupStatsListeners } from './listeners/stats.js';

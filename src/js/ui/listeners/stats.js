@@ -1,4 +1,4 @@
-import { safeOn } from '../../utils/dom.js';
+import { safeOn } from '../utils/dom.js';
 import { t } from '../../i18n/i18.js';
 import { updateStats } from '../panel.js';
 

@@ -6,7 +6,7 @@ import {
   handleCoordinateSnakeChange,
   handleSortCoordinateByFrequencyChange,
 } from '../handlers/settings/coordinate-handler.js';
-import { safeOn } from '../../utils/dom.js';
+import { safeOn } from '../utils/dom.js';
 import {
   handleBatchModeChange,
   handleBlueMarbleToggle,

@@ -1,4 +1,4 @@
-import { safeOn } from '../../utils/dom.js';
+import { safeOn } from '../utils/dom.js';
 import { handleUploadClick } from '../handlers/main-panel/upload-handler.js';
 import {
   handleCooldownSliderInput,

@@ -1,3 +1,5 @@
+import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
+
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
@@ -162,4 +164,61 @@ export function decodeBase64ToBytes(base64String) {
   }
 
   return bytes;
+}
+
+/**
+ * Checks if a color with the given index is available.
+ * Free colors (0–31) are always available.
+ * Paid colors (32–63) are available if their bit is set in extraColorsBitmap.
+ *
+ * @param {number} colorId color index (0–63)
+ * @param {number} extraColorsBitmap bitmask from /me API
+ * @returns {boolean} true if the color is available, otherwise false
+ */
+export function hasColor(colorId, extraColorsBitmap) {
+  if (colorId < 32) {
+    return true;
+  }
+
+  const bitPosition = colorId - 32;
+  return (extraColorsBitmap & (1 << bitPosition)) !== 0;
+}
+
+/**
+ * Returns an array of color objects available to the user.
+ * Free colors (0–31) are always available.
+ * Paid colors (32–63) are available if their bit is set in extraColorsBitmap.
+ *
+ * @param {number} extraColorsBitmap bitmask from /me API
+ * @returns {Array<{id: number, name: string, rgb: [number, number, number]}>}
+ */
+export function getAvailableColors(extraColorsBitmap) {
+  const available = [];
+
+  for (const colorIdStr of Object.keys(APP_CONSTANTS.COLOR_MAP)) {
+    const colorId = Number(colorIdStr);
+
+    if (isNaN(colorId) || colorId < 0 || colorId > 63) {
+      console.warn(`Invalid color id in COLOR_MAP: ${colorId}`);
+      continue;
+    }
+
+    if (hasColor(colorId, extraColorsBitmap)) {
+      const color = APP_CONSTANTS.COLOR_MAP[colorId];
+      if (color && color.id === colorId) {
+        available.push({
+          id: color.id,
+          name: color.name,
+          rgb: [color.rgb.r, color.rgb.g, color.rgb.b],
+        });
+      } else if (color) {
+        console.warn(
+          `COLOR_MAP[${colorId}] has an invalid id: ${color.id}. Expected ${colorId}.`,
+          color
+        );
+      }
+    }
+  }
+
+  return available;
 }

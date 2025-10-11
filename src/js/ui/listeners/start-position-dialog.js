@@ -1,77 +1,39 @@
 import { state } from '../../core/state.js';
 import { showAlert } from '../alerts.js';
-import { makeDraggable, updateUI } from '../panel.js';
+import { updateUI } from '../panel.js';
 import { t } from '../../i18n/i18.js';
 import { wplaceUI } from '../../core/wplace-ui.js';
 import { createStartPositionDialog } from '../components/create-start-position-dialog.js';
 import { overlayManager } from '../../tiles/overlay-manager.js';
 import { SelectionController } from '../../core/selection-controller.js';
+import { safeEvalMathExpression } from '../../utils/math-utils.js';
+import { StartPositionDialog } from '../dialogs/StartPositionDialog.js';
 
-/** @type {HTMLElement | null} */
-let startPositionDialog = null;
-/** @type {SelectionController | null} */
-let selectionController = null;
-/** @type {HTMLElement | null} */
+const startPositionDialogInstance = new StartPositionDialog();
+
 let selectPosBtn = null;
 
-function setDialogValues(region, position) {
-  document.getElementById('startPosTileX').value = region?.x ?? '';
-  document.getElementById('startPosTileY').value = region?.y ?? '';
-  document.getElementById('startPosPixelX').value = position?.x ?? '';
-  document.getElementById('startPosPixelY').value = position?.y ?? '';
-}
-
-function updateSelectPositionButton(hasPosition) {
-  if (!selectPosBtn) return;
-
-  const icon = hasPosition ? 'fa-edit' : 'fa-crosshairs';
-  const textKey = hasPosition ? 'editPosition' : 'selectPosition';
-  const mainClass = hasPosition ? 'wplace-btn-primary' : 'wplace-btn-select';
-  const altClass = hasPosition ? 'wplace-btn-select' : 'wplace-btn-primary';
-
-  selectPosBtn.innerHTML = `
-    <i class="fas ${icon}"></i>
-    <span data-i18n-key="${textKey}">${t(textKey)}</span>
-  `;
-  selectPosBtn.classList.add(mainClass);
-  selectPosBtn.classList.remove(altClass);
-}
-
-function openDialog() {
-  if (startPositionDialog?.style.display === 'block') return;
-
-  if (!startPositionDialog) {
-    startPositionDialog = createStartPositionDialog();
-    document.body.appendChild(startPositionDialog);
-    makeDraggable(startPositionDialog);
-    attachDialogListeners();
-  }
-
-  setDialogValues(state.region, state.startPosition);
-  startPositionDialog.style.display = 'block';
-}
-
-function attachDialogListeners() {
-  const closeBtn = document.getElementById('closeStartPositionDialogBtn');
-  const applyBtn = document.getElementById('applyStartPositionBtn');
-
-  closeBtn?.addEventListener('click', () => {
-    startPositionDialog.style.display = 'none';
-  });
-
-  applyBtn?.addEventListener('click', onDialogApply);
-}
-
-async function onDialogApply() {
+async function _applyDialogChanges() {
   const parseInput = (id) => {
-    const val = document.getElementById(id).value;
-    return val === '' ? null : Number.parseInt(val, 10);
+    const value = startPositionDialogInstance.getInputValue(id);
+    if (!value) return null;
+    try {
+      return safeEvalMathExpression(value.trim());
+    } catch (error) {
+      throw new Error(`Invalid expression in ${id}: ${error.message}`);
+    }
   };
 
-  const tileX = parseInput('startPosTileX');
-  const tileY = parseInput('startPosTileY');
-  const pixelX = parseInput('startPosPixelX');
-  const pixelY = parseInput('startPosPixelY');
+  let tileX, tileY, pixelX, pixelY;
+  try {
+    tileX = parseInput('startPosTileX');
+    tileY = parseInput('startPosTileY');
+    pixelX = parseInput('startPosPixelX');
+    pixelY = parseInput('startPosPixelY');
+  } catch (error) {
+    showAlert(error.message, 'error');
+    return false;
+  }
 
   const isValid = [tileX, tileY, pixelX, pixelY].every(
     (v) => v === null || (Number.isInteger(v) && v >= 0)
@@ -79,7 +41,7 @@ async function onDialogApply() {
 
   if (!isValid) {
     showAlert(t('invalidPositionValues'), 'error');
-    return;
+    return false;
   }
 
   state.region = {
@@ -98,20 +60,17 @@ async function onDialogApply() {
   } catch (error) {
     console.warn('⚠️ Error during forceRefreshCanvas():', error);
   }
-
-  onPositionSet();
+  return true;
 }
 
 export function onPositionSet() {
-  selectionController?.restoreControlButton();
   updateUI('positionSet', 'success');
-  updateSelectPositionButton(true);
+  updateSelectPositionButton(!!(state.startPosition && state.region));
 
-  if (startPositionDialog?.style.display === 'block') {
-    setDialogValues(state.region, state.startPosition);
+  if (startPositionDialogInstance.getDialog()?.style.display === 'block') {
+    startPositionDialogInstance.setValues(state.region, state.startPosition);
+    startPositionDialogInstance.saveInitialValues(state.region, state.startPosition);
   }
-
-  selectionController?.cleanup();
 }
 
 export function setupStartPositionButton() {
@@ -124,9 +83,38 @@ export function setupStartPositionButton() {
 
 export function handleSelectPositionClick() {
   const hasPosition = !!(state.startPosition && state.region);
+  let selectionControllerInstance = null;
   if (!hasPosition) {
-    selectionController = new SelectionController();
-    selectionController.enable();
+    selectionControllerInstance = new SelectionController();
+    selectionControllerInstance.enable();
   }
-  openDialog();
+
+  startPositionDialogInstance.open(createStartPositionDialog, selectionControllerInstance);
+  startPositionDialogInstance.setValues(state.region, state.startPosition);
+  startPositionDialogInstance.saveInitialValues(state.region, state.startPosition);
+
+  const applyBtn = startPositionDialogInstance.getApplyBtn();
+  if (applyBtn) {
+    applyBtn.onclick = async () => {
+      if (await _applyDialogChanges()) {
+        onPositionSet();
+      }
+    };
+  }
+}
+
+function updateSelectPositionButton(hasPosition) {
+  if (!selectPosBtn) return;
+
+  const icon = hasPosition ? 'fa-edit' : 'fa-crosshairs';
+  const textKey = hasPosition ? 'editPosition' : 'selectPosition';
+  const mainClass = hasPosition ? 'wplace-btn-primary' : 'wplace-btn-select';
+  const altClass = hasPosition ? 'wplace-btn-select' : 'wplace-btn-primary';
+
+  selectPosBtn.innerHTML = `
+    <i class="fas ${icon}"></i>
+    <span data-i18n-key="${textKey}">${t(textKey)}</span>
+  `;
+  selectPosBtn.classList.add(mainClass);
+  selectPosBtn.classList.remove(altClass);
 }

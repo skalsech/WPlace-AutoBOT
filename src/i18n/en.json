@@ -82,6 +82,8 @@
   "name": "Name",
   "id": "ID",
   "noColorsDetected": "No colors detected in image",
+  "applyDisabledDueToErrors": "Fix invalid inputs",
+  "mathExpressionHint": "e.g., 1610+50 or 2000*2-100",
   "language": "Language",
   "themeSettings": "Theme Settings",
   "themeSettingsDesc": "Choose your preferred color theme for the interface.",

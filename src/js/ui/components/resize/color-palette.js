@@ -1,6 +1,6 @@
 import { state } from '../../../core/state.js';
 import { APP_CONSTANTS } from '../../../config/APP_CONSTANTS.js';
-import { createElement } from '../../../utils/dom.js';
+import { createElement } from '../../utils/dom.js';
 import { t } from '../../../i18n/i18.js';
 
 function toggleAllColors(select, updateActiveColorPalette, showingUnavailable = false) {
