@@ -1,7 +1,3 @@
-@import url("https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css/themes/classic.css");
-@import url("https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css/themes/classic-light.css");
-@import url("https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css/themes/neon.css");
-
 /* Default :root CSS variables for 100% classic theme compliance */
 /* These ensure the bot works perfectly even if theme files fail to load */
 :root {
@@ -85,7 +81,7 @@
 
 /* Theme classes are now defined in separate files */
 /* Classic theme: ./themes/classic.css */
-/* Neon theme: ./themes/neon.css */
+/* Neon theme: ./themes/neon-retro.css */
 
 /* ========================= */
 /* Core animations (shared)  */

@@ -20,6 +20,7 @@ import { updateDataButtons } from './handlers/main-panel/handle-data-buttons.js'
 import { syncSettingsUI } from './sync-ui.js';
 import { overlayManager } from '../tiles/overlay-manager.js';
 import { createDevReloadButton } from '../utils/dev-utils.js';
+import { switchTheme } from './theme.js';
 
 function cleanupExistingUI() {
   const ids = ['wplace-image-bot-container', 'wplace-settings-container', 'wplace-stats-container'];
@@ -39,16 +40,13 @@ async function initializeDependencies() {
       type: 'link',
     }
   );
-
-  await appendResourceOnce(
-    'https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css/main.css',
-    {
-      type: 'link',
-      attributes: {
-        'data-wplace-theme': 'true',
-      },
-    }
-  );
+  /** @constant {string} __CSS_URL__ - Set by esbuild define in build.mjs */
+  await appendResourceOnce(__CSS_URL__, {
+    type: 'link',
+    attributes: {
+      'data-wplace-theme': 'true',
+    },
+  });
 }
 
 export function makeDraggable(element) {
@@ -443,6 +441,7 @@ export async function createUI() {
   await initializeDependencies();
 
   loadBotSettings();
+  await switchTheme(state.themeKey);
   const container = createMainContainer();
   const statsContainer = createStatsContainer();
   const settingsContainer = createSettingsContainer();
@@ -458,10 +457,11 @@ export async function createUI() {
     settingsContainer
   );
 
-  /** @constant {boolean} __DEV__ - Set by esbuild define in build.mjs */
-  if (__DEV__) {
-    createDevReloadButton();
-  }
+  // /** @constant {boolean} __DEV__ - Set by esbuild define in build.mjs */
+  // if (__DEV__) {
+  //   createDevReloadButton();
+  // }
+  createDevReloadButton();
 
   setupMainPanelListeners();
   setupStatsListeners();

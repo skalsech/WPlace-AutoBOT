@@ -23,18 +23,30 @@ async function build() {
     logLevel: 'info',
     define: {
       __DEV__: isProd ? 'false' : 'true',
+      __CSS_URL__: isProd 
+        ? '"https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css/main.css"'
+        : '"http://localhost:8000/dist/css/main.css"',
     },
   });
 
-  const themeEntries = await glob('src/css/themes/*.css');
-
   await esbuild.build({
-    entryPoints: ['src/css/main.css', ...themeEntries],
+    entryPoints: ['src/css/main.css'],
     outdir: 'dist',
     minify: isProd,
     bundle: true,
     write: true,
     outbase: 'src',
+    logLevel: 'info',
+  });
+
+  const themeEntries = await glob('src/css/themes/*.css');
+  await esbuild.build({
+    entryPoints: themeEntries,
+    outdir: 'dist/css/themes',
+    minify: isProd,
+    bundle: true,
+    write: true,
+    outbase: 'src/css/themes',
     logLevel: 'info',
   });
 

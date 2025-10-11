@@ -22,6 +22,7 @@ export default [
     languageOptions: {
       globals: {
         __DEV__: 'readonly',
+        __CSS_URL__: 'readonly',
         ...globals.node,
       },
       parserOptions: {
@@ -69,6 +70,7 @@ export default [
         ...globals.browser,
         ...globalsUserscript,
         __DEV__: 'readonly',
+        __CSS_URL__: 'readonly',
         IntlMessageFormat: 'readonly',
         FingerprintJS: 'readonly',
       },
