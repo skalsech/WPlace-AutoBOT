@@ -31,7 +31,9 @@ export const handleOverlayOpacityChange = createSliderHandler(
 );
 
 export async function handleBlueMarbleToggle(e) {
-  state.blueMarbleEnabled = e.target.checked;
+  state.update({
+    blueMarbleEnabled: e.target.checked,
+  });
   saveBotSettings();
   if (state.imageLoaded && overlayManager.imageBitmap) {
     showAlert(t('reprocessingOverlay'), 'info');
@@ -41,7 +43,9 @@ export async function handleBlueMarbleToggle(e) {
 }
 
 export function handleTokenSourceChange(e) {
-  state.tokenSource = e.target.value;
+  state.update({
+    tokenSource: e.target.value,
+  });
   saveBotSettings();
   console.log(`🔑 Token source changed to: ${state.tokenSource}`);
   const sourceNames = {
@@ -54,7 +58,9 @@ export function handleTokenSourceChange(e) {
 
 export function handleBatchModeChange(e) {
   const value = e.target.value;
-  state.batchMode = value;
+  state.update({
+    batchMode: value,
+  });
   saveBotSettings();
   console.log(`📦 Batch mode changed to: ${value}`);
 
@@ -104,8 +110,10 @@ const applyBatchRangeSettings = debounce(() => {
     pendingMax = pendingMin;
   }
 
-  state.randomBatchMin = pendingMin;
-  state.randomBatchMax = pendingMax;
+  state.update({
+    randomBatchMin: pendingMin,
+    randomBatchMax: pendingMax,
+  });
   saveBotSettings();
 
   updateUIOnly();
@@ -158,7 +166,9 @@ export const handlePaintSpeedToggle = createCheckboxHandler(
 export async function handleThemeChange(e) {
   const newThemeKey = e.target.value;
   await switchTheme(newThemeKey);
-  state.themeKey = newThemeKey;
+  state.update({
+    themeKey: newThemeKey,
+  });
   saveBotSettings();
 }
 
@@ -166,7 +176,9 @@ export async function handleLanguageChange(e) {
   const newLanguageKey = e.target.value;
   const oldLanguageKey = state.languageKey;
 
-  state.languageKey = newLanguageKey;
+  state.update({
+    languageKey: newLanguageKey,
+  });
   saveBotSettings();
   await loadTranslations(newLanguageKey);
   updateTranslations();

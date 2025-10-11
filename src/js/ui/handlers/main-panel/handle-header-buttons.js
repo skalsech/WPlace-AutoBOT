@@ -36,7 +36,9 @@ export function handleStatsClick() {
 }
 
 export function handleMinimizeClick() {
-  state.minimized = !state.minimized;
+  state.update({
+    minimized: !state.minimized,
+  });
   const container = document.getElementById('wplace-image-bot-container');
   const content = container?.querySelector('.wplace-content');
   const btn = document.getElementById('minimizeBtn');

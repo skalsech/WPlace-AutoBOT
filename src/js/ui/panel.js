@@ -248,8 +248,10 @@ function updateChargeStatsDisplay(intervalMs) {
     displayCharges = Math.floor(cappedCharges);
   }
 
-  state.displayCharges = Math.max(0, displayCharges);
-  state.preciseCurrentCharges = cappedCharges;
+  state.update({
+    displayCharges: Math.max(0, displayCharges),
+    preciseCurrentCharges: cappedCharges,
+  });
 
   const remainingMs = getMsToTargetCharges(cappedCharges, max, state.cooldown, intervalMs);
   const timeText = msToTimeText(remainingMs);
@@ -283,8 +285,10 @@ function updateImageStats(intervalMs) {
   const container = document.getElementById('wplace-image-bot-container');
   const progressBar = container.querySelector('#progressBar');
   const progress = overlayManager.getOverallProgress();
-  state.totalPaintedPixels = progress.painted;
-  state.estimatedTime = calculateEstimatedTime(intervalMs);
+  state.update({
+    totalPaintedPixels: progress.painted,
+    estimatedTime: calculateEstimatedTime(intervalMs),
+  });
   const percentage =
     state.artTotalPixels > 0 ? (state.currentPaintedPixels / state.artTotalPixels) * 100 : 0;
   const displayPercentage = parseFloat(percentage.toFixed(2));
@@ -343,30 +347,35 @@ export async function updateStats(isManualRefresh = false) {
   const { count, max, cooldown, fromCache: chargesFromCache } = await wplaceService.getCharges();
 
   if (!chargesFromCache) {
-    state.displayCharges = Math.floor(count);
-    state.preciseCurrentCharges = count;
-    state.cooldown = cooldown;
-
-    state.fullChargeData = {
-      current: count,
-      max,
-      cooldownMs: cooldown,
-      startTime: Date.now(),
-      spentSinceShot: 0,
-    };
+    state.update({
+      displayCharges: Math.floor(count),
+      preciseCurrentCharges: count,
+      cooldown,
+      fullChargeData: {
+        current: count,
+        max,
+        cooldownMs: cooldown,
+        startTime: Date.now(),
+        spentSinceShot: 0,
+      },
+    });
 
     NotificationManager.maybeNotifyChargesReached();
   }
 
   if (state.fullChargeInterval) {
     clearInterval(state.fullChargeInterval);
-    state.fullChargeInterval = null;
+    state.update({
+      fullChargeInterval: null,
+    });
   }
   const intervalMs = 1000;
-  state.fullChargeInterval = setInterval(() => {
-    updateImageStats(intervalMs);
-    updateChargeStatsDisplay(intervalMs);
-  }, intervalMs);
+  state.update({
+    fullChargeInterval: setInterval(() => {
+      updateImageStats(intervalMs);
+      updateChargeStatsDisplay(intervalMs);
+    }, intervalMs),
+  });
   const container = document.getElementById('wplace-image-bot-container');
   const cooldownSlider = container.querySelector('#cooldownSlider');
 
@@ -396,7 +405,9 @@ export async function updateStats(isManualRefresh = false) {
     }
     showAlert(message, 'success');
 
-    state.availableColors = newAvailableColors;
+    state.update({
+      availableColors: newAvailableColors,
+    });
     invalidateColorCache({ availableColors: true });
   }
 

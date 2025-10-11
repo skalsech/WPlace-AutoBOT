@@ -44,15 +44,16 @@ async function _applyDialogChanges() {
     return false;
   }
 
-  state.region = {
-    x: tileX ?? state.region?.x ?? 0,
-    y: tileY ?? state.region?.y ?? 0,
-  };
-
-  state.startPosition = {
-    x: pixelX ?? state.startPosition?.x ?? 0,
-    y: pixelY ?? state.startPosition?.y ?? 0,
-  };
+  state.update({
+    region: {
+      x: tileX ?? state.region?.x ?? 0,
+      y: tileY ?? state.region?.y ?? 0,
+    },
+    startPosition: {
+      x: pixelX ?? state.startPosition?.x ?? 0,
+      y: pixelY ?? state.startPosition?.y ?? 0,
+    },
+  });
 
   try {
     await overlayManager.setPosition(state.startPosition, state.region);

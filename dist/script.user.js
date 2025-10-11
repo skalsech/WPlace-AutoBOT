@@ -377,7 +377,11 @@
     update(updates) {
       const changedKeys = [];
       for (const [key, value] of Object.entries(updates)) {
-        if (this[key] !== value) {
+        const oldValue = this[key];
+        if ((Array.isArray(value) || typeof value === "object") && value !== null && oldValue === value) {
+          console.warn(`\u26A0\uFE0F update(): ${key} was passed by reference, no new copy was created!`);
+        }
+        if (oldValue !== value) {
           this[key] = value;
           changedKeys.push(key);
         }
@@ -1377,7 +1381,9 @@
       const settings = loadFromStorage("wplace-bot-settings");
       if (!settings) return;
       Object.assign(state, DEFAULT_SETTINGS, settings);
-      state.resizeIgnoreMask = parseResizeIgnoreMask(settings.resizeIgnoreMask, state.resizeSettings) ?? null;
+      state.update({
+        resizeIgnoreMask: parseResizeIgnoreMask(settings.resizeIgnoreMask, state.resizeSettings) ?? null
+      });
     } catch (e) {
       console.warn("Could not load bot settings:", e);
     }
@@ -1495,7 +1501,9 @@
       const bestLanguage = resolvePreferredLanguage();
       if (!loadedTranslations[bestLanguage]) {
         await loadTranslations(bestLanguage);
-        state.languageKey = bestLanguage;
+        state.update({
+          languageKey: bestLanguage
+        });
       }
     } else {
       await loadTranslations(state.languageKey);
@@ -1615,20 +1623,6 @@
      *   - `data`: The parsed user data object from `/me` (same shape as API response).
      *   - `fromCache`: `true` if data was served from the internal cache (not fetched from server).
      *                  `false` if a fresh network request was made.
-     *
-     * @example
-     * const result = await wplaceService.getUserData();
-     * if (!result.fromCache) {
-     *   // Update local state (e.g., startTime) because this is a fresh server snapshot
-     *   state.fullChargeData = {
-     *     current: result.data.charges.count,
-     *     max: result.data.charges.max,
-     *     cooldownMs: result.data.charges.cooldownMs,
-     *     startTime: Date.now(), // ← Only update here!
-     *     spentSinceShot: 0
-     *   };
-     * }
-     * // Use result.data for display or other logic regardless of source
      */
     async getUserData() {
       const now = Date.now();
@@ -1912,8 +1906,10 @@
       }
     },
     resetEdgeTracking() {
-      state._lastChargesBelow = state.displayCharges < state.cooldownChargeThreshold;
-      state._lastChargesNotifyAt = 0;
+      state.update({
+        _lastChargesBelow: state.displayCharges < state.cooldownChargeThreshold,
+        _lastChargesNotifyAt: 0
+      });
     },
     maybeNotifyChargesReached(force = false) {
       if (!state.notificationsEnabled || !state.notifyOnChargesReached) return;
@@ -1930,11 +1926,17 @@
             threshold: state.cooldownChargeThreshold
           });
           this.notify(t("chargesReadyNotification"), msg, "wplace-notify-charges");
-          state._lastChargesNotifyAt = now;
+          state.update({
+            _lastChargesNotifyAt: now
+          });
         }
-        state._lastChargesBelow = false;
+        state.update({
+          _lastChargesBelow: false
+        });
       } else {
-        state._lastChargesBelow = true;
+        state.update({
+          _lastChargesBelow: true
+        });
       }
     },
     startPolling() {
@@ -1943,8 +1945,10 @@
       this.pollTimer = setInterval(async () => {
         try {
           const { charges, cooldown } = await wplaceService.getCharges();
-          state.displayCharges = Math.floor(charges);
-          state.cooldown = cooldown;
+          state.update({
+            displayCharges: Math.floor(charges),
+            cooldown
+          });
           this.maybeNotifyChargesReached();
         } catch {
         }
@@ -3165,7 +3169,9 @@
         }
       }
       this.tileProgress.set(tileKey, { painted, required, wrong });
-      state.localPaintedOffset = 0;
+      state.update({
+        localPaintedOffset: 0
+      });
       console.debug(
         `[OverlayManager] Analyzed tile ${tileKey}: painted=${painted}, required=${required}, wrong=${wrong}`
       );
@@ -3351,9 +3357,11 @@
     }
     enable() {
       if (state.selectingPosition) return;
-      state.selectingPosition = true;
-      state.startPosition = null;
-      state.region = null;
+      state.update({
+        selectingPosition: true,
+        startPosition: null,
+        region: null
+      });
       this.disableControlButton();
       showAlert(t("selectPositionAlert"), "info");
       updateUI("waitingPosition", "default");
@@ -3385,7 +3393,9 @@
         clearTimeout(this.timeoutId);
         this.timeoutId = null;
       }
-      state.selectingPosition = false;
+      state.update({
+        selectingPosition: false
+      });
     }
     async fetchInterceptor(url, options) {
       const method = options?.method?.toUpperCase?.() ?? "GET";
@@ -3838,14 +3848,16 @@
       showAlert(t("invalidPositionValues"), "error");
       return false;
     }
-    state.region = {
-      x: tileX ?? state.region?.x ?? 0,
-      y: tileY ?? state.region?.y ?? 0
-    };
-    state.startPosition = {
-      x: pixelX ?? state.startPosition?.x ?? 0,
-      y: pixelY ?? state.startPosition?.y ?? 0
-    };
+    state.update({
+      region: {
+        x: tileX ?? state.region?.x ?? 0,
+        y: tileY ?? state.region?.y ?? 0
+      },
+      startPosition: {
+        x: pixelX ?? state.startPosition?.x ?? 0,
+        y: pixelY ?? state.startPosition?.y ?? 0
+      }
+    });
     try {
       await overlayManager.setPosition(state.startPosition, state.region);
       await wplaceUI.forceRefreshCanvas();
@@ -4099,7 +4111,9 @@
 
   // src/js/ui/handlers/settings/coordinate-handler.js
   function handleCoordinateModeChange(e) {
-    state.coordinateMode = e.target.value;
+    state.update({
+      coordinateMode: e.target.value
+    });
     updateCoordinateUI({
       mode: state.coordinateMode,
       directionControls: document.getElementById("directionControls"),
@@ -4114,19 +4128,25 @@
     );
   }
   function handleCoordinateDirectionChange(e) {
-    state.coordinateDirection = e.target.value;
+    state.update({
+      coordinateDirection: e.target.value
+    });
     saveBotSettings();
     console.log(`\u{1F9ED} Coordinate direction changed to: ${state.coordinateDirection}`);
     showAlert(t("coordinateDirectionSet", { direction: t(state.coordinateDirection) }), "success");
   }
   function handleCoordinateSnakeChange(e) {
-    state.coordinateSnake = e.target.checked;
+    state.update({
+      coordinateSnake: e.target.checked
+    });
     saveBotSettings();
     console.log(`\u{1F40D} Snake pattern ${state.coordinateSnake ? "enabled" : "disabled"}`);
     showAlert(t(state.coordinateSnake ? "snakeEnabled" : "snakeDisabled"), "success");
   }
   function handleSortCoordinateByFrequencyChange(e) {
-    state.sortCoordinateByFrequency = e.target.checked;
+    state.update({
+      sortCoordinateByFrequency: e.target.checked
+    });
     saveBotSettings();
     console.log(`SortCoordinateByFrequency ${e.target.checked ? "enabled" : "disabled"}`);
     showAlert(
@@ -4137,14 +4157,18 @@
   function handleBlockWidthInput(e) {
     const width = parseInt(e.target.value, 10);
     if (width >= 1 && width <= 50) {
-      state.blockWidth = width;
+      state.update({
+        blockWidth: width
+      });
       saveBotSettings();
     }
   }
   function handleBlockHeightInput(e) {
     const height = parseInt(e.target.value, 10);
     if (height >= 1 && height <= 50) {
-      state.blockHeight = height;
+      state.update({
+        blockHeight: height
+      });
       saveBotSettings();
     }
   }
@@ -4230,7 +4254,9 @@
     "#overlayOpacityValue"
   );
   async function handleBlueMarbleToggle(e) {
-    state.blueMarbleEnabled = e.target.checked;
+    state.update({
+      blueMarbleEnabled: e.target.checked
+    });
     saveBotSettings();
     if (state.imageLoaded && overlayManager.imageBitmap) {
       showAlert(t("reprocessingOverlay"), "info");
@@ -4239,7 +4265,9 @@
     }
   }
   function handleTokenSourceChange(e) {
-    state.tokenSource = e.target.value;
+    state.update({
+      tokenSource: e.target.value
+    });
     saveBotSettings();
     console.log(`\u{1F511} Token source changed to: ${state.tokenSource}`);
     const sourceNames = {
@@ -4251,7 +4279,9 @@
   }
   function handleBatchModeChange(e) {
     const value = e.target.value;
-    state.batchMode = value;
+    state.update({
+      batchMode: value
+    });
     saveBotSettings();
     console.log(`\u{1F4E6} Batch mode changed to: ${value}`);
     const normalControls = document.querySelector("#normalBatchControls");
@@ -4292,8 +4322,10 @@
     } else if (lastEdited === "min" && pendingMax < pendingMin) {
       pendingMax = pendingMin;
     }
-    state.randomBatchMin = pendingMin;
-    state.randomBatchMax = pendingMax;
+    state.update({
+      randomBatchMin: pendingMin,
+      randomBatchMax: pendingMax
+    });
     saveBotSettings();
     updateUIOnly();
   }, 350);
@@ -4339,13 +4371,17 @@
   async function handleThemeChange(e) {
     const newThemeKey = e.target.value;
     await switchTheme(newThemeKey);
-    state.themeKey = newThemeKey;
+    state.update({
+      themeKey: newThemeKey
+    });
     saveBotSettings();
   }
   async function handleLanguageChange(e) {
     const newLanguageKey = e.target.value;
     const oldLanguageKey = state.languageKey;
-    state.languageKey = newLanguageKey;
+    state.update({
+      languageKey: newLanguageKey
+    });
     saveBotSettings();
     await loadTranslations(newLanguageKey);
     updateTranslations();
@@ -4380,7 +4416,9 @@
   function handleNotificationIntervalInput(e) {
     const value = parseInt(e.target.value, 10);
     if (isNaN(value) || value < 1 || value > 60) return;
-    state.notificationIntervalMinutes = value;
+    state.update({
+      notificationIntervalMinutes: value
+    });
     saveBotSettings();
     console.log(`\u23F0 Notification interval set to: ${value} min`);
     showAlert(t("notificationIntervalUpdated", { minutes: value }), "success");
@@ -4707,7 +4745,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
           newPalette.push(rgb);
         }
       });
-      state.activeColorPalette = newPalette;
+      state.update({
+        activeColorPalette: newPalette
+      });
       if (typeof onPaletteChange === "function") {
         onPaletteChange(newPalette);
       }
@@ -5151,7 +5191,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
   }
 
   // src/js/ui/components/resize/resize-mask-overlay.js
-  function createMaskOverlay({ maskCtx: maskCtx2, baseCanvas: baseCanvas2, maskCanvas: maskCanvas2, state: state2 }) {
+  function createMaskOverlay({ maskCtx: maskCtx2, baseCanvas: baseCanvas2, maskCanvas: maskCanvas2 }) {
     let maskImageData = null;
     let maskData = null;
     let dirty = null;
@@ -5184,7 +5224,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
         rebuildFromMask = true;
       }
       if (rebuildFromMask) {
-        const maskArray = state2.resizeIgnoreMask;
+        const maskArray = state.resizeIgnoreMask;
         maskData.fill(0);
         if (maskArray) {
           for (let i = 0; i < maskArray.length; i++) {
@@ -5203,8 +5243,8 @@ Total: ${savedData.state.artTotalPixels} pixels`
     };
     const ensureMaskArraySize = (w, h) => {
       const len = w * h;
-      if (!state2.resizeIgnoreMask || state2.resizeIgnoreMask.length !== len) {
-        state2.resizeIgnoreMask = new Uint8Array(len);
+      if (!state.resizeIgnoreMask || state.resizeIgnoreMask.length !== len) {
+        state.update({ resizeIgnoreMask: new Uint8Array(len) });
       }
     };
     const ensureMaskSize = (w, h) => {
@@ -5271,7 +5311,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const syncStateAndZoom = () => {
       const curW = parseInt(widthSlider2.value, 10);
       const curH = parseInt(heightSlider2.value, 10);
-      state2.resizeSettings = { baseWidth, baseHeight, width: curW, height: curH };
+      state2.update({
+        resizeSettings: { baseWidth, baseHeight, width: curW, height: curH }
+      });
       const fit = typeof computeFitZoom === "function" ? computeFitZoom() : 1;
       if (!isNaN(fit) && isFinite(fit)) applyZoom(fit);
     };
@@ -5360,7 +5402,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const ensureMask = (w, h) => {
       const len = w * h;
       if (!state2.resizeIgnoreMask || state2.resizeIgnoreMask.length !== len) {
-        state2.resizeIgnoreMask = new Uint8Array(len);
+        state2.update({
+          resizeIgnoreMask: new Uint8Array(len)
+        });
       }
     };
     const paintCircle = (cx, cy, radius) => {
@@ -5381,7 +5425,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
           if (maskMode === "toggle") val = state2.resizeIgnoreMask[idx] ? 0 : 1;
           else if (maskMode === "ignore") val = 1;
           else if (maskMode === "unignore") val = 0;
-          state2.resizeIgnoreMask[idx] = val;
+          const newResizeIgnoreMask = structuredClone(state2.resizeIgnoreMask);
+          newResizeIgnoreMask[idx] = val;
+          state2.update({ resizeIgnoreMask: newResizeIgnoreMask });
           if (md) {
             const p = idx * 4;
             md[p] = val ? 255 : 0;
@@ -5409,7 +5455,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
           if (maskMode === "toggle") val = state2.resizeIgnoreMask[idx] ? 0 : 1;
           else if (maskMode === "ignore") val = 1;
           else if (maskMode === "unignore") val = 0;
-          state2.resizeIgnoreMask[idx] = val;
+          const newResizeIgnoreMask = structuredClone(state2.resizeIgnoreMask);
+          newResizeIgnoreMask[idx] = val;
+          state2.update({ resizeIgnoreMask: newResizeIgnoreMask });
           if (md) {
             const p = idx * 4;
             md[p] = val ? 255 : 0;
@@ -5440,7 +5488,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
           if (maskMode === "toggle") val = state2.resizeIgnoreMask[idx] ? 0 : 1;
           else if (maskMode === "ignore") val = 1;
           else if (maskMode === "unignore") val = 0;
-          state2.resizeIgnoreMask[idx] = val;
+          const newResizeIgnoreMask = structuredClone(state2.resizeIgnoreMask);
+          newResizeIgnoreMask[idx] = val;
+          state2.update({ resizeIgnoreMask: newResizeIgnoreMask });
           if (md) {
             const p = idx * 4;
             md[p] = val ? 255 : 0;
@@ -5947,7 +5997,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
     paintWhiteToggle.checked = state.paintWhitePixels;
     paintTransparentToggle.checked = state.paintTransparentPixels;
     const ditherBuffers = createDitherBuffers();
-    const maskOverlay = createMaskOverlay({ maskCtx, baseCanvas, maskCanvas, state });
+    const maskOverlay = createMaskOverlay({ maskCtx, baseCanvas, maskCanvas });
     const previewController = createPreviewController({
       baseProcessor,
       processor,
@@ -6080,12 +6130,16 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const unbindSize = sizeHandlers.bind();
     const unbindMask = maskEvents.bind();
     paintWhiteToggle.onchange = (e) => {
-      state.paintWhitePixels = e.target.checked;
+      state.update({
+        paintWhitePixels: e.target.checked
+      });
       previewController.updateResizePreview();
       saveBotSettings();
     };
     paintTransparentToggle.onchange = (e) => {
-      state.paintTransparentPixels = e.target.checked;
+      state.update({
+        paintTransparentPixels: e.target.checked
+      });
       previewController.updateResizePreview();
       saveBotSettings();
     };
@@ -6137,20 +6191,22 @@ Total: ${savedData.state.artTotalPixels} pixels`
         }
       }
       tempCtx.putImageData(imgData, 0, 0);
-      state.imageData = {
-        pixels: new Uint8ClampedArray(imgData.data),
-        width: newWidth,
-        height: newHeight,
-        totalPixels: totalValidPixels
-      };
-      state.artTotalPixels = totalValidPixels;
-      state.totalPaintedPixels = 0;
-      state.resizeSettings = {
-        baseWidth: width,
-        baseHeight: height,
-        width: newWidth,
-        height: newHeight
-      };
+      state.update({
+        imageData: {
+          pixels: new Uint8ClampedArray(imgData.data),
+          width: newWidth,
+          height: newHeight,
+          totalPixels: totalValidPixels
+        },
+        artTotalPixels: totalValidPixels,
+        totalPaintedPixels: 0,
+        resizeSettings: {
+          baseWidth: width,
+          baseHeight: height,
+          width: newWidth,
+          height: newHeight
+        }
+      });
       saveBotSettings();
       const finalImageBitmap = await createImageBitmap(tempCanvas);
       await overlayManager.setImage(finalImageBitmap);
@@ -6618,7 +6674,7 @@ Total: ${savedData.state.artTotalPixels} pixels`
     }
     const displayToken = truncateString(token);
     console.debug(
-      `[turnstile-token]: \u{1F511} New set - Type: ${typeof token}, Value: ${displayToken}, \u{1F50D} Length: ${token.length}`
+      `[turnstile-token]: \u{1F511} New set - Type: ${typeof token}, Value: ${displayToken}, \u{1F50D} Length: ${token?.length || 0}`
     );
     if (TurnstileState.resolveToken) {
       TurnstileState.resolveToken(token);
@@ -6948,7 +7004,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
               ).join("");
               displayToken = `${prefix}...${middleHash}...${suffix}`;
             }
-            console.log(`[wasm-token]: \u{1F511} Full token: ${displayToken}, \u{1F50D} Length: ${token.length}`);
+            console.log(
+              `[wasm-token]: \u{1F511} Full token: ${displayToken}, \u{1F50D} Length: ${token?.length || 0}`
+            );
           }
           return token;
         } catch (error) {
@@ -7194,14 +7252,20 @@ Total: ${savedData.state.artTotalPixels} pixels`
   }
   async function performSmartSave() {
     if (!shouldAutoSave()) return false;
-    state._saveInProgress = true;
+    state.update({
+      _saveInProgress: true
+    });
     const success = await saveProgress();
     if (success) {
-      state._lastSavePixelCount = state.currentPaintedPixels;
-      state._lastSaveTime = Date.now();
+      state.update({
+        _lastSavePixelCount: state.currentPaintedPixels,
+        _lastSaveTime: Date.now()
+      });
       console.log(`\u{1F4BE} Auto-saved at ${state.currentPaintedPixels} pixels`);
     }
-    state._saveInProgress = false;
+    state.update({
+      _saveInProgress: false
+    });
     return success;
   }
 
@@ -7381,11 +7445,17 @@ Total: ${savedData.state.artTotalPixels} pixels`
     if (success) {
       const ownsRegion = await wplaceService.ownsRegion(batch.regionX, batch.regionY);
       const chargesSpent = batchSize * (ownsRegion ? 0.9 : 1);
-      state.localPaintedOffset += batchSize;
-      state.fullChargeData = {
-        ...state.fullChargeData,
-        spentSinceShot: state.fullChargeData.spentSinceShot + chargesSpent
-      };
+      let newFullChargeData = null;
+      if (state.fullChargeData) {
+        newFullChargeData = {
+          ...state.fullChargeData,
+          spentSinceShot: state.fullChargeData.spentSinceShot + chargesSpent
+        };
+      }
+      state.update({
+        localPaintedOffset: state.localPaintedOffset + batchSize,
+        fullChargeData: newFullChargeData
+      });
       await updateStats();
       await performSmartSave();
     } else {
@@ -7394,7 +7464,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
           `\u274C Batch for ${batch.regionX}, ${batch.regionY} with ${batch.pixels.length} pixels
          failed permanently after retries. Stopping painting.`
         );
-        state.stopFlag = true;
+        state.update({
+          stopFlag: true
+        });
         updateUI("paintingBatchFailed", "error");
       }
     }
@@ -7408,7 +7480,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const tilesReady = await overlayManager.waitForTiles(true);
     if (!tilesReady) {
       updateUI("overlayTilesNotLoaded", "error");
-      state.stopFlag = true;
+      state.update({
+        stopFlag: true
+      });
       return;
     }
     const pixelBatches = /* @__PURE__ */ new Map();
@@ -7528,7 +7602,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
         } catch (e) {
           console.error(`[DEBUG] Error checking existing pixel at (${pixelX}, ${pixelY}):`, e);
           updateUI("paintingPixelCheckFailed", "error", { x: pixelX, y: pixelY });
-          state.stopFlag = true;
+          state.update({
+            stopFlag: true
+          });
           break outerLoop;
         }
         batch.pixels.push({
@@ -7590,7 +7666,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
         }
       }
     } catch (e) {
-      state.stopFlag = true;
+      state.update({
+        stopFlag: true
+      });
       updateUI("paintingError", "error");
       const err = e instanceof Error ? e : new Error(String(e));
       const groupStyle = "color: #d32f2f; font-weight: bold; background: #ffebee; padding: 2px 6px; border-radius: 3px;";
@@ -7640,8 +7718,10 @@ Total: ${savedData.state.artTotalPixels} pixels`
     }
   }
   async function handleStopClick() {
-    state.stopFlag = true;
-    state.running = false;
+    state.update({
+      stopFlag: true,
+      running: false
+    });
     updateControlButtonState();
     updateUI("paintingStoppedByUser", "warning");
     if (state.imageLoaded && state.totalPaintedPixels > 0) {
@@ -7679,8 +7759,10 @@ Total: ${savedData.state.artTotalPixels} pixels`
     }
     await ensureToken();
     if (!getTurnstileToken()) return;
-    state.running = true;
-    state.stopFlag = false;
+    state.update({
+      running: true,
+      stopFlag: false
+    });
     updateControlButtonState();
     const uploadBtn = document.getElementById("uploadBtn");
     const selectPosBtn2 = document.getElementById("selectPosBtn");
@@ -7699,7 +7781,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
       console.error("Unexpected error:", e);
       updateUI("paintingError", "error");
     } finally {
-      state.running = false;
+      state.update({
+        running: false
+      });
       updateControlButtonState();
       if (saveBtn) saveBtn.disabled = false;
       if (!state.stopFlag) {
@@ -7730,7 +7814,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
   }
   function handleCooldownSliderInput(e) {
     const threshold = parseInt(e.target.value, 10);
-    state.cooldownChargeThreshold = threshold;
+    state.update({
+      cooldownChargeThreshold: threshold
+    });
     const cooldownValue = document.getElementById("cooldownValue");
     if (cooldownValue) {
       cooldownValue.textContent = threshold.toString();
@@ -7771,7 +7857,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
     }
   }
   function handleMinimizeClick() {
-    state.minimized = !state.minimized;
+    state.update({
+      minimized: !state.minimized
+    });
     const container = document.getElementById("wplace-image-bot-container");
     const content = container?.querySelector(".wplace-content");
     const btn = document.getElementById("minimizeBtn");
@@ -8155,8 +8243,10 @@ Total: ${savedData.state.artTotalPixels} pixels`
     } else {
       displayCharges = Math.floor(cappedCharges);
     }
-    state.displayCharges = Math.max(0, displayCharges);
-    state.preciseCurrentCharges = cappedCharges;
+    state.update({
+      displayCharges: Math.max(0, displayCharges),
+      preciseCurrentCharges: cappedCharges
+    });
     const remainingMs = getMsToTargetCharges(cappedCharges, max, state.cooldown, intervalMs);
     const timeText = msToTimeText(remainingMs);
     if (currentChargesEl) {
@@ -8185,8 +8275,10 @@ Total: ${savedData.state.artTotalPixels} pixels`
     const container = document.getElementById("wplace-image-bot-container");
     const progressBar = container.querySelector("#progressBar");
     const progress = overlayManager.getOverallProgress();
-    state.totalPaintedPixels = progress.painted;
-    state.estimatedTime = calculateEstimatedTime(intervalMs);
+    state.update({
+      totalPaintedPixels: progress.painted,
+      estimatedTime: calculateEstimatedTime(intervalMs)
+    });
     const percentage = state.artTotalPixels > 0 ? state.currentPaintedPixels / state.artTotalPixels * 100 : 0;
     const displayPercentage = parseFloat(percentage.toFixed(2));
     const newWidth = `${displayPercentage}%`;
@@ -8229,27 +8321,33 @@ Total: ${savedData.state.artTotalPixels} pixels`
     }
     const { count, max, cooldown, fromCache: chargesFromCache } = await wplaceService.getCharges();
     if (!chargesFromCache) {
-      state.displayCharges = Math.floor(count);
-      state.preciseCurrentCharges = count;
-      state.cooldown = cooldown;
-      state.fullChargeData = {
-        current: count,
-        max,
-        cooldownMs: cooldown,
-        startTime: Date.now(),
-        spentSinceShot: 0
-      };
+      state.update({
+        displayCharges: Math.floor(count),
+        preciseCurrentCharges: count,
+        cooldown,
+        fullChargeData: {
+          current: count,
+          max,
+          cooldownMs: cooldown,
+          startTime: Date.now(),
+          spentSinceShot: 0
+        }
+      });
       NotificationManager.maybeNotifyChargesReached();
     }
     if (state.fullChargeInterval) {
       clearInterval(state.fullChargeInterval);
-      state.fullChargeInterval = null;
+      state.update({
+        fullChargeInterval: null
+      });
     }
     const intervalMs = 1e3;
-    state.fullChargeInterval = setInterval(() => {
-      updateImageStats(intervalMs);
-      updateChargeStatsDisplay(intervalMs);
-    }, intervalMs);
+    state.update({
+      fullChargeInterval: setInterval(() => {
+        updateImageStats(intervalMs);
+        updateChargeStatsDisplay(intervalMs);
+      }, intervalMs)
+    });
     const container = document.getElementById("wplace-image-bot-container");
     const cooldownSlider = container.querySelector("#cooldownSlider");
     if (cooldownSlider.max !== state.fullChargeData.max) {
@@ -8273,7 +8371,9 @@ Total: ${savedData.state.artTotalPixels} pixels`
         message = t("colorsUpdatedDecreased", { oldCount, newCount, diffCount: -diffCount });
       }
       showAlert(message, "success");
-      state.availableColors = newAvailableColors;
+      state.update({
+        availableColors: newAvailableColors
+      });
       invalidateColorCache({ availableColors: true });
     }
     let lastEl = document.getElementById("wplace-init-msg");

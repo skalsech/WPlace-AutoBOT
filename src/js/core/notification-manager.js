@@ -50,8 +50,10 @@ export const NotificationManager = {
     }
   },
   resetEdgeTracking() {
-    state._lastChargesBelow = state.displayCharges < state.cooldownChargeThreshold;
-    state._lastChargesNotifyAt = 0;
+    state.update({
+      _lastChargesBelow: state.displayCharges < state.cooldownChargeThreshold,
+      _lastChargesNotifyAt: 0,
+    });
   },
   maybeNotifyChargesReached(force = false) {
     if (!state.notificationsEnabled || !state.notifyOnChargesReached) return;
@@ -68,11 +70,17 @@ export const NotificationManager = {
           threshold: state.cooldownChargeThreshold,
         });
         this.notify(t('chargesReadyNotification'), msg, 'wplace-notify-charges');
-        state._lastChargesNotifyAt = now;
+        state.update({
+          _lastChargesNotifyAt: now,
+        });
       }
-      state._lastChargesBelow = false;
+      state.update({
+        _lastChargesBelow: false,
+      });
     } else {
-      state._lastChargesBelow = true;
+      state.update({
+        _lastChargesBelow: true,
+      });
     }
   },
   startPolling() {
@@ -82,8 +90,10 @@ export const NotificationManager = {
     this.pollTimer = setInterval(async () => {
       try {
         const { charges, cooldown } = await wplaceService.getCharges();
-        state.displayCharges = Math.floor(charges);
-        state.cooldown = cooldown;
+        state.update({
+          displayCharges: Math.floor(charges),
+          cooldown,
+        });
 
         this.maybeNotifyChargesReached();
       } catch {

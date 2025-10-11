@@ -183,7 +183,9 @@ function getMainWorldCode() {
 
             displayToken = `${prefix}...${middleHash}...${suffix}`;
           }
-          console.log(`[wasm-token]: 🔑 Full token: ${displayToken}, 🔍 Length: ${token.length}`);
+          console.log(
+            `[wasm-token]: 🔑 Full token: ${displayToken}, 🔍 Length: ${token?.length || 0}`
+          );
         }
 
         return token;

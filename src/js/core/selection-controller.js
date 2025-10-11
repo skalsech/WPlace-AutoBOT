@@ -16,9 +16,11 @@ export class SelectionController {
   enable() {
     if (state.selectingPosition) return;
 
-    state.selectingPosition = true;
-    state.startPosition = null;
-    state.region = null;
+    state.update({
+      selectingPosition: true,
+      startPosition: null,
+      region: null,
+    });
 
     this.disableControlButton();
     showAlert(t('selectPositionAlert'), 'info');
@@ -56,7 +58,9 @@ export class SelectionController {
       clearTimeout(this.timeoutId);
       this.timeoutId = null;
     }
-    state.selectingPosition = false;
+    state.update({
+      selectingPosition: false,
+    });
   }
 
   async fetchInterceptor(url, options) {

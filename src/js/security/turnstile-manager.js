@@ -24,7 +24,7 @@ export function setTurnstileToken(token) {
   }
   const displayToken = truncateString(token);
   console.debug(
-    `[turnstile-token]: 🔑 New set - Type: ${typeof token}, Value: ${displayToken}, 🔍 Length: ${token.length}`
+    `[turnstile-token]: 🔑 New set - Type: ${typeof token}, Value: ${displayToken}, 🔍 Length: ${token?.length || 0}`
   );
 
   if (TurnstileState.resolveToken) {

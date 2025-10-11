@@ -93,11 +93,12 @@ export async function clearProgress() {
 
     localStorage.removeItem('wplace-bot-progress');
 
-    state.imageData = null;
-    state.artColorFrequency = new Map();
-    state._lastSavePixelCount = 0;
-    state._lastSaveTime = 0;
-    state.paintedMap = null; // legacy
+    state.update({
+      imageData: null,
+      artColorFrequency: new Map(),
+      _lastSavePixelCount: 0,
+      _lastSaveTime: 0,
+    });
 
     console.log('📋 Progress and painted map cleared');
     return true;

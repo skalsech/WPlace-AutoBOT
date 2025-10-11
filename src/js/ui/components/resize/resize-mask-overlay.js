@@ -1,8 +1,10 @@
+import { state } from '../../../core/state.js';
+
 /**
  * Manages mask overlay rendering: buffers, dirty regions, and canvas sync.
  * Decoupled from input logic; only handles visual representation of `state.resizeIgnoreMask`.
  */
-export function createMaskOverlay({ maskCtx, baseCanvas, maskCanvas, state }) {
+export function createMaskOverlay({ maskCtx, baseCanvas, maskCanvas }) {
   let maskImageData = null;
   let maskData = null;
   let dirty = null;
@@ -66,7 +68,7 @@ export function createMaskOverlay({ maskCtx, baseCanvas, maskCanvas, state }) {
   const ensureMaskArraySize = (w, h) => {
     const len = w * h;
     if (!state.resizeIgnoreMask || state.resizeIgnoreMask.length !== len) {
-      state.resizeIgnoreMask = new Uint8Array(len);
+      state.update({ resizeIgnoreMask: new Uint8Array(len) });
     }
   };
 

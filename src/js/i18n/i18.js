@@ -121,7 +121,9 @@ export const initializeTranslations = async () => {
     const bestLanguage = resolvePreferredLanguage();
     if (!loadedTranslations[bestLanguage]) {
       await loadTranslations(bestLanguage);
-      state.languageKey = bestLanguage;
+      state.update({
+        languageKey: bestLanguage,
+      });
     }
   } else {
     await loadTranslations(state.languageKey);

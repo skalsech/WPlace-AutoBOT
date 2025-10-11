@@ -503,8 +503,9 @@ class OverlayManager {
     }
 
     this.tileProgress.set(tileKey, { painted, required, wrong });
-    state.localPaintedOffset = 0;
-
+    state.update({
+      localPaintedOffset: 0,
+    });
     console.debug(
       `[OverlayManager] Analyzed tile ${tileKey}: painted=${painted}, required=${required}, wrong=${wrong}`
     );

@@ -9,6 +9,7 @@ import { NotificationManager } from '../../../core/notification-manager.js';
 import { saveBotSettings } from '../../../storage/settings-manager.js';
 import { ensureToken, getTurnstileToken } from '../../../security/turnstile-manager.js';
 import { processImage } from '../../../core/painting-controller.js';
+import { calculateEstimatedTime } from '../../../utils/time.js';
 
 export function handleResizeClick(e) {
   e?.preventDefault();
@@ -23,8 +24,10 @@ export function handleResizeClick(e) {
 }
 
 export async function handleStopClick() {
-  state.stopFlag = true;
-  state.running = false;
+  state.update({
+    stopFlag: true,
+    running: false,
+  });
   updateControlButtonState();
 
   updateUI('paintingStoppedByUser', 'warning');
@@ -68,8 +71,10 @@ export async function handleStartPainting() {
   await ensureToken();
   if (!getTurnstileToken()) return;
 
-  state.running = true;
-  state.stopFlag = false;
+  state.update({
+    running: true,
+    stopFlag: false,
+  });
   updateControlButtonState();
 
   const uploadBtn = document.getElementById('uploadBtn');
@@ -92,7 +97,9 @@ export async function handleStartPainting() {
     console.error('Unexpected error:', e);
     updateUI('paintingError', 'error');
   } finally {
-    state.running = false;
+    state.update({
+      running: false,
+    });
     updateControlButtonState();
 
     if (saveBtn) saveBtn.disabled = false;
@@ -129,7 +136,9 @@ export async function handleToggleOverlayClick() {
 
 export function handleCooldownSliderInput(e) {
   const threshold = parseInt(e.target.value, 10);
-  state.cooldownChargeThreshold = threshold;
+  state.update({
+    cooldownChargeThreshold: threshold,
+  });
   const cooldownValue = document.getElementById('cooldownValue');
   if (cooldownValue) {
     cooldownValue.textContent = threshold.toString();

@@ -45,11 +45,18 @@ async function flushPixelBatch(batch) {
   if (success) {
     const ownsRegion = await wplaceService.ownsRegion(batch.regionX, batch.regionY);
     const chargesSpent = batchSize * (ownsRegion ? 0.9 : 1);
-    state.localPaintedOffset += batchSize;
-    state.fullChargeData = {
-      ...state.fullChargeData,
-      spentSinceShot: state.fullChargeData.spentSinceShot + chargesSpent,
-    };
+    let newFullChargeData = null;
+    if (state.fullChargeData) {
+      newFullChargeData = {
+        ...state.fullChargeData,
+        spentSinceShot: state.fullChargeData.spentSinceShot + chargesSpent,
+      };
+    }
+
+    state.update({
+      localPaintedOffset: state.localPaintedOffset + batchSize,
+      fullChargeData: newFullChargeData,
+    });
 
     await updateStats();
     await performSmartSave();
@@ -59,7 +66,9 @@ async function flushPixelBatch(batch) {
         `❌ Batch for ${batch.regionX}, ${batch.regionY} with ${batch.pixels.length} pixels
          failed permanently after retries. Stopping painting.`
       );
-      state.stopFlag = true;
+      state.update({
+        stopFlag: true,
+      });
       updateUI('paintingBatchFailed', 'error');
     }
   }
@@ -78,7 +87,9 @@ export async function processImage() {
 
   if (!tilesReady) {
     updateUI('overlayTilesNotLoaded', 'error');
-    state.stopFlag = true;
+    state.update({
+      stopFlag: true,
+    });
     return;
   }
 
@@ -258,7 +269,9 @@ export async function processImage() {
       } catch (e) {
         console.error(`[DEBUG] Error checking existing pixel at (${pixelX}, ${pixelY}):`, e);
         updateUI('paintingPixelCheckFailed', 'error', { x: pixelX, y: pixelY });
-        state.stopFlag = true;
+        state.update({
+          stopFlag: true,
+        });
         // noinspection UnnecessaryLabelOnBreakStatementJS
         break outerLoop;
       }
@@ -333,7 +346,9 @@ export async function processImage() {
       }
     }
   } catch (e) {
-    state.stopFlag = true;
+    state.update({
+      stopFlag: true,
+    });
     updateUI('paintingError', 'error');
     const err = e instanceof Error ? e : new Error(String(e));
     const groupStyle =

@@ -113,7 +113,7 @@ function showResizeDialog(processor, container, overlay) {
 
   // Initialize core utilities
   const ditherBuffers = createDitherBuffers();
-  const maskOverlay = createMaskOverlay({ maskCtx, baseCanvas, maskCanvas, state });
+  const maskOverlay = createMaskOverlay({ maskCtx, baseCanvas, maskCanvas });
 
   const previewController = createPreviewController({
     baseProcessor,
@@ -267,13 +267,17 @@ function showResizeDialog(processor, container, overlay) {
 
   // Toggle handlers
   paintWhiteToggle.onchange = (e) => {
-    state.paintWhitePixels = e.target.checked;
+    state.update({
+      paintWhitePixels: e.target.checked,
+    });
     previewController.updateResizePreview();
     saveBotSettings();
   };
 
   paintTransparentToggle.onchange = (e) => {
-    state.paintTransparentPixels = e.target.checked;
+    state.update({
+      paintTransparentPixels: e.target.checked,
+    });
     previewController.updateResizePreview();
     saveBotSettings();
   };
@@ -342,21 +346,22 @@ function showResizeDialog(processor, container, overlay) {
 
     tempCtx.putImageData(imgData, 0, 0);
 
-    // Update state
-    state.imageData = {
-      pixels: new Uint8ClampedArray(imgData.data),
-      width: newWidth,
-      height: newHeight,
-      totalPixels: totalValidPixels,
-    };
-    state.artTotalPixels = totalValidPixels;
-    state.totalPaintedPixels = 0;
-    state.resizeSettings = {
-      baseWidth: width,
-      baseHeight: height,
-      width: newWidth,
-      height: newHeight,
-    };
+    state.update({
+      imageData: {
+        pixels: new Uint8ClampedArray(imgData.data),
+        width: newWidth,
+        height: newHeight,
+        totalPixels: totalValidPixels,
+      },
+      artTotalPixels: totalValidPixels,
+      totalPaintedPixels: 0,
+      resizeSettings: {
+        baseWidth: width,
+        baseHeight: height,
+        width: newWidth,
+        height: newHeight,
+      },
+    });
 
     saveBotSettings();
 

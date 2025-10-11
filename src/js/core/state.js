@@ -109,7 +109,17 @@ export const state = {
     const changedKeys = [];
 
     for (const [key, value] of Object.entries(updates)) {
-      if (this[key] !== value) {
+      const oldValue = this[key];
+
+      if (
+        (Array.isArray(value) || typeof value === 'object') &&
+        value !== null &&
+        oldValue === value
+      ) {
+        console.warn(`⚠️ update(): ${key} was passed by reference, no new copy was created!`);
+      }
+
+      if (oldValue !== value) {
         this[key] = value;
         changedKeys.push(key);
       }

@@ -1,3 +1,5 @@
+import { state } from '../../../core/state.js';
+
 /**
  * Handles mask painting interactions: brush, row/column fill, mode toggles.
  * Pure event controller with no DOM assumptions beyond provided elements.
@@ -45,7 +47,9 @@ export function createMaskEvents({
   const ensureMask = (w, h) => {
     const len = w * h;
     if (!state.resizeIgnoreMask || state.resizeIgnoreMask.length !== len) {
-      state.resizeIgnoreMask = new Uint8Array(len);
+      state.update({
+        resizeIgnoreMask: new Uint8Array(len),
+      });
     }
   };
 
@@ -75,7 +79,9 @@ export function createMaskEvents({
         else if (maskMode === 'ignore') val = 1;
         else if (maskMode === 'unignore') val = 0;
 
-        state.resizeIgnoreMask[idx] = val;
+        const newResizeIgnoreMask = structuredClone(state.resizeIgnoreMask);
+        newResizeIgnoreMask[idx] = val;
+        state.update({ resizeIgnoreMask: newResizeIgnoreMask });
         if (md) {
           const p = idx * 4;
           md[p] = val ? 255 : 0;
@@ -111,7 +117,9 @@ export function createMaskEvents({
         else if (maskMode === 'ignore') val = 1;
         else if (maskMode === 'unignore') val = 0;
 
-        state.resizeIgnoreMask[idx] = val;
+        const newResizeIgnoreMask = structuredClone(state.resizeIgnoreMask);
+        newResizeIgnoreMask[idx] = val;
+        state.update({ resizeIgnoreMask: newResizeIgnoreMask });
         if (md) {
           const p = idx * 4;
           md[p] = val ? 255 : 0;
@@ -150,7 +158,9 @@ export function createMaskEvents({
         else if (maskMode === 'ignore') val = 1;
         else if (maskMode === 'unignore') val = 0;
 
-        state.resizeIgnoreMask[idx] = val;
+        const newResizeIgnoreMask = structuredClone(state.resizeIgnoreMask);
+        newResizeIgnoreMask[idx] = val;
+        state.update({ resizeIgnoreMask: newResizeIgnoreMask });
         if (md) {
           const p = idx * 4;
           md[p] = val ? 255 : 0;

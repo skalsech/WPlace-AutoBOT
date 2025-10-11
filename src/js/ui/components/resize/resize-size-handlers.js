@@ -38,8 +38,9 @@ export function createSizeHandlers({
   const syncStateAndZoom = () => {
     const curW = parseInt(widthSlider.value, 10);
     const curH = parseInt(heightSlider.value, 10);
-    state.resizeSettings = { baseWidth, baseHeight, width: curW, height: curH };
-
+    state.update({
+      resizeSettings: { baseWidth, baseHeight, width: curW, height: curH },
+    });
     const fit = typeof computeFitZoom === 'function' ? computeFitZoom() : 1;
     if (!isNaN(fit) && isFinite(fit)) applyZoom(fit);
   };

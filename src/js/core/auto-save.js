@@ -14,15 +14,20 @@ function shouldAutoSave() {
 export async function performSmartSave() {
   if (!shouldAutoSave()) return false;
 
-  state._saveInProgress = true;
+  state.update({
+    _saveInProgress: true,
+  });
   const success = await saveProgress();
 
   if (success) {
-    state._lastSavePixelCount = state.currentPaintedPixels;
-    state._lastSaveTime = Date.now();
+    state.update({
+      _lastSavePixelCount: state.currentPaintedPixels,
+      _lastSaveTime: Date.now(),
+    });
     console.log(`💾 Auto-saved at ${state.currentPaintedPixels} pixels`);
   }
-
-  state._saveInProgress = false;
+  state.update({
+    _saveInProgress: false,
+  });
   return success;
 }

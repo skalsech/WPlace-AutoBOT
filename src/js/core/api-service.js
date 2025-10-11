@@ -71,20 +71,6 @@ class WPlaceService {
    *   - `data`: The parsed user data object from `/me` (same shape as API response).
    *   - `fromCache`: `true` if data was served from the internal cache (not fetched from server).
    *                  `false` if a fresh network request was made.
-   *
-   * @example
-   * const result = await wplaceService.getUserData();
-   * if (!result.fromCache) {
-   *   // Update local state (e.g., startTime) because this is a fresh server snapshot
-   *   state.fullChargeData = {
-   *     current: result.data.charges.count,
-   *     max: result.data.charges.max,
-   *     cooldownMs: result.data.charges.cooldownMs,
-   *     startTime: Date.now(), // ← Only update here!
-   *     spentSinceShot: 0
-   *   };
-   * }
-   * // Use result.data for display or other logic regardless of source
    */
   async getUserData() {
     const now = Date.now();

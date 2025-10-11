@@ -58,8 +58,9 @@ export function initializeColorPalette(container, onPaletteChange) {
       }
     });
 
-    state.activeColorPalette = newPalette;
-
+    state.update({
+      activeColorPalette: newPalette,
+    });
     if (typeof onPaletteChange === 'function') {
       onPaletteChange(newPalette);
     }

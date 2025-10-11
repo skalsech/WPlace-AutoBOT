@@ -90,8 +90,10 @@ export function loadBotSettings() {
 
       return arr;
     }
-    state.resizeIgnoreMask =
-      parseResizeIgnoreMask(settings.resizeIgnoreMask, state.resizeSettings) ?? null;
+    state.update({
+      resizeIgnoreMask:
+        parseResizeIgnoreMask(settings.resizeIgnoreMask, state.resizeSettings) ?? null,
+    });
   } catch (e) {
     console.warn('Could not load bot settings:', e);
   }

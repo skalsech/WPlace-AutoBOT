@@ -21,9 +21,11 @@ import { state } from './state.js';
  */
 function initializePaintedMap(width, height) {
   if (!state.paintedMap || state.paintedMap.length !== height) {
-    state.paintedMap = Array(height)
-      .fill()
-      .map(() => Array(width).fill(false));
+    state.update({
+      paintedMap: Array(height)
+        .fill()
+        .map(() => Array(width).fill(false)),
+    });
     console.log(`📋 Initialized painted map: ${width}x${height}`);
   }
 }
@@ -57,7 +59,9 @@ function markPixelPainted(x, y, regionX = 0, regionY = 0) {
     actualX >= 0 &&
     actualX < state.paintedMap[actualY].length
   ) {
-    state.paintedMap[actualY][actualX] = true;
+    const newPaintedMap = state.paintedMap.map((row) => [...row]);
+    newPaintedMap[actualY][actualX] = true;
+    state.update({ paintedMap: newPaintedMap });
   }
 }
 

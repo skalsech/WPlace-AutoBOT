@@ -27,7 +27,9 @@ export function handleNotificationIntervalInput(e) {
   const value = parseInt(e.target.value, 10);
   if (isNaN(value) || value < 1 || value > 60) return;
 
-  state.notificationIntervalMinutes = value;
+  state.update({
+    notificationIntervalMinutes: value,
+  });
   saveBotSettings();
   console.log(`⏰ Notification interval set to: ${value} min`);
   showAlert(t('notificationIntervalUpdated', { minutes: value }), 'success');
