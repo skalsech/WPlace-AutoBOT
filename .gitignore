@@ -11,4 +11,6 @@ staged_changes.diff
 .idea/
 /git_log.txt
 /staged_changes.diff
-!/coverage/
+/coverage/
+/project_structure.json
+scan_project.mjs
