@@ -131,8 +131,8 @@ function showResizeDialog(processor, container, overlay) {
     ensureMaskSize: (w, h) => maskOverlay.ensureMaskSize(w, h),
     applyFloydSteinbergPreview,
     findClosestColor,
-    isTransparentPixel,
-    isWhitePixel,
+    isTransparentPixel: (a) => isTransparentPixel(a, state.customTransparencyThreshold),
+    isWhitePixel: (r, g, b) => isWhitePixel(r, g, b, state.customWhiteThreshold),
     ensureDitherBuffers: (n) => ditherBuffers.ensure(n),
     updateZoomLayout: () => panZoomController.updateZoomLayout(),
     maskOverlay,
@@ -314,8 +314,8 @@ function showResizeDialog(processor, container, overlay) {
         state,
         mask,
         findClosestColor,
-        isTransparentPixel,
-        isWhitePixel,
+        isWhitePixel: (r, g, b) => isWhitePixel(r, g, b, state.customWhiteThreshold),
+        isTransparentPixel: (a) => isTransparentPixel(a, state.customTransparencyThreshold),
         ensureDitherBuffers: (n) => ditherBuffers.ensure(n),
       });
     } else {
@@ -327,9 +327,10 @@ function showResizeDialog(processor, container, overlay) {
         const masked = mask && mask[i >> 2];
 
         if (
-          (!state.paintTransparentPixels && isTransparentPixel(a)) ||
+          (!state.paintTransparentPixels &&
+            isTransparentPixel(a, state.customTransparencyThreshold)) ||
           masked ||
-          (!state.paintWhitePixels && isWhitePixel(r, g, b))
+          (!state.paintWhitePixels && isWhitePixel(r, g, b, state.customWhiteThreshold))
         ) {
           data[i + 3] = 0;
           continue;

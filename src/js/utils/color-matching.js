@@ -135,14 +135,11 @@ export function findClosestColor(r, g, b, colors) {
   return best || [0, 0, 0, 255];
 }
 
-export function isWhitePixel(r, g, b) {
-  const wt = state.customWhiteThreshold || DEFAULT_SETTINGS.customWhiteThreshold;
-  return r >= wt && g >= wt && b >= wt;
+export function isWhitePixel(r, g, b, whiteThreshold) {
+  return r >= whiteThreshold && g >= whiteThreshold && b >= whiteThreshold;
 }
 
-export function isTransparentPixel(a) {
-  const transparencyThreshold =
-    state.customTransparencyThreshold || DEFAULT_SETTINGS.customTransparencyThreshold;
+export function isTransparentPixel(a, transparencyThreshold) {
   if (a === undefined || a === null) {
     console.warn(`Expected to get alpha of pixel, but got ${a}`);
   }
@@ -203,7 +200,7 @@ export function resolveColor(targetRgba, availableColors, exactMatch = false) {
     );
     return { id: null, rgb: targetRgb };
   }
-  if (isTransparentPixel(targetRgba[3])) {
+  if (isTransparentPixel(targetRgba[3], state.customTransparencyThreshold)) {
     return { id: APP_CONSTANTS.COLOR_MAP['0'].id, rgb: APP_CONSTANTS.COLOR_MAP['0'].rgb };
   }
   const cacheKey = `${targetRgb[0]},${targetRgb[1]},${targetRgb[2]}|${state.colorMatchingAlgorithm}|${

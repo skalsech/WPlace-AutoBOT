@@ -1,0 +1,13 @@
+{
+  "public": ".",
+  "cleanUrls": false,
+  "directoryListing": true,
+  "headers": [
+    {
+      "source": "**/*",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    }
+  ]
+}

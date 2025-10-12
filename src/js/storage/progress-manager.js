@@ -128,12 +128,7 @@ export function restoreProgress(savedData) {
       }
 
       try {
-        const proc = ImageProcessor.fromPixelData(
-          width,
-          height,
-          pixelArray,
-          !state.paintTransparentPixels
-        );
+        const proc = ImageProcessor.fromPixelData(width, height, pixelArray);
 
         state.update({
           imageData: {
@@ -143,7 +138,7 @@ export function restoreProgress(savedData) {
             totalPixels,
             processor: proc,
           },
-          artColorFrequency: proc.countColors(!state.paintTransparentPixels),
+          artColorFrequency: proc.countColors(),
           artTotalPixels: totalPixels,
         });
       } catch (e) {

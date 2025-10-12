@@ -117,12 +117,12 @@ export async function processImage() {
       b = pixels[idx + 2],
       a = pixels[idx + 3];
 
-    if (!state.paintTransparentPixels && isTransparentPixel(a))
+    if (!state.paintTransparentPixels && isTransparentPixel(a, state.customTransparencyThreshold))
       return {
         eligible: false,
         reason: 'transparent',
       };
-    if (!state.paintWhitePixels && isWhitePixel(r, g, b))
+    if (!state.paintWhitePixels && isWhitePixel(r, g, b, state.customWhiteThreshold))
       return {
         eligible: false,
         reason: 'white',
@@ -143,9 +143,9 @@ export async function processImage() {
     // In this case, if the canvas pixel is already Slate (mapped to available Dark Gray),
     // we skip painting, since template and canvas both resolve to the same available color (Dark Gray).
     let mappedTargetColor;
-    if (isWhitePixel(r, g, b)) {
+    if (isWhitePixel(r, g, b, state.customWhiteThreshold)) {
       mappedTargetColor = APP_CONSTANTS.COLOR_MAP['5'];
-    } else if (isTransparentPixel(a)) {
+    } else if (isTransparentPixel(a, state.customTransparencyThreshold)) {
       mappedTargetColor = APP_CONSTANTS.COLOR_MAP['0'];
     } else {
       mappedTargetColor = resolveColor(
@@ -181,7 +181,7 @@ export async function processImage() {
   }
 
   try {
-    const coords = await generateCoordinates(
+    const coords = generateCoordinates(
       width,
       height,
       state.coordinateMode,
@@ -190,9 +190,29 @@ export async function processImage() {
       state.blockWidth,
       state.blockHeight,
       state.sortCoordinateByFrequency,
-      pixels
+      pixels,
+      state.artColorFrequency
     );
+    const expected = width * height;
+    if (coords.length !== expected) {
+      const seen = new Set();
+      const duplicates = [];
+      for (const [x, y] of coords) {
+        const key = `${x},${y}`;
+        if (seen.has(key)) {
+          if (duplicates.length < 10) duplicates.push(key);
+        } else {
+          seen.add(key);
+        }
+      }
+      const uniqueCount = seen.size;
+      const diff = coords.length - uniqueCount;
 
+      console.warn(
+        `[DIAG] Coordinate mismatch: expected=${expected}, actual=${coords.length}, duplicates=${diff}`,
+        duplicates.length ? `first duplicates: ${duplicates.join(' | ')}` : ''
+      );
+    }
     outerLoop: for (const [x, y] of coords) {
       const targetPixelInfo = checkPixelEligibility(x, y);
       const absX = startX + x;

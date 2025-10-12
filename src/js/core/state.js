@@ -24,7 +24,7 @@ import { StateEventEmitter } from '../utils/StateEventEmitter.js';
  * @property {boolean} running - Whether the painting process is currently running.
  * @property {boolean} processing - Whether the system is currently processing pixels (e.g., during batch operations).
  * @property {number} artTotalPixels - Total number of pixels in the artwork (excluding transparent/ignored).
- * @property {Map<string, number>} artColorFrequency - Map of color keys (e.g., "r,g,b") to their occurrence count in the image.
+ * @property {Map<number, number>} artColorFrequency - color ID → pixel count.
  * @property {number} localPaintedOffset - Number of pixels painted in the current session (not yet saved to total).
  * @property {number} totalPaintedPixels - Cumulative number of pixels painted across all sessions.
  * @property {Array<{id: number, name: string, rgb: [number, number, number]}>} availableColors - List of available colors with metadata (ID, name, RGB).

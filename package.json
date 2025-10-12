@@ -9,16 +9,18 @@
     "automation"
   ],
   "scripts": {
-    "prebuild": "npm run lint:js:fix && lint",
+    "typecheck": "tsc --noEmit",
+    "prepare": "npm run generate-languages",
+    "prebuild": "npm run lint:js:fix && eslint src/js --quiet",
     "generate-languages": "node scripts/generate-languages.js",
     "build": "npm run generate-languages && node build/build.mjs",
     "build:prod": "npm run generate-languages && cross-env NODE_ENV=production node build/build.mjs",
     "dev:build": "npm run generate-languages && cross-env NODE_ENV=development node build/build.mjs",
     "dev:watch": "chokidar \"src/**/*\" -c \"npm run dev:build\"",
-    "serve": "live-server --port=8000 --no-browser",
+    "serve": "serve --config serve.json --listen 8000",
     "dev": "npm-run-all dev:build --parallel serve dev:watch",
     "lint": "npm run lint:js && npm run lint:css",
-    "lint:js": "eslint src/js --fix --quiet",
+    "lint:js": "eslint src/js --quiet",
     "lint:js:fix": "eslint src/js --fix",
     "lint:css": "stylelint \"src/css/**/*.css\"",
     "lint:css:fix": "stylelint \"src/css/**/*.css\" --fix",
@@ -27,8 +29,9 @@
     "clean": "rimraf dist",
     "test": "vitest",
     "test:watch": "vitest --watch",
+    "test:coverage": "vitest run --coverage",
     "coverage:clean": "rimraf coverage node_modules/.vite",
-    "test:coverage": "vitest run --coverage"
+    "preview": "npm run build:prod && serve -s dist --listen 9000"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
@@ -40,15 +43,17 @@
     "eslint": "^9.34.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
+    "glob": "^11.0.3",
     "globals": "^16.3.0",
     "happy-dom": "^18.0.1",
+    "lodash": "^4.17.21",
     "npm-run-all": "^4.1.5",
     "prettier": "^3.6.2",
     "rimraf": "^6.0.1",
+    "serve": "^14.2.5",
     "stylelint": "^16.23.1",
     "stylelint-config-standard": "^39.0.0",
-    "vitest": "^3.2.4",
-    "glob": "^11.0.3",
-    "lodash": "^4.17.21"
+    "tsc": "^2.0.4",
+    "vitest": "^3.2.4"
   }
 }

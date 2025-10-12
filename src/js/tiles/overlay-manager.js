@@ -384,7 +384,10 @@ class OverlayManager {
         const data = ctx.getImageData(x, y, 1, 1).data;
         const a = data[3];
 
-        if (!state.paintTransparentPixels && isTransparentPixel(a)) {
+        if (
+          !state.paintTransparentPixels &&
+          isTransparentPixel(a, state.customTransparencyThreshold)
+        ) {
           if (window._overlayDebug)
             console.debug('OverlayManager: pixel transparent (fallback)', tileKey, x, y, a);
           return null;

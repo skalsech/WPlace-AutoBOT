@@ -7,6 +7,7 @@ import { createImageUploader } from '../../../utils/files.js';
 import { ImageProcessor } from '../../../core/image-processor.js';
 import { overlayManager } from '../../../tiles/overlay-manager.js';
 import { updateDataButtons } from './handle-data-buttons.js';
+import { APP_CONSTANTS } from '../../../config/APP_CONSTANTS.js';
 
 export async function handleUploadClick() {
   await updateStats(true);
@@ -34,9 +35,12 @@ export async function handleUploadClick() {
 
     const { width, height } = processor.getDimensions();
     const pixels = processor.getPixelData();
-    const artColorFrequency = processor.countColors(!state.paintTransparentPixels);
+    const artColorFrequency = processor.countColors();
     let totalValidPixels = 0;
-    for (const count of artColorFrequency.values()) {
+    for (const [colorId, count] of artColorFrequency.entries()) {
+      if (!state.paintTransparentPixels && colorId === APP_CONSTANTS.COLOR_IDS.TRANSPARENT) {
+        continue;
+      }
       totalValidPixels += count;
     }
 

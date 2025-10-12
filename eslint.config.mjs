@@ -13,6 +13,11 @@ const globalsUserscript = {
   unsafeWindow: 'readonly',
 };
 
+const globalsEsbuild = {
+  __DEV__: 'readonly',
+  __CSS_URL__: 'readonly',
+};
+
 export default [
   eslint.configs.recommended,
   { ignores: ['**/node_modules/**', 'dist/**', 'build/**', 'coverage/**'] },
@@ -21,8 +26,7 @@ export default [
 
     languageOptions: {
       globals: {
-        __DEV__: 'readonly',
-        __CSS_URL__: 'readonly',
+        ...globalsEsbuild,
         ...globals.node,
       },
       parserOptions: {
@@ -37,7 +41,7 @@ export default [
     },
   },
   {
-    files: ['tests/**/*.js'],
+    files: ['test/**/*.js'],
     languageOptions: {
       globals: {
         __DEV__: 'readonly',
@@ -69,8 +73,7 @@ export default [
       globals: {
         ...globals.browser,
         ...globalsUserscript,
-        __DEV__: 'readonly',
-        __CSS_URL__: 'readonly',
+        ...globalsEsbuild,
         IntlMessageFormat: 'readonly',
         FingerprintJS: 'readonly',
       },

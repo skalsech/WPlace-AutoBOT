@@ -39,26 +39,26 @@ export async function handleColorFilter() {
   // Clear
   listContainer.innerHTML = '';
 
+  /** @type {Array<{id: number, name: string, rgb: [number, number, number], frequency: number}>} */
   const colorEntries = [];
 
-  // Convert Map<string, number> → array with metadata
-  for (const [colorKey, frequency] of state.artColorFrequency.entries()) {
-    const [r, g, b] = colorKey.split(',').map(Number);
-    if ([r, g, b].some(isNaN)) continue;
+  /**
+   * Converts a Map of color frequencies into an array with color metadata.
+   *
+   * @param {Map<number, number>} colorFrequencyMap - Map of colorId → frequency.
+   * @returns {Array<{id: number, name: string, rgb: [number, number, number], frequency: number}>}
+   */
+  for (const [colorId, frequency] of state.artColorFrequency.entries()) {
+    const def = APP_CONSTANTS.COLOR_MAP[colorId];
+    if (!def) continue;
 
-    // Find matching color in palette
-    let matchedColor = null;
-    for (const [idStr, def] of Object.entries(APP_CONSTANTS.COLOR_MAP)) {
-      const id = Number(idStr);
-      if (def.rgb.r === r && def.rgb.g === g && def.rgb.b === b) {
-        matchedColor = { id, name: def.name, rgb: [r, g, b] };
-        break;
-      }
-    }
-
-    if (matchedColor) {
-      colorEntries.push({ ...matchedColor, frequency });
-    }
+    const { id, name, rgb } = def;
+    colorEntries.push({
+      id,
+      name,
+      rgb: [rgb.r, rgb.g, rgb.b],
+      frequency,
+    });
   }
 
   // Sort by frequency (desc)

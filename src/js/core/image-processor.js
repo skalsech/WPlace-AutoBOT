@@ -92,26 +92,31 @@ export class ImageProcessor {
 
   /**
    * Counts color frequency in the uploaded art.
-   * Transparent pixels (a=0) are skipped if shouldSkipTransparent is true,
-   * otherwise replaced with APP_CONSTANTS.COLOR_MAP['0'].rgb.
-   * @param {boolean} shouldSkipTransparent - Whether to skip or replace transparent pixels.
-   * @returns {Map<string, number>} RGB color string (e.g., "255,255,255") → pixel count.
+   * @returns {Map<number, number>} color ID → pixel count.
    */
-  countColors(shouldSkipTransparent) {
+  countColors() {
     const data = this.getPixelData();
     if (!data) return new Map();
 
+    /** @type {Map<number, number>}*/
     const colorCounts = new Map();
-    const defaceColorObj = APP_CONSTANTS.COLOR_MAP['0'].rgb;
-    const defaceTransparentColor = [defaceColorObj.r, defaceColorObj.g, defaceColorObj.b].join(',');
-
     for (let i = 0; i < data.length; i += 4) {
-      const [r, g, b, a] = data.slice(i, i + 4);
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
 
-      if (a === 0 && shouldSkipTransparent) continue;
-      const key = a === 0 ? defaceTransparentColor : `${r},${g},${b}`;
+      const rgbKey = a === 0 ? APP_CONSTANTS.TRANSPARENT_COLOR_KEY : (r << 16) | (g << 8) | b;
+      const colorId = APP_CONSTANTS.RGB_KEY_TO_ID.get(rgbKey);
 
-      colorCounts.set(key, (colorCounts.get(key) || 0) + 1);
+      if (colorId === undefined) {
+        console.warn(
+          `Unknown color RGB(${r},${g},${b}) found in the template on color frequency analysis`
+        );
+        continue;
+      }
+
+      colorCounts.set(colorId, (colorCounts.get(colorId) || 0) + 1);
     }
 
     return colorCounts;
@@ -122,12 +127,9 @@ export class ImageProcessor {
    * @param {number} width
    * @param {number} height
    * @param {Uint8ClampedArray | ArrayBuffer} pixels
-   * @param {boolean} shouldSkipTransparent
    * @returns {ImageProcessor}
    */
-  static fromPixelData(width, height, pixels, shouldSkipTransparent = false) {
-    const proc = new ImageProcessor({ width, height, pixels });
-    //proc.countColors(shouldSkipTransparent);
-    return proc;
+  static fromPixelData(width, height, pixels) {
+    return new ImageProcessor({ width, height, pixels });
   }
 }

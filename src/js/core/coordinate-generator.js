@@ -1,11 +1,7 @@
-import { overlayManager } from '../tiles/overlay-manager.js';
-import { state } from './state.js';
-import { isTransparentPixel } from '../utils/color-matching.js';
-/**
- * @typedef {{ coord: [number, number], frequency: number, index: number } | null} EnrichedCoord
- */
+import { APP_CONSTANTS } from '../config/APP_CONSTANTS.js';
 
 /**
+ * Generate coordinates for given parameters (blocking version).
  * @param {number} width
  * @param {number} height
  * @param {'rows'|'columns'|'circle-out'|'circle-in'|'blocks'|'shuffle-blocks'} mode
@@ -15,9 +11,10 @@ import { isTransparentPixel } from '../utils/color-matching.js';
  * @param {number} blockHeight
  * @param {boolean} sortByFrequency
  * @param {Uint8ClampedArray} pixels
- * @returns {Promise<[number, number][]>}
+ * @param {Map<number, number>} artColorFrequency - color ID → pixel count.
+ * @returns {[number, number][]}
  */
-export async function generateCoordinates(
+export function generateCoordinates(
   width,
   height,
   mode,
@@ -26,7 +23,8 @@ export async function generateCoordinates(
   blockWidth,
   blockHeight,
   sortByFrequency,
-  pixels
+  pixels,
+  artColorFrequency
 ) {
   const coords = [];
 
@@ -134,7 +132,7 @@ export async function generateCoordinates(
       }
     }
   } else if (mode === 'blocks' || mode === 'shuffle-blocks') {
-    // todo make this option as sort by frequency and respect start pos and direction
+    // TODO: implement option to sort blocks by frequency and respect start position + direction
     const blocks = [];
     for (let by = 0; by < height; by += blockHeight) {
       for (let bx = 0; bx < width; bx += blockWidth) {
@@ -149,14 +147,12 @@ export async function generateCoordinates(
     }
 
     if (mode === 'shuffle-blocks') {
-      // Simple Fisher-Yates shuffle
       for (let i = blocks.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
         [blocks[i], blocks[j]] = [blocks[j], blocks[i]];
       }
     }
 
-    // Concatenate all blocks
     for (const block of blocks) {
       for (const coord of block) {
         coords.push(coord);
@@ -166,57 +162,54 @@ export async function generateCoordinates(
     throw new Error(`Unknown mode: ${mode}`);
   }
 
-  if (sortByFrequency) {
-    if (!overlayManager || state.artColorFrequency.size === 0) {
-      throw new Error(
-        'overlayManager and artColorFrequency must be provided for option sort-by-color-frequency'
-      );
-    }
+  if (sortByFrequency) return sortCoordsByFrequency(coords, width, pixels, artColorFrequency);
+  return coords;
+}
 
-    /** @type {EnrichedCoord[]} */
-    const enrichedCoords = coords.map(([x, y], index) => {
-      const idx = (y * width + x) * 4;
-      const r = pixels[idx];
-      const g = pixels[idx + 1];
-      const b = pixels[idx + 2];
-      const a = pixels[idx + 3];
-
-      if (!state.paintTransparentPixels && isTransparentPixel(a)) return null;
-
-      const colorStr = `${r},${g},${b}`;
-      const frequency = state.artColorFrequency.get(colorStr) || 0;
-
-      return { coord: [x, y], frequency, index };
-    });
-
-    /** @type {EnrichedCoord[]} */
-    const validCoords = enrichedCoords.filter(Boolean);
-
-    /** @type {Map<number, EnrichedCoord[]>} */
-    const groupedByFreq = new Map();
-
-    for (const item of validCoords) {
-      const freq = item.frequency;
-      if (!groupedByFreq.has(freq)) {
-        groupedByFreq.set(freq, []);
-      }
-      groupedByFreq.get(freq).push(item);
-    }
-
-    const sortedFreqs = [...groupedByFreq.keys()].sort((a, b) => a - b);
-
-    const result = [];
-    for (const freq of sortedFreqs) {
-      const group = groupedByFreq.get(freq);
-
-      group.sort((a, b) => a.index - b.index);
-      for (const item of group) {
-        result.push(item);
-      }
-    }
-
-    return result.map((item) => item.coord);
+/**
+ * Sort coordinates by color frequency using counting buckets.
+ * @param {[number, number][]} coords
+ * @param {number} width
+ * @param {Uint8ClampedArray} pixels
+ * @param {Map<number, number>} artColorFrequency - color ID → pixel count
+ * @returns {[number, number][]}
+ */
+function sortCoordsByFrequency(coords, width, pixels, artColorFrequency) {
+  if (!artColorFrequency || artColorFrequency.size === 0) {
+    throw new Error('artColorFrequency must be provided for option sort-by-color-frequency');
   }
 
-  return coords;
+  let maxFreq = 0;
+  for (const freq of artColorFrequency.values()) if (freq > maxFreq) maxFreq = freq;
+
+  const buckets = new Array(maxFreq + 1);
+  for (let i = 0; i <= maxFreq; i++) buckets[i] = [];
+
+  for (let i = 0; i < coords.length; i++) {
+    const [x, y] = coords[i];
+    const idx = (y * width + x) * 4;
+    const r = pixels[idx];
+    const g = pixels[idx + 1];
+    const b = pixels[idx + 2];
+
+    const colorKey = (r << 16) | (g << 8) | b;
+    const colorId = APP_CONSTANTS.RGB_KEY_TO_ID.get(colorKey);
+
+    if (colorId === undefined) {
+      throw new Error(`Unknown color RGB(${r},${g},${b}) at [${x}, ${y}]`);
+    }
+
+    const frequency = artColorFrequency.get(colorId) || 0;
+    buckets[frequency].push(coords[i]);
+  }
+
+  const result = new Array(coords.length);
+  let writeIndex = 0;
+
+  for (let freq = 0; freq <= maxFreq; freq++) {
+    const bucket = buckets[freq];
+    for (let j = 0; j < bucket.length; j++) result[writeIndex++] = bucket[j];
+  }
+
+  return result;
 }

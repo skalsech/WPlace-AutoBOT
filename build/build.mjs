@@ -23,6 +23,7 @@ async function build() {
     logLevel: 'info',
     define: {
       __DEV__: isProd ? 'false' : 'true',
+      // todo make more general url for use with theme styles also
       __CSS_URL__: isProd 
         ? '"https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css/main.css"'
         : '"http://localhost:8000/dist/css/main.css"',
@@ -56,5 +57,3 @@ async function build() {
 }
 
 build()
-
-export { build };
