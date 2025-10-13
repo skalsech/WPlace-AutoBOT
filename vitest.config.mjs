@@ -11,7 +11,7 @@ export default defineConfig({
       provider: 'v8',
       reporter: ['text', 'html', 'lcov'],
       reportsDirectory: './coverage',
-      include: ['src/**', 'WPlace-AutoBOT/src/js/core/**'],
+      include: ['src/**', 'WPlace-AutoBOT/src/core/**'],
       exclude: [
         'node_modules',
         'dist',
@@ -36,12 +36,6 @@ export default defineConfig({
         'WPlace-AutoBOT/meta.js',
         'WPlace-AutoBOT/AccountSwapper',
         'WPlace-AutoBOT/AccountSwapper/**',
-
-        'WPlace-AutoBOT/src/js/startup/**',
-        'WPlace-AutoBOT/src/js/overlay/**',
-        'WPlace-AutoBOT/src/js/security/**',
-        'WPlace-AutoBOT/src/js/handlers/**',
-        'WPlace-AutoBOT/src/js/utils/**',
       ],
     },
   },

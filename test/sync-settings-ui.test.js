@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { state } from '../src/js/core/state.js';
-import { syncSettingsUI, UI_BINDINGS } from '../src/js/ui/sync-ui.js';
-import { createSettingsContainer } from '../src/js/ui/components/create-settings.js';
-import { createResizeContainer } from '../src/js/ui/components/create-resize.js';
-import { updateCoordinateUI } from '../src/js/ui/handlers/settings/coordinate-ui.js';
+import { state } from '../src/core/state.js';
+import { syncSettingsUI, UI_BINDINGS } from '../src/ui/settings/sync-ui.js';
+import { createSettingsContainer } from '../src/ui/settings/create-settings.js';
+import { createResizeContainer } from '../src/ui/resize-panel/create-resize.js';
+import { updateCoordinateUI } from '../src/ui/settings/handlers/coordinate-ui.js';
 import { cloneDeep } from 'lodash';
-import { handleCoordinateModeChange } from '../src/js/ui/handlers/settings/coordinate-handler.js';
+import { handleCoordinateModeChange } from '../src/ui/settings/handlers/coordinate-handler.js';
 
 const initialState = cloneDeep(state);
 beforeEach(() => {

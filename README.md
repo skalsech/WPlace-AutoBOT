@@ -56,9 +56,9 @@ src/                         # Main source code of the project
 │   └── ... (other languages)
 ├── js/                       # Frontend logic
 │   ├── config/               # Configurations and constants
-│   │   ├── APP_CONSTANTS.js
-│   │   ├── AUTO_GENERATED_LANGUAGES.js
-│   │   └── DEFAULT_SETTINGS.js
+│   │   ├── app-constants.js
+│   │   ├── auto-generated-languages.js
+│   │   └── default-settings.js
 │   ├── core/                 # Core business logic
 │   │   ├── state.js          # Central state store + event system
 │   │   ├── api-service.js    # API interactions
@@ -75,12 +75,12 @@ src/                         # Main source code of the project
 │   │   └── wplace-ui.js
 │   ├── i18n/                 # Localization logic
 │   │   ├── fallback.js
-│   │   └── i18.js
+│   │   └── index.js
 │   ├── lib/                  # Utilities and helper modules
 │   │   ├── fingerprint.js    # Browser fingerprint detection
 │   │   ├── inject-library.js
 │   │   ├── intl-messageformat.js
-│   │   └── load-all.js
+│   │   └── vendor-loaders.js
 │   ├── main.js               # Main frontend entry point
 │   ├── security/             # Security and token management
 │   │   ├── turnstile-manager.js
@@ -89,7 +89,7 @@ src/                         # Main source code of the project
 │   ├── startup/              # Application initialization logic
 │   │   └── startup.js
 │   ├── storage/              # Local storage and migration management
-│   │   ├── indexed-db-storage.js
+│   │   ├── indexeddb-storage.js
 │   │   ├── migrations.js
 │   │   ├── progress-manager.js
 │   │   ├── settings-manager.js
@@ -101,7 +101,7 @@ src/                         # Main source code of the project
 │   │   ├── alerts.js
 │   │   ├── components/       # UI components
 │   │   │   ├── create-color-filter-dialog.js
-│   │   │   ├── create-panel.js
+│   │   │   ├── create-create-ui.js
 │   │   │   ├── create-resize.js
 │   │   │   ├── create-settings.js
 │   │   │   ├── create-start-position-dialog.js
@@ -116,7 +116,7 @@ src/                         # Main source code of the project
 │   │   │       ├── resize-preview-controller.js
 │   │   │       └── resize-size-handlers.js
 │   │   ├── dialogs/          # Dialogs
-│   │   │   └── StartPositionDialog.js
+│   │   │   └── start-position-dialog.js
 │   │   ├── handlers/         # Event handlers
 │   │   │   ├── checkbox-handlers.js
 │   │   │   ├── handle-color-filter.js
@@ -131,11 +131,11 @@ src/                         # Main source code of the project
 │   │   │       ├── notification-handler.js
 │   │   │       └── settings-handler.js
 │   │   ├── listeners/        # UI event listeners
-│   │   │   ├── main-panel.js
+│   │   │   ├── setup-listeners.js
 │   │   │   ├── settings.js
 │   │   │   ├── start-position-dialog.js
 │   │   │   └── stats.js
-│   │   ├── panel.js
+│   │   ├── create-ui.js
 │   │   ├── sync-ui.js
 │   │   ├── theme.js
 │   │   └── utils/

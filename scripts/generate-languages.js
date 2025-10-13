@@ -7,8 +7,8 @@ import fs from 'fs';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const I18N_DIR = join(__dirname, '../src/i18n');
-const OUTPUT_FILE = join(__dirname, '../src/js/config/AUTO_GENERATED_LANGUAGES.js');
+const I18N_DIR = join(__dirname, '../src/i18n/locales');
+const OUTPUT_FILE = join(__dirname, '../src/app/config/auto-generated-languages.js');
 
 async function generateLanguages() {
   try {
@@ -32,7 +32,9 @@ export const GENERATED_LANGUAGES = ${formattedArray};
         console.log('✅ No changes in languages — skipping write');
         process.exit(0);
       }
-    } catch (_) { /* empty */ }
+    } catch {
+      /* empty */
+    }
 
     fs.writeFileSync(OUTPUT_FILE, content, 'utf8');
     console.log('✅ Successfully generated list of available languages');
@@ -43,4 +45,4 @@ export const GENERATED_LANGUAGES = ${formattedArray};
   }
 }
 
-generateLanguages();
+await generateLanguages();

@@ -15,7 +15,7 @@ const globalsUserscript = {
 
 const globalsEsbuild = {
   __DEV__: 'readonly',
-  __CSS_URL__: 'readonly',
+  __CSS_BASE_URL__: 'readonly',
 };
 
 export default [

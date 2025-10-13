@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { state } from '../src/js/core/state.js';
+import { state } from '../src/core/state.js';
 import {
   isSavedSettingsEmpty,
   loadBotSettings,
   saveBotSettings,
-} from '../src/js/storage/settings-manager.js';
+} from '../src/storage/settings-manager.js';
 import { createTestMask, encodeMask } from './helpers.js';
-import { DEFAULT_SETTINGS } from '../src/js/config/DEFAULT_SETTINGS.js';
+import { DEFAULT_SETTINGS } from '../src/app/config/default-settings.js';
 import { cloneDeep } from 'lodash';
 
 const getElementByIdMock = vi.fn();

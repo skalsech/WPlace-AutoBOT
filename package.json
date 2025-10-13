@@ -11,7 +11,7 @@
   "scripts": {
     "typecheck": "tsc --noEmit",
     "prepare": "npm run generate-languages",
-    "prebuild": "npm run lint:js:fix && eslint src/js --quiet",
+    "prebuild": "npm run lint:js:fix && eslint src/ --quiet",
     "generate-languages": "node scripts/generate-languages.js",
     "build": "npm run generate-languages && node build/build.mjs",
     "build:prod": "npm run generate-languages && cross-env NODE_ENV=production node build/build.mjs",
@@ -20,10 +20,10 @@
     "serve": "serve --config serve.json --listen 8000",
     "dev": "npm-run-all dev:build --parallel serve dev:watch",
     "lint": "npm run lint:js && npm run lint:css",
-    "lint:js": "eslint src/js --quiet",
-    "lint:js:fix": "eslint src/js --fix",
-    "lint:css": "stylelint \"src/css/**/*.css\"",
-    "lint:css:fix": "stylelint \"src/css/**/*.css\" --fix",
+    "lint:js": "eslint src/ --quiet",
+    "lint:js:fix": "eslint src/ --fix",
+    "lint:css": "stylelint \"src/assets/css/**/*.css\"",
+    "lint:css:fix": "stylelint \"src/assets/css/**/*.css\" --fix",
     "format": "prettier --write src/ build/",
     "format:check": "prettier --check src/ build/",
     "clean": "rimraf dist",
@@ -31,7 +31,7 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
     "coverage:clean": "rimraf coverage node_modules/.vite",
-    "preview": "npm run build:prod && serve -s dist --listen 9000"
+    "preview": "npm run build:prod && serve --listen 8000"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
