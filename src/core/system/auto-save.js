@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { saveProgress } from '../../storage/progress-manager.js';
+import { saveProgress } from '../../storage/progress-service.js';
 
 function shouldAutoSave() {
   return false;

@@ -2,7 +2,7 @@ import { state } from '../state.js';
 import { updateStats, updateUI } from '../../app/startup/create-ui.js';
 import { sendBatchWithRetry } from './pixel-batch.js';
 import { performSmartSave } from '../system/auto-save.js';
-import { dynamicSleep, sleep } from '../../utils/helpers.js';
+import { dynamicSleep } from '../../utils/helpers.js';
 import {
   findClosestColor,
   isTransparentPixel,
@@ -11,11 +11,11 @@ import {
 } from '../../utils/color-matching.js';
 import { generateCoordinates } from './coordinate-generator.js';
 import { NotificationManager } from '../system/notification-manager.js';
-import { saveProgress } from '../../storage/progress-manager.js';
 import { APP_CONSTANTS } from '../../app/config/app-constants.js';
 import { overlayManager } from '../overlay/overlay-manager.js';
 import { getMsToTargetCharges } from '../../utils/time.js';
 import { wplaceService } from '../api/api-service.js';
+import { saveProgress } from '../../storage/progress-service.js';
 
 /**
  * @typedef {Object} PixelData
@@ -99,7 +99,6 @@ export async function processImage() {
    */
   const pixelBatches = new Map();
 
-  let lastSendTime = 0;
   let globalPixelBatchTotalCount = 0;
   let currentBatchSize = calculateBatchSize(state.batchMode);
 
@@ -173,6 +172,7 @@ export async function processImage() {
     return { eligible: true, r, g, b, a, mappedColorId: mappedTargetColor.id };
   }
 
+  // eslint-disable-next-line no-unused-vars
   function skipPixel(reason, id, rgb, x, y) {
     if (reason !== 'transparent') {
       //console.log(`Skipped pixel for ${reason} (id: ${id}, (${rgb.join(', ')})) at (${x}, ${y})`);
@@ -309,14 +309,7 @@ export async function processImage() {
       if (globalPixelBatchTotalCount >= currentBatchSize) {
         for (const b of pixelBatches.values()) {
           if (b.pixels.length > 0 && !state.stopFlag) {
-            const elapsed = Date.now() - lastSendTime;
-            const remaining = 1500 - elapsed;
-            if (remaining > 0 && state.paintingSpeedLimitEnabled) {
-              await sleep(remaining);
-            }
-
             const success = await flushPixelBatch(b);
-            lastSendTime = Date.now();
 
             if (!success || state.stopFlag) {
               // noinspection UnnecessaryLabelOnBreakStatementJS
@@ -359,7 +352,7 @@ export async function processImage() {
       if (batch.pixels.length > 0 && !state.stopFlag) {
         console.log(`🏁 Sending final batch`);
         const success = await flushPixelBatch(batch);
-        lastSendTime = Date.now();
+
         if (!success) {
           console.warn(`⚠️ Final batch for ${key} failed with ${batch.pixels.length} pixels.`);
         }

@@ -4,7 +4,7 @@ import { t } from '../../i18n/index.js';
 import { updateUI } from '../../app/startup/create-ui.js';
 import { overlayManager } from '../overlay/overlay-manager.js';
 import { wplaceUI } from '../overlay/wplace-ui.js';
-import { onPositionSet } from '../../ui/listeners/start-position-dialog.js';
+import { onPositionSet } from '../../ui/dialogs/start-position/setup-listeners.js';
 
 export class SelectionController {
   constructor() {

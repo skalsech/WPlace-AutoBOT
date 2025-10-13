@@ -1,5 +1,5 @@
 import { state } from '../state.js';
-import { decodeBase64ToBytes } from '../../utils/helpers.js';
+import { decodeBase64ToBytes, sleep } from '../../utils/helpers.js';
 import { FlagsBitmap } from '../../utils/flags.js';
 
 /**
@@ -46,6 +46,9 @@ class WPlaceService {
      * @description Cache for region ownership results. Key: "regionX,regionY", Value: true/false
      */
     this._regionOwnershipCache = new Map();
+    this.lastSendTime = 0;
+    // todo make configurable through settings
+    this.minDelayBetweenRequests = 1500;
   }
 
   _generateRandomTTL() {
@@ -54,6 +57,48 @@ class WPlaceService {
     );
   }
 
+  /**
+   * Enforces rate limiting between requests to prevent rate limiting issues.
+   * Waits if necessary based on the time elapsed since the last request.
+   * @private
+   */
+  async _enforceRateLimit() {
+    if (!state.paintingSpeedLimitEnabled) {
+      return;
+    }
+
+    const elapsed = Date.now() - this.lastSendTime;
+    const remaining = this.minDelayBetweenRequests - elapsed;
+
+    if (remaining > 0) {
+      await sleep(remaining);
+    }
+
+    this.lastSendTime = Date.now();
+  }
+
+  /**
+   * Sends a pixel batch to the backend with rate limiting.
+   * @param {string} url - The backend URL
+   * @param {Object} payload - The request payload
+   * @param {string} pawtectVariant - The pawtect variant
+   * @param {string} wasmToken - The computed wasm token
+   * @returns {Promise<Response>}
+   */
+  async sendPixelRequest(url, payload, pawtectVariant, wasmToken) {
+    await this._enforceRateLimit();
+
+    return fetch(url, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'text/plain;charset=UTF-8',
+        'x-pawtect-token': wasmToken,
+        'x-pawtect-variant': pawtectVariant,
+      },
+      body: JSON.stringify(payload),
+    });
+  }
   /**
    * Fetches user data from the server or returns cached data based on TTL.
    *

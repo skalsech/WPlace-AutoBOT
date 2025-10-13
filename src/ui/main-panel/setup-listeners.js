@@ -18,7 +18,7 @@ import {
   handleSettingsClick,
   handleStatsClick,
 } from './handlers/handle-header-buttons.js';
-import { handleSelectPositionClick } from '../listeners/start-position-dialog.js';
+import { handleSelectPositionClick } from '../dialogs/start-position/setup-listeners.js';
 import { handleColorFilter } from '../color-filter/handle-color-filter.js';
 import { onStateChange } from '../../core/state.js';
 

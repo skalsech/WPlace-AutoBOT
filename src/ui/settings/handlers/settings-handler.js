@@ -9,6 +9,7 @@ import { loadTranslations, t, updateTranslations } from '../../../i18n/index.js'
 import { saveBotSettings } from '../../../storage/settings-manager.js';
 import { debounce } from '../../../utils/helpers.js';
 import { switchTheme } from '../../../shared/ui/theme.js';
+import { getElement, setDisplay, setInputValue } from '../dom-utils.js';
 
 export const handlePaintUnavailablePixelsToggle = createCheckboxHandler(
   'paintUnavailablePixels',
@@ -67,17 +68,15 @@ export function handleBatchModeChange(e) {
   saveBotSettings();
   console.log(`📦 Batch mode changed to: ${value}`);
 
-  const normalControls = document.querySelector('#normalBatchControls');
-  const randomControls = document.querySelector('#randomBatchControls');
+  const normalControls = getElement('#normalBatchControls');
+  const randomControls = getElement('#randomBatchControls');
 
-  if (normalControls && randomControls) {
-    if (value === 'random') {
-      normalControls.style.display = 'none';
-      randomControls.style.display = 'block';
-    } else {
-      normalControls.style.display = 'block';
-      randomControls.style.display = 'none';
-    }
+  if (value === 'random') {
+    setDisplay(normalControls, 'none');
+    setDisplay(randomControls, 'block');
+  } else {
+    setDisplay(normalControls, 'block');
+    setDisplay(randomControls, 'none');
   }
 
   const modeLabel = value === 'random' ? t('randomRange') : t('normalFixedSize');
@@ -99,11 +98,8 @@ export function resetPendingBatchRangeToState() {
 }
 
 function updateUIOnly() {
-  const minInput = document.querySelector('#randomBatchMin');
-  const maxInput = document.querySelector('#randomBatchMax');
-
-  if (minInput) minInput.value = pendingMin;
-  if (maxInput) maxInput.value = pendingMax;
+  setInputValue('#randomBatchMin', pendingMin);
+  setInputValue('#randomBatchMax', pendingMax);
 }
 
 const applyBatchRangeSettings = debounce(() => {

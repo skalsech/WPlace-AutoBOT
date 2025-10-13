@@ -1,13 +1,13 @@
-import { state } from '../../core/state.js';
-import { showAlert } from '../../shared/ui/alerts.js';
-import { updateUI } from '../../app/startup/create-ui.js';
-import { t } from '../../i18n/index.js';
-import { wplaceUI } from '../../core/overlay/wplace-ui.js';
-import { createStartPositionDialog } from '../dialogs/start-position/create-start-position-dialog.js';
-import { overlayManager } from '../../core/overlay/overlay-manager.js';
-import { SelectionController } from '../../core/api/selection-controller.js';
-import { safeEvalMathExpression } from '../../utils/math-utils.js';
-import { StartPositionDialog } from '../dialogs/start-position/start-position-dialog.js';
+import { state } from '../../../core/state.js';
+import { showAlert } from '../../../shared/ui/alerts.js';
+import { updateUI } from '../../../app/startup/create-ui.js';
+import { t } from '../../../i18n/index.js';
+import { wplaceUI } from '../../../core/overlay/wplace-ui.js';
+import { createStartPositionDialog } from './create-start-position-dialog.js';
+import { overlayManager } from '../../../core/overlay/overlay-manager.js';
+import { SelectionController } from '../../../core/api/selection-controller.js';
+import { safeEvalMathExpression } from '../../../utils/math-utils.js';
+import { StartPositionDialog } from './start-position-dialog.js';
 
 const startPositionDialogInstance = new StartPositionDialog();
 

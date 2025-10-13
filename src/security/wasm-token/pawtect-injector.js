@@ -1,16 +1,10 @@
+// src/security/pawtect-injector.js
 /**
- * wasm-token.js
+ * pawtect-injector.js
  *
- * Module for handling pawtect — anti-automation protection on wplace.live
- *
- * Features:
- * 1. Dynamic detection of WASM logic script URL
- * 2. Safe execution in main world via blob-URL
- * 3. CSP compatibility
- * 4. Support for multiple output formats from WASM function
+ * Module for injecting pawtect code into the main world context
+ * Handles WASM module detection and initialization in the main world
  */
-
-const MESSAGE_ID = 'pawtect-proxy-' + Math.random().toString(36).slice(2, 11);
 
 /**
  * Returns code to be executed in the main world context as a function
@@ -21,6 +15,7 @@ function getMainWorldCode() {
     if (window.__pawtect_injected) return;
     window.__pawtect_injected = true;
 
+    // eslint-disable-next-line no-unused-vars
     let pawtectModuleUrl = null;
     let wasmModule = null;
 
@@ -238,9 +233,10 @@ function getMainWorldCode() {
 }
 
 /**
- * Injects code into the main world context
+ * Injects code into the main world context using CSP-compatible method
+ * @param {string} messageId - Unique message identifier
  */
-function injectIntoMainWorld() {
+export function injectIntoMainWorld(messageId) {
   if (window.__pawtect_injector_installed) return;
   window.__pawtect_injector_installed = true;
 
@@ -252,92 +248,14 @@ function injectIntoMainWorld() {
     (function() {
       try {
         const mainWorldCode = ${functionString};
-        mainWorldCode('${MESSAGE_ID}');
+        mainWorldCode('${messageId}');
       } catch (error) {
         console.error('[wasm-token] Failed to initialize main world code:', error);
       }
     })();
   `;
 
-  document.documentElement.appendChild(script);
+  // Add the script to the page and immediately remove it
+  (document.head || document.documentElement).appendChild(script);
   script.remove();
-}
-
-/**
- * Initializes the pawtect module
- */
-export function initPawtect() {
-  if (!window.__pawtect_store) {
-    window.__pawtect_store = {
-      ready: false,
-      pendingRequests: [],
-      error: null,
-    };
-  }
-
-  window.addEventListener('message', (event) => {
-    if (event.data && event.data.source === MESSAGE_ID) {
-      if (event.data.action === 'pawtect-result') {
-        const store = window.__pawtect_store;
-
-        while (store.pendingRequests.length > 0) {
-          const resolve = store.pendingRequests.shift();
-          resolve(event.data.token);
-        }
-      } else if (event.data.action === 'pawtect-error') {
-        const store = window.__pawtect_store;
-
-        while (store.pendingRequests.length > 0) {
-          const reject = store.pendingRequests.shift();
-          reject(new Error(event.data.error));
-        }
-
-        store.error = new Error(event.data.error);
-        console.error('[wasm-token] Pawtect error:', event.data.error);
-      } else if (event.data.action === 'request-ready') {
-        window.__pawtect_store.ready = true;
-      }
-    }
-  });
-
-  injectIntoMainWorld();
-}
-
-/**
- * Computes pawtect token for given URL and JSON body string
- * @param {string} url - Endpoint URL
- * @param {string} bodyStr - JSON string (colors, coords, fp, t)
- * @returns {Promise<string>} Promise resolving to pawtect token
- */
-export async function computePawtectToken(url, bodyStr) {
-  return new Promise((resolve, reject) => {
-    const store = window.__pawtect_store;
-
-    if (store.error) {
-      reject(store.error);
-      return;
-    }
-
-    store.pendingRequests.push(resolve);
-    store.pendingRequests.push(reject);
-
-    window.postMessage(
-      {
-        source: MESSAGE_ID,
-        action: 'compute-pawtect',
-        payload: { url, bodyStr },
-      },
-      '*'
-    );
-
-    // Timeout fallback
-    setTimeout(() => {
-      const resolveIndex = store.pendingRequests.indexOf(resolve);
-      if (resolveIndex !== -1) {
-        store.pendingRequests.splice(resolveIndex, 1);
-        store.pendingRequests.splice(store.pendingRequests.indexOf(reject), 1);
-        reject(new Error('Pawtect computation timeout'));
-      }
-    }, 10000);
-  });
 }

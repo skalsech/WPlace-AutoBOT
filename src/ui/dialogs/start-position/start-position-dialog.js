@@ -1,10 +1,10 @@
-import { makeDraggable } from '../../../app/startup/create-ui.js';
 import { safeEvalMathExpression } from '../../../utils/math-utils.js';
 import {
   isMathExpressionValid,
   updateApplyButtonState,
   updateInputFeedback,
 } from '../../utils/dialog-utils.js';
+import { makeDraggable } from '../../../shared/ui/drag.js';
 
 export class StartPositionDialog {
   constructor() {

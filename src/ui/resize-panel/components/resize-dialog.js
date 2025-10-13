@@ -2,7 +2,6 @@ import { ImageProcessor } from '../../../core/system/image-processor.js';
 import { onColorSettingsChange, state } from '../../../core/state.js';
 import {
   findClosestColor,
-  invalidateColorCache,
   isTransparentPixel,
   isWhitePixel,
 } from '../../../utils/color-matching.js';
@@ -11,16 +10,16 @@ import { updateStats, updateUI } from '../../../app/startup/create-ui.js';
 import { overlayManager } from '../../../core/overlay/overlay-manager.js';
 import { initializeColorPalette } from './color-palette.js';
 import {
-  createDitherBuffers,
-  applyFloydSteinbergPreview,
   applyFloydSteinbergFinal,
+  applyFloydSteinbergPreview,
+  createDitherBuffers,
 } from './resize-dither.js';
 import { createPanZoomController } from '../resize-panzoom-controller.js';
 import { createMaskOverlay } from '../resize-mask-overlay.js';
 import { createSizeHandlers } from '../resize-size-handlers.js';
 import { createMaskEvents } from '../resize-mask-events.js';
 import { createPreviewController } from '../resize-preview-controller.js';
-import { syncSettingsUI } from '../../settings/sync-ui.js';
+import { invalidateColorCache } from '../../../utils/color-matching/cache.js';
 
 /**
  * Resize dialog controller.
@@ -32,6 +31,7 @@ let widthSlider, heightSlider, widthValue, heightValue, keepAspect;
 let paintWhiteToggle, paintTransparentToggle;
 let zoomSlider, zoomValue, zoomInBtn, zoomOutBtn, zoomFitBtn, zoomActualBtn, panModeBtn;
 let panStage, canvasStack, baseCanvas, maskCanvas, baseCtx, maskCtx;
+// eslint-disable-next-line no-unused-vars
 let confirmResize, cancelResize, downloadPreviewBtn, clearIgnoredBtn, toggleOverlayBtn;
 
 let _resizeDialogCleanup = null;

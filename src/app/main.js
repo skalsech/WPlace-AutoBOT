@@ -1,16 +1,15 @@
 import { createUI, updateStats, updateUI } from './startup/create-ui.js';
 import { enableFileOperations, initializeTokenGenerator } from './startup/startup.js';
-import { cleanupTurnstile } from '../security/turnstile-token/turnstile.js';
 import { setupFetchInterceptor } from './startup/fetch-interceptor.js';
-import { initPawtect } from '../security/wasm-token.js';
 import { wplaceService } from '../core/api/api-service.js';
 import { showAlert } from '../shared/ui/alerts.js';
 import { handleLoadClick } from '../ui/main-panel/handlers/handle-data-buttons.js';
 import { loadAllLibraries } from './startup/load-all-vendors.js';
+import { cleanupTurnstile } from '../security/turnstile-token/turnstile-manager.js';
+import { initPawtect } from '../security/wasm-token/pawtect-worker.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   loadAllLibraries().then(() => {
-    initPawtect();
     setupFetchInterceptor();
 
     createUI().then(async () => {
@@ -30,8 +29,10 @@ document.addEventListener('DOMContentLoaded', () => {
       }
 
       window.addEventListener('beforeunload', cleanupTurnstile);
+      initPawtect();
       await initializeTokenGenerator();
       enableFileOperations();
+      //todo make option in settings for auto-load
       await handleLoadClick();
     });
   });

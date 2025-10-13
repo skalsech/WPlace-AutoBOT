@@ -1,6 +1,9 @@
 import { APP_CONSTANTS } from '../app/config/app-constants.js';
 
-export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+export { sleep, debounce, dynamicSleep } from './async-helpers.js';
+export { appendResourceOnce, waitForSelector } from './dom-helpers.js';
+export { msToTimeText } from './number-helpers.js';
+export { deepFreeze } from './collection-helpers.js';
 
 /**
  * Returns a debounced version of the given function.
@@ -12,104 +15,6 @@ export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * @param {number} delay - Delay in milliseconds
  * @returns {Function} - The debounced function
  */
-export function debounce(fn, delay) {
-  let timeoutId = null;
-
-  const debounced = function (...args) {
-    if (timeoutId) clearTimeout(timeoutId);
-    timeoutId = setTimeout(() => fn.apply(this, args), delay);
-  };
-
-  debounced.flush = function (...args) {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-      timeoutId = null;
-      fn.apply(this, args);
-    }
-  };
-
-  return debounced;
-}
-
-export const dynamicSleep = async function (tickAndGetRemainingMs) {
-  let remaining = Math.max(0, await tickAndGetRemainingMs());
-  while (remaining > 0) {
-    const interval = remaining > 5000 ? 2000 : remaining > 1000 ? 500 : 100;
-    await sleep(Math.min(interval, remaining));
-    remaining = Math.max(0, await tickAndGetRemainingMs());
-  }
-};
-
-export const appendResourceOnce = (src, options = {}) => {
-  src = src.trim();
-  const { type, attributes = {}, async = true } = options;
-
-  const inferredType = src.endsWith('.css') ? 'link' : src.endsWith('.js') ? 'script' : type;
-
-  if (!inferredType) {
-    console.warn(
-      `Failed to determine the resource type for: ${src}. Specify type: 'link' or 'script' in options.`
-    );
-    return Promise.reject(new Error('Unknown resource type'));
-  }
-
-  let exists = false;
-  if (inferredType === 'link') {
-    exists = Array.from(document.head.querySelectorAll('link')).some(
-      (link) => link.href === src && link.rel === 'stylesheet'
-    );
-  } else if (inferredType === 'script') {
-    exists = Array.from(document.head.querySelectorAll('script')).some(
-      (script) => script.src === src
-    );
-  }
-
-  if (exists) {
-    return Promise.resolve();
-  }
-
-  return new Promise((resolve, reject) => {
-    const element = document.createElement(inferredType);
-
-    if (inferredType === 'link') {
-      element.rel = 'stylesheet';
-      element.href = src;
-    } else if (inferredType === 'script') {
-      element.src = src;
-      element.async = async;
-    }
-
-    for (const [key, value] of Object.entries(attributes)) {
-      element.setAttribute(key, value);
-    }
-
-    element.onload = () => resolve(element);
-    element.onerror = () => reject(new Error(`Failed to load resource: ${src}`));
-
-    document.head.appendChild(element);
-  });
-};
-
-export const waitForSelector = async (selector, interval = 200, timeout = 5000) => {
-  const start = Date.now();
-  while (Date.now() - start < timeout) {
-    const el = document.querySelector(selector);
-    if (el) return el;
-    await sleep(interval);
-  }
-  return null;
-};
-
-export const msToTimeText = (ms) => {
-  const totalSeconds = Math.ceil(ms / 1000);
-  const hours = Math.floor(totalSeconds / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-
-  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
-  if (minutes > 0) return `${minutes}m ${seconds}s`;
-  return `${seconds}s`;
-};
 
 /**
  * Calculate the range of tile coordinates (in region space) that cover a given image area.
@@ -141,19 +46,6 @@ export const calculateTileRange = (
     endTileY: startRegionY + Math.floor((endPixelY - 1) / tileSize),
   };
 };
-
-export function deepFreeze(obj) {
-  Object.getOwnPropertyNames(obj).forEach((prop) => {
-    if (
-      obj[prop] !== null &&
-      (typeof obj[prop] === 'object' || typeof obj[prop] === 'function') &&
-      !Object.isFrozen(obj[prop])
-    ) {
-      deepFreeze(obj[prop]);
-    }
-  });
-  return Object.freeze(obj);
-}
 
 export function decodeBase64ToBytes(base64String) {
   const binaryString = atob(base64String);

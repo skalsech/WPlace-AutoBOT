@@ -1,31 +1,10 @@
 import { state } from '../state.js';
 import { updateUI } from '../../app/startup/create-ui.js';
-import { handleCaptcha } from '../../security/turnstile-token/captcha-handler.js';
 import { sleep } from '../../utils/helpers.js';
-import {
-  getTurnstileToken,
-  setTurnstileToken,
-} from '../../security/turnstile-token/turnstile-manager.js';
-import { computePawtectToken } from '../../security/wasm-token.js';
+import { ensureToken } from '../../security/turnstile-token/turnstile-manager.js';
 import { getFingerprint } from '../../vendor/fingerprint.js';
 import { wplaceService } from '../api/api-service.js';
-
-/**
- * Sends a pixel batch to the backend.
- * @returns {Promise<Response>}
- */
-async function sendPixelRequest(url, payload, pawtectVariant, wasmToken) {
-  return fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers: {
-      'Content-Type': 'text/plain;charset=UTF-8',
-      'x-pawtect-token': wasmToken,
-      'x-pawtect-variant': pawtectVariant,
-    },
-    body: JSON.stringify(payload),
-  });
-}
+import { computePawtectToken } from '../../security/wasm-token/pawtect-worker.js';
 
 /**
  * Attempts to send a batch with current token, retries once on 403.
@@ -33,26 +12,26 @@ async function sendPixelRequest(url, payload, pawtectVariant, wasmToken) {
 async function trySendPixelBatch(pixelBatch, regionX, regionY) {
   const fingerprint = await getFingerprint();
   const pawtectVariant = (await wplaceService.getPawtectVariant()).value;
-  const url = `https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`;
 
   if (!fingerprint) throw new Error('Missing fingerprint');
   if (!pawtectVariant) throw new Error('Missing pawtect variant');
 
-  const token = getTurnstileToken();
+  const token = await ensureToken(state.tokenSource);
   if (!token) return 'token_error';
 
   const payload = makePayload(pixelBatch, token, fingerprint);
+  const url = `https://backend.wplace.live/s0/pixel/${regionX}/${regionY}`;
   const wasmToken =
     pawtectVariant !== 'disabled' ? await computePawtectToken(url, JSON.stringify(payload)) : '';
 
-  const res = await sendPixelRequest(url, payload, pawtectVariant, wasmToken);
+  const res = await wplaceService.sendPixelRequest(url, payload, pawtectVariant, wasmToken);
 
   if (res.status === 403) {
     console.warn('403 Forbidden — token may be expired. Regenerating...');
     return handle403AndRetry(pixelBatch, url, fingerprint, pawtectVariant);
   }
 
-  return parsePixelResponse(res, pixelBatch.length, token);
+  return parsePixelResponse(res, pixelBatch.length);
 }
 
 /**
@@ -60,24 +39,27 @@ async function trySendPixelBatch(pixelBatch, regionX, regionY) {
  */
 async function handle403AndRetry(pixelBatch, url, fingerprint, pawtectVariant) {
   try {
-    const newToken = await handleCaptcha();
+    const newToken = await ensureToken(state.tokenSource, true);
     const retryPayload = makePayload(pixelBatch, newToken, fingerprint);
     const retryWasmToken =
       pawtectVariant !== 'disabled'
         ? await computePawtectToken(url, JSON.stringify(retryPayload))
         : '';
 
-    const retryRes = await sendPixelRequest(url, retryPayload, pawtectVariant, retryWasmToken);
+    const retryRes = await wplaceService.sendPixelRequest(
+      url,
+      retryPayload,
+      pawtectVariant,
+      retryWasmToken
+    );
     if (retryRes.status === 403) {
       console.error('Token still invalid after regeneration');
-      setTurnstileToken(null);
       return 'token_error';
     }
 
-    return parsePixelResponse(retryRes, pixelBatch.length, newToken);
+    return parsePixelResponse(retryRes, pixelBatch.length);
   } catch (e) {
     console.error('Token regeneration failed:', e);
-    setTurnstileToken(null);
     return 'token_error';
   }
 }
@@ -85,12 +67,10 @@ async function handle403AndRetry(pixelBatch, url, fingerprint, pawtectVariant) {
 /**
  * Parses server response and updates stored token if successful.
  */
-async function parsePixelResponse(res, expectedCount, tokenUsed) {
+async function parsePixelResponse(res, expectedCount) {
   try {
     const data = await res.json();
-    const success = data?.painted === expectedCount;
-    if (success) setTurnstileToken(tokenUsed);
-    return success;
+    return data?.painted === expectedCount;
   } catch (e) {
     console.error('Invalid server response:', e);
     return false;

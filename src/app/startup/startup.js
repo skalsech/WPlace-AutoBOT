@@ -1,7 +1,7 @@
 import { isTokenValid } from '../../security/turnstile-token/turnstile-manager.js';
 import { updateUI } from './create-ui.js';
-import { loadTurnstile } from '../../security/turnstile-token/turnstile.js';
 import { appendResourceOnce } from '../../utils/helpers.js';
+import { loadTurnstile } from '../../security/turnstile-token/turnstile-core.js';
 
 export function enableFileOperations() {
   const loadBtn = document.querySelector('#loadBtn');

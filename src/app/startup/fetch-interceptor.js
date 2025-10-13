@@ -79,6 +79,7 @@ export function setupFetchInterceptor() {
 
   // Main world listeners (safe, no CSP issues)
   window.addEventListener('message', (event) => {
+    // eslint-disable-next-line no-unused-vars
     const { source, endpoint, blobID, blobData, token } = event.data;
 
     if (source === 'auto-image-tile' && endpoint && blobID && blobData) {

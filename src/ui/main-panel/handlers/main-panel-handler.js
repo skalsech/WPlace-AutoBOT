@@ -3,15 +3,11 @@ import { t } from '../../../i18n/index.js';
 import { state } from '../../../core/state.js';
 import { showResizeDialog } from '../../resize-panel/components/resize-dialog.js';
 import { updateUI } from '../../../app/startup/create-ui.js';
-import { saveProgress } from '../../../storage/progress-manager.js';
 import { overlayManager } from '../../../core/overlay/overlay-manager.js';
 import { NotificationManager } from '../../../core/system/notification-manager.js';
 import { saveBotSettings } from '../../../storage/settings-manager.js';
-import {
-  ensureToken,
-  getTurnstileToken,
-} from '../../../security/turnstile-token/turnstile-manager.js';
 import { processImage } from '../../../core/painting/painting-controller.js';
+import { saveProgress } from '../../../storage/progress-service.js';
 
 export function handleResizeClick(e) {
   e?.preventDefault();
@@ -70,8 +66,6 @@ export async function handleStartPainting() {
     updateUI('missingRequirements', 'error');
     return;
   }
-  await ensureToken();
-  if (!getTurnstileToken()) return;
 
   state.update({
     running: true,

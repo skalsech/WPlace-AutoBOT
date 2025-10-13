@@ -4,12 +4,12 @@ import { t } from '../../../i18n/index.js';
 import {
   loadProgress,
   loadProgressFromFile,
-  restoreProgress,
   saveProgress,
   saveProgressToFile,
-} from '../../../storage/progress-manager.js';
+} from '../../../storage/progress-service.js';
 import { updateStats, updateUI } from '../../../app/startup/create-ui.js';
 import { overlayManager, restoreOverlayFromData } from '../../../core/overlay/overlay-manager.js';
+import { restoreProgress } from '../../../storage/progress-serialize.js';
 
 export function updateDataButtons() {
   const container = document.getElementById('wplace-image-bot-container');

@@ -1,5 +1,7 @@
 import { sleep, waitForSelector } from '../../utils/helpers.js';
-import { obtainSitekey } from './turnstile.js';
+import { cleanupTurnstile as cleanupCore, executeTurnstile } from './turnstile-core.js';
+import { createTurnstileWidgetInteractive } from './turnstile-interactive.js';
+import { cleanupUI } from './turnstile-ui.js';
 import { truncateString } from '../../utils/dev-utils.js';
 
 const TurnstileState = {
@@ -9,6 +11,7 @@ const TurnstileState = {
   generationInProgress: false,
   resolveToken: null,
   tokenPromise: null,
+  _cachedSitekey: null,
 };
 
 TurnstileState.tokenPromise = new Promise((resolve) => {
@@ -36,6 +39,7 @@ export function setTurnstileToken(token) {
   console.log('[turnstile-token]: ✅ Cached successfully');
 }
 
+/** @returns {string | null} */
 export function getTurnstileToken() {
   return TurnstileState.token;
 }
@@ -50,7 +54,7 @@ function invalidateToken() {
   console.log('[turnstile-token]: 🗑️ Token invalidated, will force fresh generation');
 }
 
-export async function ensureToken(forceRefresh = false) {
+export async function ensureToken(tokenSource, forceRefresh = false) {
   if (isTokenValid() && !forceRefresh) {
     return TurnstileState.token;
   }
@@ -67,54 +71,153 @@ export async function ensureToken(forceRefresh = false) {
 
   try {
     console.log('[turnstile-token]: 🔄 Token expired or missing, generating new one...');
-    const token = await handleCaptchaWithRetry();
-    if (token) {
-      setTurnstileToken(token);
-      return token;
-    }
-
-    console.log('[turnstile-token]: ⚠️ Invisible Turnstile failed, forcing browser automation...');
-    const fallbackToken = await handleCaptchaFallback();
-    if (fallbackToken && fallbackToken.length > 20) {
-      setTurnstileToken(fallbackToken);
-      console.log('[turnstile-token]: ✅ Fallback token captured successfully');
-      return fallbackToken;
-    }
-
-    console.log('[turnstile-token]: ❌ All token generation methods failed');
-    return null;
+    return await handleCaptcha(tokenSource);
   } finally {
     TurnstileState.generationInProgress = false;
   }
 }
 
-export async function handleCaptchaWithRetry() {
-  const startTime = performance.now();
+export async function executeTurnstileStrategy(sitekey, strategy = 'auto') {
+  switch (strategy) {
+    case 'invisible':
+      return await executeTurnstile(sitekey);
+    case 'interactive':
+      return await createTurnstileWidgetInteractive(sitekey);
+    case 'auto':
+    default: {
+      // Try reuse widget first
+      let token = await executeTurnstile(sitekey);
+      if (token && token.length > 20) {
+        return token;
+      }
+
+      // Fall back to interactive
+      token = await createTurnstileWidgetInteractive(sitekey);
+      if (token && token.length > 20) {
+        return token;
+      }
+
+      // Final fallback - try reuse widget again (in case it works now)
+      return await executeTurnstile(sitekey);
+    }
+  }
+}
+
+export async function obtainSitekey() {
+  if (TurnstileState.cachedSitekey) {
+    console.log('🔍 Using cached sitekey:', TurnstileState.cachedSitekey);
+    return TurnstileState.cachedSitekey;
+  }
+
+  const potentialSitekeys = [
+    '0x4AAAAAABpqJe8FO0N84q0F', // WPlace common sitekey
+    '0x4AAAAAABpHqZ-6i7uL0nmG', // Alternative WPlace sitekey
+    '0x4AAAAAAAJ7xjKAp6Mt_7zw', // Alternative WPlace sitekey
+    '0x4AAAAAADm5QWx6Ov2LNF2g', // Another common sitekey
+  ];
+
+  const testSitekey = async (sitekey, source) => {
+    if (!sitekey || sitekey.length < 10) return null;
+
+    console.log(`🔍 Testing sitekey from ${source}:`, sitekey);
+
+    try {
+      const token = await executeTurnstileStrategy(sitekey);
+
+      if (token && typeof token === 'string' && token.length >= 20) {
+        console.log(`✅ Valid sitekey found from ${source}`);
+        setTurnstileToken(token);
+        TurnstileState.cachedSitekey = sitekey;
+        return sitekey;
+      } else {
+        console.log(`❌ Invalid token for sitekey from ${source}`);
+        return null;
+      }
+    } catch (error) {
+      console.log(`❌ Error testing sitekey from ${source}:`, error.message);
+      return null;
+    }
+  };
 
   try {
-    const sitekey = await obtainSitekey();
-
-    if (!sitekey) {
-      throw new Error('No valid sitekey found');
-    }
-
-    console.log('[turnstile-token]: 🔐 Getting cached Turnstile token');
-    const token = getTurnstileToken();
-
-    if (token && typeof token === 'string' && token.length > 20) {
-      const elapsed = Math.round(performance.now() - startTime);
-      console.log(`[turnstile-token]: ✅ Turnstile token generated successfully in ${elapsed}ms`);
-      return token;
-    } else {
-      throw new Error(`Invalid or empty token received - Length: ${token?.length || 0}`);
+    for (const testSitekeyValue of potentialSitekeys) {
+      const result = await testSitekey(testSitekeyValue, 'known list');
+      if (result) return result;
     }
   } catch (error) {
-    const elapsed = Math.round(performance.now() - startTime);
-    console.error(
-      `[turnstile-token]: ❌ Turnstile token generation failed after ${elapsed}ms:`,
-      error
-    );
-    throw error;
+    console.warn('⚠️ Error during sitekey detection:', error);
+  }
+
+  console.error('❌ No working sitekey found.');
+  return null;
+}
+
+export async function obtainToken() {
+  const sitekey = await obtainSitekey();
+  if (!sitekey) {
+    console.error('❌ Could not find a valid sitekey');
+    return null;
+  }
+
+  if (isTokenValid()) {
+    return TurnstileState.token;
+  }
+  const token = await executeTurnstileStrategy(sitekey);
+  if (token && token.length > 20) {
+    setTurnstileToken(token);
+    return token;
+  }
+
+  console.error('❌ Could not generate a valid turnstile token');
+  return null;
+}
+
+export function cleanupTurnstile() {
+  cleanupCore();
+  cleanupUI();
+  TurnstileState.token = null;
+  TurnstileState.expiryTime = 0;
+  TurnstileState.generationInProgress = false;
+  if (TurnstileState.resolveToken) {
+    TurnstileState.resolveToken(null);
+    TurnstileState.resolveToken = null;
+  }
+  TurnstileState.tokenPromise = new Promise((resolve) => {
+    TurnstileState.resolveToken = resolve;
+  });
+}
+
+/**
+ * Handles captcha token generation with fallback strategy
+ */
+export async function handleCaptcha(tokenSource) {
+  const startTime = performance.now();
+
+  if (tokenSource === 'manual') {
+    console.log('🎯 Manual token source selected - using pixel placement automation');
+    return await handleCaptchaFallback();
+  }
+
+  try {
+    const token = await obtainToken();
+    if (!token || typeof token !== 'string' || token.length < 20) {
+      throw new Error(
+        `Invalid or empty token received - Type: ${typeof token}, Value: ${JSON.stringify(token)}, Length: ${token?.length || 0}`
+      );
+    }
+    return token;
+  } catch (error) {
+    const duration = Math.round(performance.now() - startTime);
+    console.error(`❌ Turnstile token generation failed after ${duration}ms:`, error);
+
+    if (tokenSource === 'hybrid') {
+      console.log(
+        '🔄 Hybrid mode: Generator failed, automatically switching to manual pixel placement...'
+      );
+      return await handleCaptchaFallback();
+    } else {
+      throw error;
+    }
   }
 }
 

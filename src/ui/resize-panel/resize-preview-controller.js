@@ -8,6 +8,7 @@ export function createPreviewController({
   state,
   baseCtx,
   maskCtx,
+  // eslint-disable-next-line no-unused-vars
   baseCanvas,
   maskCanvas,
   canvasStack,

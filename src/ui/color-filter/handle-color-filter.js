@@ -1,9 +1,9 @@
-import { makeDraggable } from '../../app/startup/create-ui.js';
 import { createColorFilterDialog } from './create-color-filter-dialog.js';
 import { state } from '../../core/state.js';
 import { APP_CONSTANTS } from '../../app/config/app-constants.js';
 import { showAlert } from '../../shared/ui/alerts.js';
 import { t } from '../../i18n/index.js';
+import { makeDraggable } from '../../shared/ui/drag.js';
 
 /** @type {HTMLElement | null} */
 let colorFilterDialog = null;
