@@ -10,7 +10,24 @@ import {
 import { setupStartPositionButton } from '../ui/dialogs/start-position/setup-listeners.js';
 
 /**
- * @returns {{timestamp:number,version:string,state:{artTotalPixels:number,startPosition:any,region:any},imageData:null|{width:number,height:number,totalPixels:number,pixels:ArrayBuffer}}}
+ * @returns {
+ * {
+ *  timestamp:number,
+ *  version:string,
+ *  state:{
+ *      artTotalPixels:number,
+ *      startPosition:{x: number, y: number} | null,
+ *      region:{x: number, y: number} | null,
+ *      filteredColorIds: Set<number>
+ *  },
+ *  imageData: null | {
+ *      width:number,
+ *      height:number,
+ *      totalPixels:number,
+ *      pixels:Uint8ClampedArray
+ *   }
+ *  }
+ * }
  */
 export function buildProgressData() {
   return {
@@ -20,13 +37,14 @@ export function buildProgressData() {
       artTotalPixels: state.artTotalPixels,
       startPosition: state.startPosition,
       region: state.region,
+      filteredColorIds: state.filteredColorIds,
     },
     imageData: state.imageLoaded
       ? {
           width: state.imageData.width,
           height: state.imageData.height,
           totalPixels: state.imageData.totalPixels,
-          pixels: state.imageData.pixels.buffer,
+          pixels: state.imageData.pixels,
         }
       : null,
   };
@@ -71,8 +89,12 @@ export function restoreProgress(savedData) {
         pixelArray = new Uint8ClampedArray(pixels);
       } else if (Array.isArray(pixels)) {
         pixelArray = new Uint8ClampedArray(pixels);
+      } else if (pixels instanceof Uint8ClampedArray) {
+        pixelArray = pixels;
       } else {
-        throw new Error('Invalid pixels format: expected ArrayBuffer or Array');
+        throw new Error(
+          'Invalid pixels format: expected ArrayBuffer or Array or Uint8ClampedArray'
+        );
       }
 
       try {

@@ -35,11 +35,7 @@ export async function clearProgress() {
 
 export function saveProgressToFile() {
   const progressData = buildProgressData();
-  if (progressData.imageData) {
-    progressData.imageData.pixels = Array.from(
-      new Uint8ClampedArray(progressData.imageData.pixels)
-    );
-  }
+
   const filename = `wplace-bot-progress-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
   createFileDownloader(JSON.stringify(progressData, null, 2), filename);
   return true;
@@ -51,7 +47,7 @@ export async function loadProgressFromFile() {
     throw new Error('Invalid file format');
   }
   if (data.imageData && Array.isArray(data.imageData.pixels)) {
-    data.imageData.pixels = new Uint8ClampedArray(data.imageData.pixels).buffer;
+    data.imageData.pixels = new Uint8ClampedArray(data.imageData.pixels);
   }
   return restoreProgress(data);
 }

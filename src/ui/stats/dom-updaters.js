@@ -9,6 +9,7 @@ import { wplaceService } from '../../core/api/api-service.js';
 import { showAlert } from '../../shared/ui/alerts.js';
 import { NotificationManager } from '../../core/system/notification-manager.js';
 import { invalidateColorCache } from '../../utils/color-matching/cache.js';
+import { APP_CONSTANTS } from '../../app/config/app-constants.js';
 
 // fixme .wplace-stat-item:last-child in statsArea
 export function ensureChargeStats(afterEl = null) {
@@ -182,21 +183,22 @@ export function updateColorSwatches() {
   labelEl.innerHTML = `
     <i class="fas fa-palette"></i> 
     <span data-i18n-key="availableColors">
-      ${t('availableColors', { count: state.availableColors.length })}
+      ${t('availableColors', { count: state.availableColors.size })}
     </span>
   `;
 
-  gridEl.innerHTML = state.availableColors
-    .map((color) => {
-      const rgbString = `rgb(${color.rgb.join(',')})`;
+  gridEl.innerHTML = Array.from(state.availableColors)
+    .map((colorId) => {
+      const colorData = APP_CONSTANTS.COLOR_MAP[colorId];
+      const rgbString = `rgb(${Object.values(colorData.rgb).join(',')})`;
       const style =
-        color.id === 0
+        colorId === 0
           ? 'background: repeating-linear-gradient(45deg, #ccc 0 2px, #fff 2px 4px);background-size: cover;'
           : `background-color: ${rgbString};`;
       return `<div class="wplace-stat-color-swatch" style="${style}" title="${t('colorTooltip', {
-        name: color.name,
-        id: color.id,
-        rgb: color.rgb.join(', '),
+        name: colorData.name,
+        id: colorId,
+        rgb: Object.values(colorData.rgb).join(', '),
       })}"></div>`;
     })
     .join('');
@@ -246,7 +248,7 @@ export async function refreshStatsAndColors(isManualRefresh = false) {
 
   const { value: colorsBitmap } = await wplaceService.getExtraColorsBitmap();
   const newAvailableColors = getAvailableColors(colorsBitmap);
-  const foundColorsCount = Array.isArray(newAvailableColors) ? newAvailableColors.length : 0;
+  const foundColorsCount = newAvailableColors.size;
 
   if (foundColorsCount === 0 && isManualRefresh) {
     showAlert(t('noColorsFound'), 'warning');

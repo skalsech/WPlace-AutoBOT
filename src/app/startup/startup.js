@@ -62,7 +62,7 @@ export async function initializeTokenGenerator() {
 
 export async function initializeDependencies() {
   await appendResourceOnce(
-    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+    'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css',
     {
       type: 'link',
     }

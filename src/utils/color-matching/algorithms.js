@@ -1,39 +1,65 @@
-import { state } from '../../core/state.js';
-
 export const colorDistance = (a, b) => {
   return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
 };
 
-export function calculateLegacyDistance(target, color) {
-  const [r, g, b] = target;
-  const [pr, pg, pb] = color;
-  const rmean = (pr + r) / 2;
-  const rdiff = pr - r;
-  const gdiff = pg - g;
-  const bdiff = pb - b;
-  return Math.sqrt(
-    (((512 + rmean) * rdiff * rdiff) >> 8) +
-      4 * gdiff * gdiff +
-      (((767 - rmean) * bdiff * bdiff) >> 8)
+/**
+ * Returns the *squared* perceptual RGB distance (no square root).
+ * Uses a weighted formula that approximates human color perception.
+ * Intended **only for comparison** (smaller = closer).
+ *
+ * @param {[number, number, number]} target - RGB [r, g, b] in 0-255
+ * @param {[number, number, number]} color  - RGB [r, g, b] in 0-255
+ * @returns {number} Squared perceptual distance (not a true metric)
+ */
+export function calculateLegacyDistanceSquared(target, color) {
+  const rmean = (target[0] + color[0]) * 0.5;
+  const rdiff = color[0] - target[0];
+  const gdiff = color[1] - target[1];
+  const bdiff = color[2] - target[2];
+
+  return (
+    (512 + rmean) * rdiff * rdiff * 0.00390625 +
+    4 * gdiff * gdiff +
+    (767 - rmean) * bdiff * bdiff * 0.00390625
   );
 }
 
-export function calculateLabDistance(targetLab, colorLab, s = state) {
-  const [Lt, at, bt] = targetLab;
-  const [Lp, ap, bp] = colorLab;
-  const dL = Lt - Lp,
-    da = at - ap,
-    db = bt - bp;
+/**
+ * Returns the *squared* CIE Lab distance with optional chroma penalty.
+ * Includes a perceptual penalty for undersaturated candidates.
+ * Intended **only for comparison** (smaller = closer).
+ *
+ * @param {[number, number, number]} target - Lab [L, a, b]
+ * @param {[number, number, number]} color  - Lab [L, a, b]
+ * @param {boolean} enableChromaPenalty
+ * @param {number} chromaPenaltyWeight - 0.00-0.50
+ * @returns {number} Squared distance (with penalty if applied)
+ */
+export function calculateLabDistanceSquared(
+  target,
+  color,
+  enableChromaPenalty,
+  chromaPenaltyWeight
+) {
+  const dL = target[0] - color[0];
+  const da = target[1] - color[1];
+  const db = target[2] - color[2];
+
   let dist = dL * dL + da * da + db * db;
 
-  if (s.enableChromaPenalty) {
-    const targetChroma = Math.sqrt(at * at + bt * bt);
-    const candChroma = Math.sqrt(ap * ap + bp * bp);
-    if (targetChroma > 20 && candChroma < targetChroma) {
-      const chromaDiff = targetChroma - candChroma;
-      dist += chromaDiff * chromaDiff * s.chromaPenaltyWeight;
+  if (enableChromaPenalty) {
+    const targetChromaSq = target[1] * target[1] + target[2] * target[2];
+    if (targetChromaSq > 400) {
+      const candChromaSq = color[1] * color[1] + color[2] * color[2];
+      if (candChromaSq < targetChromaSq) {
+        const targetChroma = Math.sqrt(targetChromaSq);
+        const candChroma = Math.sqrt(candChromaSq);
+        const chromaDiff = targetChroma - candChroma;
+        dist += chromaDiff * chromaDiff * chromaPenaltyWeight;
+      }
     }
   }
+
   return dist;
 }
 

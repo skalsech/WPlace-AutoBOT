@@ -3,15 +3,9 @@ import { updateStats, updateUI } from '../../app/startup/create-ui.js';
 import { sendBatchWithRetry } from './pixel-batch.js';
 import { performSmartSave } from '../system/auto-save.js';
 import { dynamicSleep } from '../../utils/helpers.js';
-import {
-  findClosestColor,
-  isTransparentPixel,
-  isWhitePixel,
-  resolveColor,
-} from '../../utils/color-matching.js';
+import { isTransparentPixel, isWhitePixel, resolveColor } from '../../utils/color-matching.js';
 import { generateCoordinates } from './coordinate-generator.js';
 import { NotificationManager } from '../system/notification-manager.js';
-import { APP_CONSTANTS } from '../../app/config/app-constants.js';
 import { overlayManager } from '../overlay/overlay-manager.js';
 import { getMsToTargetCharges } from '../../utils/time.js';
 import { wplaceService } from '../api/api-service.js';
@@ -107,66 +101,84 @@ export async function processImage() {
     white: 0,
     alreadyPainted: 0,
     colorUnavailable: 0,
+    colorFiltered: 0,
   };
 
-  function checkPixelEligibility(x, y) {
+  async function checkPixelEligibility(x, y, regionX, regionY, pixelX, pixelY) {
     const idx = (y * width + x) * 4;
     const r = pixels[idx],
       g = pixels[idx + 1],
       b = pixels[idx + 2],
       a = pixels[idx + 3];
 
-    if (!state.paintTransparentPixels && isTransparentPixel(a, state.customTransparencyThreshold))
+    if (!state.paintTransparentPixels && isTransparentPixel(a, state.customTransparencyThreshold)) {
       return {
         eligible: false,
         reason: 'transparent',
       };
-    if (!state.paintWhitePixels && isWhitePixel(r, g, b, state.customWhiteThreshold))
+    }
+    if (!state.paintWhitePixels && isWhitePixel(r, g, b, state.customWhiteThreshold)) {
       return {
         eligible: false,
         reason: 'white',
       };
+    }
 
-    // Template color, normalized/mapped to the nearest available / exact color in our palette,
-    // depending on `state.paintUnavailablePixels`
-    // Example: template requires "Slate", but we only have "Dark Gray" available
-    //
-    // If `state.paintUnavailablePixels` is enabled, null will be returned
-    // because "Slate" was not found in `availableColors`
-    // → mappedTargetColor = null.
-    //
-    // Else, the template "Slate" is mapped to the closest available color (e.g., "Dark Gray"),
-    // and we proceed with painting using that mapped color.
-    // → mappedTargetColor = Dark Gray.
-    //
-    // In this case, if the canvas pixel is already Slate (mapped to available Dark Gray),
-    // we skip painting, since template and canvas both resolve to the same available color (Dark Gray).
-    let mappedTargetColor;
-    if (isWhitePixel(r, g, b, state.customWhiteThreshold)) {
-      mappedTargetColor = APP_CONSTANTS.COLOR_MAP['5'];
-    } else if (isTransparentPixel(a, state.customTransparencyThreshold)) {
-      mappedTargetColor = APP_CONSTANTS.COLOR_MAP['0'];
-    } else {
+    /* 
+     todo check to work with resize dialog because deprecated for readability and performance
       mappedTargetColor = resolveColor(
-        findClosestColor(r, g, b, state.activeColorPalette),
-        state.availableColors,
-        !state.paintUnavailablePixels
+      findClosestColor(r, g, b, state.activeColorPalette),
+      state.availableColors,
+      !state.paintUnavailablePixels
       );
+    */
 
-      // Technically, checking only `!mappedTargetColor.id` would be enough,
-      // but combined with `state.paintUnavailablePixels` it makes the logic explicit:
-      // we only skip when the template color cannot be mapped AND strict mode is on.
-      if (!state.paintUnavailablePixels && !mappedTargetColor.id) {
-        return {
-          eligible: false,
-          reason: 'colorUnavailable',
-          r,
-          g,
-          b,
-          a,
-          mappedColorId: mappedTargetColor.id,
-        };
-      }
+    const mappedTargetColor = resolveColor(
+      [r, g, b, a],
+      state.availableColors,
+      !state.paintUnavailablePixels
+    );
+
+    if (state.hasActiveColorFilter && state.filteredColorIds.has(mappedTargetColor.id)) {
+      return {
+        eligible: false,
+        reason: 'colorFiltered',
+        r,
+        g,
+        b,
+        a,
+        mappedColorId: mappedTargetColor.id,
+      };
+    }
+    if (!mappedTargetColor.id) {
+      return {
+        eligible: false,
+        reason: 'colorUnavailable',
+        r,
+        g,
+        b,
+        a,
+        mappedColorId: mappedTargetColor.id,
+      };
+    }
+
+    const tilePixelRGBA = await overlayManager.getTilePixelColor(regionX, regionY, pixelX, pixelY);
+
+    if (!tilePixelRGBA) {
+      throw new Error('Failed to get canvas pixel color');
+    }
+    const mappedCanvasColor = resolveColor(tilePixelRGBA, state.availableColors, true);
+    const isMatch = mappedCanvasColor.id === mappedTargetColor.id;
+    if (isMatch) {
+      return {
+        eligible: false,
+        reason: 'alreadyPainted',
+        r,
+        g,
+        b,
+        a,
+        mappedColorId: mappedTargetColor.id,
+      };
     }
 
     return { eligible: true, r, g, b, a, mappedColorId: mappedTargetColor.id };
@@ -174,9 +186,9 @@ export async function processImage() {
 
   // eslint-disable-next-line no-unused-vars
   function skipPixel(reason, id, rgb, x, y) {
-    if (reason !== 'transparent') {
-      //console.log(`Skipped pixel for ${reason} (id: ${id}, (${rgb.join(', ')})) at (${x}, ${y})`);
-    }
+    /*if (reason === 'colorFiltered') {
+      console.log(`Skipped pixel for ${reason} (id: ${id}, (${rgb.join(', ')})) at (${x}, ${y})`);
+    }*/
     skippedPixels[reason]++;
   }
 
@@ -214,7 +226,6 @@ export async function processImage() {
       );
     }
     outerLoop: for (const [x, y] of coords) {
-      const targetPixelInfo = checkPixelEligibility(x, y);
       const absX = startX + x;
       const absY = startY + y;
 
@@ -222,34 +233,6 @@ export async function processImage() {
       const adderY = Math.floor(absY / 1000);
       const pixelX = absX % 1000;
       const pixelY = absY % 1000;
-
-      // Template color ID, normalized/mapped to the nearest available color in our palette.
-      // Example: template requires "Slate", but we only have "Dark Gray" available
-      // → mappedTargetColorId = ID of Dark Gray.
-      //
-      // If `state.paintUnavailablePixels` is enabled, the painting would stop earlier
-      // because "Slate" was not found (null returned).
-      //
-      // Else, the template "Slate" is mapped to the closest available color (e.g., "Dark Gray"),
-      // and we proceed with painting using that mapped color.
-      //
-      // In this case, if the canvas pixel is already Slate (mapped to available Dark Gray),
-      // we skip painting, since template and canvas both resolve to the same available color (Dark Gray).
-      const targetMappedColorId = targetPixelInfo.mappedColorId;
-
-      if (!targetPixelInfo.eligible) {
-        skipPixel(
-          targetPixelInfo.reason,
-          targetMappedColorId,
-          [targetPixelInfo.r, targetPixelInfo.g, targetPixelInfo.b],
-          pixelX,
-          pixelY
-        );
-        continue;
-      }
-
-      // console.log(`[DEBUG] Pixel at (${pixelX}, ${pixelY}) eligible: RGB=${targetPixelInfo.r}, ${targetPixelInfo.g}, ${targetPixelInfo.b},
-      //  alpha=${targetPixelInfo.a}, mappedColorId=${targetMappedColorId}`);
 
       const key = `${regionX + adderX},${regionY + adderY}`;
       if (!pixelBatches.has(key)) {
@@ -262,30 +245,34 @@ export async function processImage() {
       const batch = pixelBatches.get(key);
 
       try {
-        const tilePixelRGBA = await overlayManager.getTilePixelColor(
+        const targetPixelInfo = await checkPixelEligibility(
+          x,
+          y,
           batch.regionX,
           batch.regionY,
           pixelX,
           pixelY
         );
 
-        if (tilePixelRGBA && Array.isArray(tilePixelRGBA)) {
-          // Resolve the actual canvas pixel color to the closest available color.
-          // (The raw canvas RGB [er, eg, eb] is mapped into state.availableColors)
-          // so that comparison is consistent with targetMappedColorId.
-          const mappedCanvasColor = resolveColor(tilePixelRGBA, state.availableColors);
-          const isMatch = mappedCanvasColor.id === targetMappedColorId;
-          if (isMatch) {
-            skipPixel(
-              'alreadyPainted',
-              targetMappedColorId,
-              [targetPixelInfo.r, targetPixelInfo.g, targetPixelInfo.b],
-              pixelX,
-              pixelY
-            );
-            continue;
-          }
+        if (!targetPixelInfo.eligible) {
+          skipPixel(
+            targetPixelInfo.reason,
+            targetPixelInfo.mappedColorId,
+            [targetPixelInfo.r, targetPixelInfo.g, targetPixelInfo.b],
+            pixelX,
+            pixelY
+          );
+          continue;
         }
+
+        batch.pixels.push({
+          x: pixelX,
+          y: pixelY,
+          color: targetPixelInfo.mappedColorId,
+          localX: x,
+          localY: y,
+        });
+        globalPixelBatchTotalCount++;
       } catch (e) {
         console.error(`[DEBUG] Error checking existing pixel at (${pixelX}, ${pixelY}):`, e);
         updateUI('paintingPixelCheckFailed', 'error', { x: pixelX, y: pixelY });
@@ -296,16 +283,6 @@ export async function processImage() {
         break outerLoop;
       }
 
-      batch.pixels.push({
-        x: pixelX,
-        y: pixelY,
-        color: targetMappedColorId,
-        localX: x,
-        localY: y,
-      });
-
-      globalPixelBatchTotalCount++;
-
       if (globalPixelBatchTotalCount >= currentBatchSize) {
         for (const b of pixelBatches.values()) {
           if (b.pixels.length > 0 && !state.stopFlag) {
@@ -315,7 +292,6 @@ export async function processImage() {
               // noinspection UnnecessaryLabelOnBreakStatementJS
               break outerLoop;
             }
-
             updateUI('paintingProgress', 'default', {
               painted: state.currentPaintedPixels,
               total: state.artTotalPixels,
@@ -384,14 +360,24 @@ export async function processImage() {
   } else {
     updateUI('paintingComplete', 'success', { count: state.currentPaintedPixels });
 
-    overlayManager.clear();
-    const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
+    overlayManager.disable();
+    /*const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
     if (toggleOverlayBtn) {
       toggleOverlayBtn.classList.remove('active');
       toggleOverlayBtn.disabled = true;
-    }
+    }*/
   }
 
+  const groupStyle =
+    'color: #5d4037; font-weight: bold; background: #efebe9; padding: 3px 8px; border-radius: 4px;';
+  console.groupCollapsed(
+    `%cSkipped Pixels Summary (not progress, only skipped reasons count)`,
+    groupStyle
+  );
+  Object.entries(skippedPixels).forEach(([key, count]) => {
+    console.log(`${key}: %c${count}`, 'font-weight: bold; color: #d2691e;');
+  });
+  console.groupEnd();
   await updateStats();
 }
 

@@ -1,12 +1,11 @@
 import { state } from '../core/state.js';
-import { DEFAULT_SETTINGS } from '../app/config/default-settings.js';
 import { APP_CONSTANTS } from '../app/config/app-constants.js';
 import {
   _lab,
-  calculateLabDistance,
-  calculateLegacyDistance,
+  calculateLabDistanceSquared,
+  calculateLegacyDistanceSquared,
 } from './color-matching/algorithms.js';
-import { colorCache } from './color-matching/cache.js';
+import { colorCache, encodeCacheKey } from './color-matching/cache.js';
 
 /**
  * Finds the color from the given list that is closest to the target color (r, g, b)
@@ -40,7 +39,7 @@ export function findClosestColor(r, g, b, colors) {
     let cor = [0, 0, 0, 255];
     for (let i = 0; i < colors.length; i++) {
       const [pr, pg, pb] = colors[i];
-      const dist = calculateLegacyDistance([r, g, b], [pr, pg, pb]);
+      const dist = calculateLegacyDistanceSquared([r, g, b], [pr, pg, pb]);
       if (dist < menorDist) {
         menorDist = dist;
         cor = [pr, pg, pb, 255];
@@ -56,7 +55,12 @@ export function findClosestColor(r, g, b, colors) {
     const [pr, pg, pb] = colors[i];
     const targetLab = _lab(r, g, b);
     const colorLab = _lab(pr, pg, pb);
-    const dist = calculateLabDistance(targetLab, colorLab, state);
+    const dist = calculateLabDistanceSquared(
+      targetLab,
+      colorLab,
+      state.enableChromaPenalty,
+      state.chromaPenaltyWeight
+    );
     if (dist < bestDist) {
       bestDist = dist;
       best = [pr, pg, pb, 255];
@@ -78,107 +82,153 @@ export function isTransparentPixel(a, transparencyThreshold) {
 }
 
 export function colorsChanged(oldColors, newColors) {
-  const oldSet = new Set(oldColors.map((c) => c.rgb.join(',')));
-  const newSet = new Set(newColors.map((c) => c.rgb.join(',')));
+  if (oldColors.size !== newColors.size) return true;
 
-  if (oldSet.size !== newSet.size) return true;
-
-  for (const rgb of oldSet) {
-    if (!newSet.has(rgb)) return true;
+  for (const rgb of oldColors) {
+    if (!newColors.has(rgb)) return true;
   }
-
+  for (const rgb of newColors) {
+    if (!oldColors.has(rgb)) return true;
+  }
   return false;
 }
 
+/**
+ * Resolves a target RGBA color to the nearest or exact match from a set of available color IDs.
+ *
+ * The function performs the following steps:
+ * 1. Returns the raw RGB if `availableColors` is empty.
+ * 2. Detects transparent pixels via `isTransparentPixel` and returns the predefined transparent color.
+ * 3. Detects near-white pixels using `isWhitePixel` and normalizes them to the white color entry.
+ * 4. Checks an internal cache (up to 15,000 entries) to avoid redundant calculations.
+ * 5. If `exactMatch = true`, returns only an exact RGB match (lookup via `APP_CONSTANTS.RGB_KEY_TO_ID`).
+ *
+ * 6. Finds the closest color in `availableColors` using:
+ *    - **Legacy RGB distance** (`calculateLegacyDistanceSquared`), or
+ *    - **CIE Lab distance** (`calculateLabDistanceSquared`) with optional chroma penalty,
+ *      depending on `state.colorMatchingAlgorithm`.
+ * 7. Stores the result in the cache and evicts the oldest entry if cache size exceeds 15k.
+ *
+ * The cache key encodes RGB, algorithm flags, chroma penalty, and match mode into a 53-bit integer.
+ *
+ * @param {number[]} targetRgba - Target color `[r, g, b, a]` with channels 0–255.
+ * @param {Set<number>} availableColors - Set of available color IDs. RGB values are read from `APP_CONSTANTS.COLOR_MAP`.
+ * @param {boolean} [exactMatch=false] - If `true`, only exact RGB matches are returned; otherwise the nearest color is selected.
+ *
+ * @returns {{ id: number | null, rgb: [number, number, number] }}
+ * - `id`: The ID of the resolved color, or `null` if no exact match is found in exact mode.
+ * - `rgb`: The RGB triplet of the matched color or the original target color.
+ *
+ * @example
+ * // Exact match mode — returns null if color not found
+ * resolveColor([128, 128, 128, 255], new Set([1, 2, 3]), true);
+ * // → { id: null, rgb: [128, 128, 128] }
+ *
+ * @example
+ * // Nearest color mode — uses closest match from availableColors
+ * resolveColor([120, 130, 135, 255], new Set([1, 2, 3]), false);
+ * // → { id: 2, rgb: [115, 125, 130] }
+ *
+ * @remarks
+ * Internal behavior depends on `state`:
+ * - `state.colorMatchingAlgorithm`: `'legacy'` or `'lab'`
+ * - `state.enableChromaPenalty`: boolean
+ * - `state.chromaPenaltyWeight`: numeric (6-bit masked)
+ * - `state.customTransparencyThreshold` and `state.customWhiteThreshold`: threshold values
+ *
+ * Cache eviction policy: FIFO — oldest entries removed after 15,000 keys.
+ */
 export function resolveColor(targetRgba, availableColors, exactMatch = false) {
-  const targetRgb = targetRgba.slice(0, 3);
-  if (!availableColors || availableColors.length === 0) {
+  const targetRgb = [targetRgba[0], targetRgba[1], targetRgba[2]];
+  if (availableColors.size === 0) {
     console.warn(
       `Couldn't resolve color (${targetRgba.join(',')}) because availableColors is empty`
     );
     return { id: null, rgb: targetRgb };
   }
-  if (isTransparentPixel(targetRgba[3], state.customTransparencyThreshold)) {
-    return { id: APP_CONSTANTS.COLOR_MAP['0'].id, rgb: APP_CONSTANTS.COLOR_MAP['0'].rgb };
-  }
-  const cacheKey = `${targetRgb[0]},${targetRgb[1]},${targetRgb[2]}|${state.colorMatchingAlgorithm}|${
-    state.enableChromaPenalty ? 'c' : 'nc'
-  }|${state.chromaPenaltyWeight}|${exactMatch ? 'exact' : 'closest'}`;
+
+  const rgbPacked = (targetRgb[0] << 16) | (targetRgb[1] << 8) | targetRgb[2];
+  const chromaFlag = state.enableChromaPenalty ? 1 : 0;
+  const exactFlag = exactMatch ? 1 : 0;
+  const algoFlag = state.colorMatchingAlgorithm === 'legacy' ? 0 : 1;
+  const weightInt = Math.round(state.chromaPenaltyWeight * 100); // 0-50
+  const cacheKey = encodeCacheKey(rgbPacked, algoFlag, chromaFlag, exactFlag, weightInt);
 
   if (colorCache.has(cacheKey)) return colorCache.get(cacheKey);
 
-  // Check for an exact color match in availableColors.
-  // If found, return the matched color with its ID.
-  // If not found, return the target color with null ID.
-  // Cache the result for future lookups.
-  if (exactMatch) {
-    const match = availableColors.find(
-      (c) => c.rgb[0] === targetRgb[0] && c.rgb[1] === targetRgb[1] && c.rgb[2] === targetRgb[2]
-    );
-    const result = match
-      ? { id: match.id, rgb: [...match.rgb] }
-      : {
-          id: null,
-          rgb: targetRgb,
-        };
+  if (isTransparentPixel(targetRgba[3], state.customTransparencyThreshold)) {
+    const result = {
+      id: APP_CONSTANTS.COLOR_IDS.TRANSPARENT,
+      rgb: Object.values(APP_CONSTANTS.COLOR_MAP[APP_CONSTANTS.COLOR_IDS.TRANSPARENT].rgb),
+    };
+    colorCache.set(cacheKey, result);
+    return result;
+  }
+  if (isWhitePixel(targetRgb, state.customWhiteThreshold)) {
+    const result = {
+      id: APP_CONSTANTS.COLOR_IDS.WHITE,
+      rgb: Object.values(APP_CONSTANTS.COLOR_MAP[APP_CONSTANTS.COLOR_IDS.WHITE].rgb),
+    };
     colorCache.set(cacheKey, result);
     return result;
   }
 
-  // check for white using threshold
-  const whiteThreshold = state.customWhiteThreshold || DEFAULT_SETTINGS.customWhiteThreshold;
-  if (
-    targetRgb[0] >= whiteThreshold &&
-    targetRgb[1] >= whiteThreshold &&
-    targetRgb[2] >= whiteThreshold
-  ) {
-    const whiteEntry = availableColors.find(
-      (c) => c.rgb[0] >= whiteThreshold && c.rgb[1] >= whiteThreshold && c.rgb[2] >= whiteThreshold
-    );
-    if (whiteEntry) {
-      const result = { id: whiteEntry.id, rgb: [...whiteEntry.rgb] };
-      colorCache.set(cacheKey, result);
-      return result;
-    }
+  // Check for an exact color match in availableColors.
+  // If found, return the rgb with its ID.
+  // If not found, return the rgb with null ID.
+  if (exactMatch) {
+    /** @type {number | undefined} */
+    const colorId = APP_CONSTANTS.RGB_KEY_TO_ID.get(rgbPacked);
+    const result = colorId ? { id: colorId, rgb: targetRgb } : { id: null, rgb: targetRgb };
+    colorCache.set(cacheKey, result);
+    return result;
   }
 
-  // find nearest color
-  let bestId = availableColors[0].id;
-  let bestRgb = [...availableColors[0].rgb];
+  let bestId = null;
   let bestScore = Infinity;
 
-  if (state.colorMatchingAlgorithm === 'legacy') {
-    for (let i = 0; i < availableColors.length; i++) {
-      const c = availableColors[i];
-      const dist = calculateLegacyDistance(c.rgb, [...c.rgb]);
-      if (dist < bestScore) {
-        bestScore = dist;
-        bestId = c.id;
-        bestRgb = [...c.rgb];
-        if (dist === 0) break;
-      }
-    }
-  } else {
-    for (let i = 0; i < availableColors.length; i++) {
-      const c = availableColors[i];
-      const [r, g, b] = c.rgb;
-      const targetLab = _lab(targetRgb[0], targetRgb[1], targetRgb[2]);
-      const colorLab = _lab(r, g, b);
-      const dist = calculateLabDistance(targetLab, colorLab, state);
+  let targetLab = null;
+  if (state.colorMatchingAlgorithm !== 'legacy') {
+    targetLab = _lab(targetRgb[0], targetRgb[1], targetRgb[2]);
+  }
 
-      if (dist < bestScore) {
-        bestScore = dist;
-        bestId = c.id;
-        bestRgb = [...c.rgb];
-        if (dist === 0) break;
-      }
+  for (const colorId of availableColors) {
+    const colorData = APP_CONSTANTS.COLOR_MAP[colorId];
+    if (!colorData) continue;
+    const colorRgb = colorData.rgb;
+
+    let dist;
+    if (state.colorMatchingAlgorithm !== 'legacy') {
+      const colorLab = _lab(colorRgb.r, colorRgb.g, colorRgb.b);
+      dist = calculateLabDistanceSquared(
+        targetLab,
+        colorLab,
+        state.enableChromaPenalty,
+        state.chromaPenaltyWeight
+      );
+    } else {
+      dist = calculateLegacyDistanceSquared(targetRgb, [colorRgb.r, colorRgb.g, colorRgb.b]);
+    }
+
+    if (dist < bestScore) {
+      bestScore = dist;
+      bestId = colorId;
+      if (dist === 0) break;
     }
   }
 
-  const result = { id: bestId, rgb: bestRgb };
+  let result;
+  if (bestId !== null && APP_CONSTANTS.COLOR_MAP[bestId]) {
+    result = {
+      id: bestId,
+      rgb: Object.values(APP_CONSTANTS.COLOR_MAP[bestId].rgb),
+    };
+  } else {
+    result = { id: null, rgb: targetRgb };
+  }
+
   colorCache.set(cacheKey, result);
 
-  // limit the size of the cache
   if (colorCache.size > 15000) {
     const firstKey = colorCache.keys().next().value;
     colorCache.delete(firstKey);

@@ -6,7 +6,7 @@ import { showAlert } from '../alerts.js';
 export function createCheckboxHandler(settingKey, onMessageKey, offMessageKey) {
   return function (e) {
     const isChecked = e.target.checked;
-    state[settingKey] = isChecked;
+    state.update({ [settingKey]: isChecked });
     saveBotSettings();
     console.log(`🎨 ${settingKey}: ${isChecked ? 'ON' : 'OFF'}`);
 
@@ -33,7 +33,7 @@ export function createSliderHandler(settingKey, valueElementSelector, formatFn =
 
   return function (e) {
     const value = parseFloat(e.target.value);
-    state[settingKey] = value;
+    state.update({ [settingKey]: value });
     saveBotSettings();
     console.log(`🎚️ ${settingKey}: ${value}`);
 

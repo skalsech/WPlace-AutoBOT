@@ -34,6 +34,9 @@ async function build() {
       __CSS_BASE_URL__: isProd
         ? '"https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css"'
         : '"http://localhost:8000/dist/css"',
+      __I18_BASE_URL__: isProd
+        ? '"https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/i18n"'
+        : '"http://localhost:8000/dist/i18n"',
     },
   });
 

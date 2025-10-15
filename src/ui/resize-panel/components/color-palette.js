@@ -40,13 +40,14 @@ export function initializeColorPalette(container, onPaletteChange) {
 
   // Use already captured colors from state (captured during upload)
   // Don't re-fetch colors here, use what was captured when user clicked upload
-  if (!state.availableColors || state.availableColors.length === 0) {
+  if (state.availableColors.size === 0) {
     // If no colors have been captured yet, show message
     colorsContainer.innerHTML = `<div class="wplace-colors-placeholder">${t(
       'uploadImageFirst'
     )}</div>`;
     return;
   }
+  // review
   function updateActiveColorPalette() {
     const newPalette = [];
     const activeSwatches = document.querySelectorAll('.wplace-color-swatch.active');
@@ -76,15 +77,12 @@ export function initializeColorPalette(container, onPaletteChange) {
 
     allColors.forEach((colorData) => {
       const { id, name, rgb } = colorData;
-      const rgbKey = `${rgb.r},${rgb.g},${rgb.b}`;
+      // review
+      const rgbString = `${rgb.r},${rgb.g},${rgb.b}`;
       totalCount++;
 
-      // Check if this color is available in the captured colors
-      const isAvailable = state.availableColors.some(
-        (c) => c.rgb[0] === rgb.r && c.rgb[1] === rgb.g && c.rgb[2] === rgb.b
-      );
+      const isAvailable = state.availableColors.has(id);
 
-      // If not showing all colors and this color is not available, skip it
       if (!showUnavailable && !isAvailable) {
         return;
       }
@@ -97,7 +95,7 @@ export function initializeColorPalette(container, onPaletteChange) {
       const swatch = createElement('button', {
         className: `wplace-color-swatch ${!isAvailable ? 'unavailable' : ''}`,
         title: `${name} (ID: ${id})${!isAvailable ? ' (Unavailable)' : ''}`,
-        'data-rgb': rgbKey,
+        'data-rgb': rgbString,
         'data-color-id': id,
       });
       swatch.style.backgroundColor = `rgb(${rgb.r}, ${rgb.g}, ${rgb.b})`;

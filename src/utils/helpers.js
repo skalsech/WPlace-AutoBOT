@@ -82,33 +82,21 @@ export function hasColor(colorId, extraColorsBitmap) {
  * Paid colors (32–63) are available if their bit is set in extraColorsBitmap.
  *
  * @param {number} extraColorsBitmap bitmask from /me API
- * @returns {Array<{id: number, name: string, rgb: [number, number, number]}>}
+ * @returns {Set<number>}
  */
 export function getAvailableColors(extraColorsBitmap) {
-  const available = [];
+  /** @type {Set<number>} */
+  const available = new Set();
 
-  for (const colorIdStr of Object.keys(APP_CONSTANTS.COLOR_MAP)) {
-    const colorId = Number(colorIdStr);
-
-    if (isNaN(colorId) || colorId < 0 || colorId > 63) {
+  /** @type {number} */
+  for (const colorId of Object.values(APP_CONSTANTS.COLOR_IDS)) {
+    if (typeof colorId !== 'number' || isNaN(colorId) || colorId < 0 || colorId > 63) {
       console.warn(`Invalid color id in COLOR_MAP: ${colorId}`);
       continue;
     }
 
     if (hasColor(colorId, extraColorsBitmap)) {
-      const color = APP_CONSTANTS.COLOR_MAP[colorId];
-      if (color && color.id === colorId) {
-        available.push({
-          id: color.id,
-          name: color.name,
-          rgb: [color.rgb.r, color.rgb.g, color.rgb.b],
-        });
-      } else if (color) {
-        console.warn(
-          `COLOR_MAP[${colorId}] has an invalid id: ${color.id}. Expected ${colorId}.`,
-          color
-        );
-      }
+      available.add(colorId);
     }
   }
 

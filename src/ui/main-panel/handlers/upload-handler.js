@@ -26,7 +26,7 @@ export async function handleUploadClick() {
     updateUI('loadingImage', 'default');
     const imageSrc = await createImageUploader();
     if (!imageSrc) {
-      updateUI('colorsFound', 'success', { count: state.availableColors.length });
+      updateUI('colorsFound', 'success', { count: state.availableColors.size });
       return;
     }
 

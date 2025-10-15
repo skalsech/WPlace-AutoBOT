@@ -11,11 +11,16 @@ import { debounce } from '../../../utils/helpers.js';
 import { switchTheme } from '../../../shared/ui/theme.js';
 import { getElement, setDisplay, setInputValue } from '../dom-utils.js';
 
-export const handlePaintUnavailablePixelsToggle = createCheckboxHandler(
-  'paintUnavailablePixels',
-  'paintUnavailableEnabled',
-  'paintUnavailableSkipped'
-);
+export function handlePaintUnavailablePixelsToggle(e) {
+  const isChecked = e.target.checked;
+  state.updateColorSettings({ paintUnavailablePixels: isChecked });
+
+  saveBotSettings();
+  console.log(`🎨 paintUnavailablePixels: ${isChecked ? 'ON' : 'OFF'}`);
+
+  const message = t(isChecked ? 'paintUnavailableEnabled' : 'paintUnavailableSkipped');
+  showAlert(message, 'success');
+}
 
 export const handlePaintTransparentPixelsToggle = createCheckboxHandler(
   'paintTransparentPixels',

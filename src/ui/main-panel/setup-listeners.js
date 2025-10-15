@@ -20,7 +20,8 @@ import {
 } from './handlers/handle-header-buttons.js';
 import { handleSelectPositionClick } from '../dialogs/start-position/setup-listeners.js';
 import { handleColorFilter } from '../color-filter/handle-color-filter.js';
-import { onStateChange } from '../../core/state.js';
+import { onColorSettingsChange, onStateChange } from '../../core/state.js';
+import { invalidateColorCache } from '../../utils/color-matching/cache.js';
 
 export function setupMainPanelListeners() {
   const container = document.getElementById('wplace-image-bot-container');
@@ -91,7 +92,9 @@ export function setupMainPanelListeners() {
       updateColorFilterButton(state);
     }
   });
-
+  onColorSettingsChange((updates) => {
+    invalidateColorCache(updates);
+  });
   function updateColorFilterButton(state) {
     const hasColors = state.artColorFrequency && state.artColorFrequency.size > 0;
     colorFilterBtn.disabled = !hasColors;

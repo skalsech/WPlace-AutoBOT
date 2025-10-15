@@ -91,6 +91,7 @@ const COLOR_MAP = {
 /**
  * Map of packed RGB integer keys to color IDs.
  * Used for fast lookup during pixel analysis and color counting.
+ * Key: (r << 16) | (g << 8) | b
  *
  * @type {Map<number, number>}
  */

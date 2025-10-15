@@ -38,31 +38,42 @@ async function transactionComplete(tx) {
     tx.onabort = () => reject(tx.error || new Error('transaction aborted'));
   });
 }
-
 /**
  * Normalizes data to a format safe for storage in IndexedDB.
  *
  * Why this is needed:
- * - IndexedDB can store binary data directly (ArrayBuffer, TypedArray).
- * - However, JSON and structured cloning behave differently: if an object
- *   was ever serialized using JSON.stringify (e.g., during export),
- *   an ArrayBuffer becomes a regular array of numbers.
- * - Therefore, before writing to IndexedDB, it’s important to ensure
- *   that the stored value contains an actual ArrayBuffer.
+ * - IndexedDB supports structured cloning, which handles ArrayBuffer, TypedArrays,
+ *   and even some complex types — but **not `Set`, `Map`, or custom classes**.
+ * - While `ArrayBuffer` can be stored directly, `Set` becomes an empty object `{}` if
+ *   accidentally passed through JSON.stringify (e.g., during export/import).
+ * - To ensure reliable round-trip storage (save → load → use), we convert:
+ *     • `Uint8ClampedArray` → `.buffer` (ArrayBuffer) — for efficient binary storage
+ *     • `Set` → array — because IndexedDB structured clone **does support `Set`**,
+ *       but **only if the environment fully complies**; however, many wrappers,
+ *       devtools exports, or fallbacks use JSON, so explicit conversion is safer.
  *
  * What it does:
- * - If `pixels` is a Uint8ClampedArray, it is replaced with its `.buffer` (ArrayBuffer).
+ * - Replaces `imageData.pixels` (if Uint8ClampedArray) with its `.buffer`.
+ * - Converts known `Set` fields (e.g., `state.filteredColorIds`) to arrays.
  * - All other fields remain unchanged.
  *
- * This guarantees that IndexedDB stores binary data in its native format
- * (not as a numeric array), which reduces storage size and speeds up loading.
+ * This guarantees:
+ * - Minimal storage size (binary as ArrayBuffer)
+ * - Compatibility with both IndexedDB and JSON-based export
+ * - Safe deserialization (caller must restore `Set` from array)
  *
- * @param {object} value - The object containing `imageData`, potentially with pixel data.
- * @returns {object} The normalized object, ready to be stored in IndexedDB.
+ * @param {object} value - The object to normalize (e.g., progress data).
+ * @returns {object} Normalized object, safe for IndexedDB and JSON.
  */
 function normalizeForStorage(value) {
-  if (value?.imageData?.pixels instanceof Uint8ClampedArray) {
-    value = {
+  if (!value || typeof value !== 'object') {
+    return value;
+  }
+
+  let normalized = value;
+
+  if (value.imageData?.pixels instanceof Uint8ClampedArray) {
+    normalized = {
       ...value,
       imageData: {
         ...value.imageData,
@@ -70,13 +81,57 @@ function normalizeForStorage(value) {
       },
     };
   }
-  return value;
+
+  if (normalized.state?.filteredColorIds instanceof Set) {
+    normalized = {
+      ...normalized,
+      state: {
+        ...normalized.state,
+        filteredColorIds: Array.from(normalized.state.filteredColorIds),
+      },
+    };
+  }
+
+  return normalized;
 }
 
+/**
+ * Restores data loaded from IndexedDB or JSON into a usable runtime format.
+ *
+ * What it does:
+ * - If `imageData.pixels` is a number array (e.g., from JSON export),
+ *   converts it to Uint8ClampedArray.
+ * - If `imageData.pixels` is an ArrayBuffer (from proper IndexedDB save),
+ *   wraps it in Uint8ClampedArray.
+ * - Converts `state.filteredColorIds` from array back to Set.
+ *
+ * @param {object} value - Loaded data object
+ * @returns {object} Restored object with proper types
+ */
 function normalizeAfterLoad(value) {
-  if (value?.imageData?.pixels instanceof Array) {
-    value.imageData.pixels = new Uint8ClampedArray(value.imageData.pixels).buffer;
+  if (!value || typeof value !== 'object') {
+    return value;
   }
+
+  if (Array.isArray(value.state?.filteredColorIds)) {
+    value.state.filteredColorIds = new Set(value.state.filteredColorIds);
+  }
+
+  // Restore pixels → Uint8ClampedArray (not ArrayBuffer!)
+  if (value.imageData?.pixels) {
+    let pixelsArray;
+
+    if (value.imageData.pixels instanceof ArrayBuffer) {
+      pixelsArray = new Uint8ClampedArray(value.imageData.pixels);
+    } else if (Array.isArray(value.imageData.pixels)) {
+      pixelsArray = new Uint8ClampedArray(value.imageData.pixels);
+    }
+
+    if (pixelsArray) {
+      value.imageData.pixels = pixelsArray;
+    }
+  }
+
   return value;
 }
 

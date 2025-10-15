@@ -1,3 +1,4 @@
+/* todo cleanup styles, remove duplication
 /* Default :root CSS variables for 100% classic theme compliance */
 /* These ensure the bot works perfectly even if theme files fail to load */
 :root {
@@ -828,6 +829,59 @@
   font-weight: bold;
 
   /* Theme-specific styling applied via theme files */
+}
+
+.wplace-filter-color-swatch {
+  width: 22px;
+  height: 22px;
+  cursor: pointer;
+  transition:
+          transform 0.1s ease,
+          box-shadow 0.2s ease;
+  position: relative;
+  margin: 0 auto;
+}
+
+.wplace-filter-color-swatch.active {
+  opacity: 1;
+}
+
+.wplace-filter-color-swatch.active::after {
+  content: '✔';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--wplace-text);
+  font-size: 12px;
+  font-weight: bold;
+  text-shadow: 0 0 3px #000;
+}
+
+.wplace-filter-color-swatch.filtered {
+  opacity: 0.4;
+  position: relative;
+}
+
+
+.wplace-filter-color-swatch.filtered::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 16px;
+  height: 2px;
+  background: rgb(255 0 0 / 80%);
+  transform: translate(-50%, -50%) rotate(-45deg);
+  border-radius: 1px;
+  text-shadow: 0 0 3px #000;
+}
+
+
+.wplace-filter-color-swatch.active:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 5px rgb(0 0 0 / 30%);
+  transition: transform 0.2s ease;
 }
 
 .wplace-color-divider {

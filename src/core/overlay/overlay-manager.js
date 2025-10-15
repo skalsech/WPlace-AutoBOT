@@ -1,6 +1,5 @@
 import { state } from '../state.js';
 import { calculateTileRange, sleep } from '../../utils/helpers.js';
-import { isTransparentPixel } from '../../utils/color-matching.js';
 import { TileLoader } from '../api/tile-loader.js';
 import { wplaceUI } from './wplace-ui.js';
 
@@ -71,6 +70,7 @@ class OverlayManager {
     this.isEnabled = false;
   }
 
+  // todo use this when loading new progress or new image.
   clear() {
     this.disable();
     this.imageBitmap = null;
@@ -331,7 +331,14 @@ class OverlayManager {
     );
   }
 
-  // Returns [r,g,b,a] for a pixel inside a region tile (tileX, tileY are region coords)
+  /**
+   *
+   * @param tileX
+   * @param tileY
+   * @param pixelX
+   * @param pixelY
+   * @returns {Promise<number[]|null>}
+   */
   async getTilePixelColor(tileX, tileY, pixelX, pixelY) {
     const tileKey = `${tileX},${tileY}`;
 
@@ -343,8 +350,11 @@ class OverlayManager {
       const idx = (y * cached.w + x) * 4;
       const pixelData = cached.data;
       const r = pixelData[idx];
+      /** @type {number} */
       const g = pixelData[idx + 1];
+      /** @type {number} */
       const b = pixelData[idx + 2];
+      /** @type {number} */
       const a = pixelData[idx + 3];
 
       return [r, g, b, a];
@@ -382,15 +392,6 @@ class OverlayManager {
         const data = ctx.getImageData(x, y, 1, 1).data;
         const a = data[3];
 
-        if (
-          !state.paintTransparentPixels &&
-          isTransparentPixel(a, state.customTransparencyThreshold)
-        ) {
-          if (window._overlayDebug)
-            console.debug('OverlayManager: pixel transparent (fallback)', tileKey, x, y, a);
-          return null;
-        }
-
         return [data[0], data[1], data[2], a];
       } catch (e) {
         console.warn('OverlayManager: failed to read pixel (attempt', attempt, ')', tileKey, e);
@@ -407,8 +408,6 @@ class OverlayManager {
       }
     }
 
-    // 3. If everything fails — you can return null or [0,0,0,0]
-    // Prefer null — to avoid misleading
     return null;
   }
 

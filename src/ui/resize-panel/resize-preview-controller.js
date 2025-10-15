@@ -47,7 +47,7 @@ export function createPreviewController({
     baseCtx.imageSmoothingEnabled = false;
 
     // Fallback: draw without dithering if no palette
-    if (!state.availableColors?.length) {
+    if (state.availableColors.size === 0) {
       if (baseProcessor !== processor && (!baseProcessor.img || !baseProcessor.canvas)) {
         await baseProcessor.load();
       }

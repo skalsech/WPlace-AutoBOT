@@ -19,7 +19,6 @@ import { createMaskOverlay } from '../resize-mask-overlay.js';
 import { createSizeHandlers } from '../resize-size-handlers.js';
 import { createMaskEvents } from '../resize-mask-events.js';
 import { createPreviewController } from '../resize-preview-controller.js';
-import { invalidateColorCache } from '../../../utils/color-matching/cache.js';
 
 /**
  * Resize dialog controller.
@@ -248,8 +247,9 @@ function showResizeDialog(processor, container, overlay) {
       }),
     ];
 
+    // eslint-disable-next-line no-unused-vars
     const handleColorSettingsChange = (updates) => {
-      invalidateColorCache(updates);
+      // todo refactor to accept updates, not importing state
       previewController.updateResizePreview();
       saveBotSettings();
     };

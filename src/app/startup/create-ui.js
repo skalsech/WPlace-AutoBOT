@@ -75,6 +75,14 @@ const checkSavedProgress = async () => {
   }
 };
 
+// todo add pixels statistic (with checkbox for wrong pixels to (not) count) Example below.
+
+// |‾‾| Deep Red 1500/5000   |  Deep Red 1495/5000
+// |__| 5 pixels wrong       |  5 pixels wrong        < 📍 >
+// color box
+
+// todo add search box to that statistic
+//  todo add ability to locate wrong pixels on map ( < and > to switch from one wrong to another)
 export async function createUI() {
   cleanupExistingUI();
   await initializeDependencies();

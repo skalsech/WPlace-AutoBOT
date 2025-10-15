@@ -158,8 +158,8 @@
 }
 
 /* Button variants - exact upstream main colors */
-:root .wplace-btn-primary,
-.wplace-theme-classic .wplace-btn-primary {
+:root .wplace-btn-primary.wplace-btn-primary,
+.wplace-theme-classic .wplace-btn-primary.wplace-btn-primary {
   background: linear-gradient(135deg, #222 0%, #6a5acd 100%);
   color: var(--wplace-text);
 }

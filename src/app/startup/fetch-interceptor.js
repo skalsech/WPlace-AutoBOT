@@ -90,7 +90,7 @@ export function setupFetchInterceptor() {
     //   setTurnstileToken(token);
     //   if (document.querySelector('#statusText')?.textContent.includes('CAPTCHA')) {
     //     showAlert(t('tokenCapturedSuccess'), 'success');
-    //     updateUI('colorsFound', 'success', { count: state.availableColors.length });
+    //     updateUI('colorsFound', 'success', { count: state.availableColors.size });
     //   }
     // }
   });
