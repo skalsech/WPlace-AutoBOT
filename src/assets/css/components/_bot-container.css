@@ -1,0 +1,36 @@
+#wplace-image-bot-container {
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    width: 280px;
+    max-height: calc(100vh - 40px);
+    padding: 0;
+    z-index: 9998;
+    animation: slide-in 0.4s ease-out;
+    transition: all 0.3s ease;
+    user-select: none;
+    overflow: hidden;
+    background: var(--wplace-primary);
+    color: var(--wplace-text);
+    border-radius: var(--wplace-radius);
+    box-shadow: var(--wplace-shadow);
+    font-family: var(--wplace-font);
+    backdrop-filter: var(--wplace-backdrop);
+    border: var(--wplace-border-width) var(--wplace-border-style) var(--wplace-border-color);
+}
+
+#wplace-image-bot-container.wplace-dragging {
+    transition: none;
+    box-shadow: var(--wplace-shadow-drag);
+    transform: scale(1.02);
+    z-index: 9999;
+}
+
+#wplace-image-bot-container.wplace-compact {
+    width: 240px;
+}
+
+#wplace-image-bot-container.wplace-minimized {
+    height: auto;
+    overflow: hidden;
+}

@@ -1,0 +1,29 @@
+.wplace-progress {
+    width: 100%;
+    margin: 8px 0;
+    overflow: hidden;
+    height: 6px;
+    position: relative;
+}
+
+.wplace-progress-bar {
+    height: 6px;
+    transition: width 0.5s ease;
+    position: relative;
+}
+
+.wplace-progress-bar::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    animation: shimmer 2s infinite;
+}
+
+.wplace-status {
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+    padding: 6px;
+    border: 1px solid;
+    font-size: 11px;
+}

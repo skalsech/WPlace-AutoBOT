@@ -1,0 +1,108 @@
+.wplace-drag-active {
+    transition: none;
+    box-shadow: var(--wplace-shadow-drag);
+    transform: scale(1.02);
+    z-index: 9999;
+}
+
+.wplace-paint-effect {
+    animation: pulse 0.5s ease-out;
+}
+
+.wplace-description {
+    font-size: 12px;
+    opacity: 0.8;
+    line-height: 1.4;
+}
+
+.wplace-cooldown-value {
+    font-weight: bold;
+    min-width: 20px;
+    text-align: center;
+    display: inline-block;
+}
+
+.wplace-cooldown-control {
+    margin-top: 8px;
+}
+
+.wplace-icon-key {
+    font-size: 16px;
+}
+
+.wplace-icon-robot {
+    font-size: 16px;
+}
+
+.wplace-icon-speed {
+    font-size: 16px;
+}
+
+.wplace-icon-bell {
+    font-size: 16px;
+}
+
+.wplace-icon-palette {
+    font-size: 16px;
+}
+
+.wplace-icon-globe {
+    font-size: 16px;
+}
+
+.wplace-icon-paint {
+    font-size: 16px;
+}
+
+.wplace-icon-eye {
+    font-size: 16px;
+}
+
+.wplace-icon-route {
+    color: var(--wplace-icon-primary);
+    font-size: 16px;
+}
+
+.wplace-icon-table {
+    color: var(--wplace-icon-palette);
+    margin-right: 6px;
+}
+
+.wplace-icon-compass {
+    color: var(--wplace-icon-secondary);
+    margin-right: 6px;
+}
+
+@media (width <= 768px) {
+    #wplace-image-bot-container {
+        left: 10px;
+        width: calc(100vw - 20px);
+        max-height: calc(100vh - 20px);
+    }
+
+    #wplace-stats-container {
+        display: none;
+    }
+
+    .wplace-alert-base {
+        max-width: 90vw;
+        margin: 0 5vw;
+    }
+
+    .wplace-turnstile-overlay {
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+    }
+}
+
+/* noinspection Stylelint */
+#minimizeBtn i {
+    transition: transform 0.3s ease;
+}
+
+/* noinspection Stylelint */
+#minimizeBtn i.rotated {
+    transform: rotate(180deg);
+}

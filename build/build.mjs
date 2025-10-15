@@ -2,6 +2,8 @@ import esbuild from 'esbuild';
 import fs from 'fs';
 import { glob } from 'glob';
 import * as path from 'node:path';
+import postCssPluginModule from 'esbuild-plugin-postcss';
+const postCssPlugin = postCssPluginModule.default;
 
 const isProd = process.env.NODE_ENV === 'production';
 
@@ -40,6 +42,16 @@ async function build() {
     },
   });
 
+  const [
+    postcssImport,
+    postcssNesting,
+    autoprefixer,
+  ] = await Promise.all([
+    import('postcss-import'),
+    import('postcss-nesting'),
+    import('autoprefixer'),
+  ]);
+
   await esbuild.build({
     entryPoints: ['src/assets/css/main.css'],
     outdir: 'dist/css/',
@@ -47,6 +59,15 @@ async function build() {
     bundle: true,
     write: true,
     logLevel: 'info',
+    plugins: [
+      postCssPlugin({
+        plugins: [
+          postcssImport.default,
+          postcssNesting.default,
+          autoprefixer.default,
+        ],
+      }),
+    ],
   });
 
   const themeEntries = await glob('src/assets/css/themes/*.css');
@@ -57,6 +78,15 @@ async function build() {
     minify: isProd,
     write: true,
     logLevel: 'info',
+    plugins: [
+      postCssPlugin({
+        plugins: [
+          postcssImport.default,
+          postcssNesting.default,
+          autoprefixer.default,
+        ],
+      }),
+    ],
   });
 
   try {

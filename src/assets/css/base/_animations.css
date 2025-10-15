@@ -1,0 +1,120 @@
+@keyframes neon-glow {
+    0%,
+    100% {
+        text-shadow:
+                0 0 5px currentcolor,
+                0 0 10px currentcolor,
+                0 0 15px currentcolor;
+    }
+
+    50% {
+        text-shadow:
+                0 0 2px currentcolor,
+                0 0 5px currentcolor,
+                0 0 8px currentcolor;
+    }
+}
+
+@keyframes pixel-blink {
+    0%,
+    50% {
+        opacity: 1;
+    }
+
+    51%,
+    100% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes scanline {
+    0% {
+        transform: translateY(-100%);
+    }
+
+    100% {
+        transform: translateY(400px);
+    }
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 0 0 var(--wplace-pulse-start);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px var(--wplace-pulse-mid);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 var(--wplace-pulse-end);
+    }
+}
+
+@keyframes slide-in {
+    from {
+        transform: translateY(-10px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slide-down {
+    from {
+        transform: translateX(-50%) translateY(-20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes shimmer {
+    0% {
+        transform: translateX(-100%);
+    }
+
+    100% {
+        transform: translateX(100%);
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes settings-slide-in {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+}
+
+@keyframes settings-fade-out {
+    from {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: translate(-50%, -50%) scale(0.9);
+    }
+}

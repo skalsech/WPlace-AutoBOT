@@ -1,0 +1,35 @@
+#wplace-settings-container {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 0;
+    z-index: 10002;
+    display: none;
+    min-width: 420px;
+    max-width: 480px;
+    overflow: hidden;
+    background: var(--wplace-primary);
+    color: var(--wplace-text);
+    border-radius: var(--wplace-radius);
+    box-shadow: var(--wplace-shadow);
+    font-family: var(--wplace-font);
+    backdrop-filter: var(--wplace-backdrop);
+    border: var(--wplace-border-width) var(--wplace-border-style) var(--wplace-border-color);
+}
+
+#wplace-settings-container.show {
+    display: block;
+    animation: settings-slide-in 0.4s ease-out;
+}
+
+.wplace-settings {
+    padding: 16px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.wplace-setting-section {
+    margin-bottom: 20px;
+    padding: 12px;
+}

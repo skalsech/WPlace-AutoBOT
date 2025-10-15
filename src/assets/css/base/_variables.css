@@ -1,0 +1,78 @@
+:root {
+    --wplace-primary: linear-gradient(135deg, #000 0%, #1a1a1a 100%);
+    --wplace-secondary: linear-gradient(135deg, #111 0%, #2a2a2a 100%);
+    --wplace-accent: #222;
+    --wplace-text: #fff;
+    --wplace-highlight: #775ce3;
+    --wplace-highlight-secondary: #d3a4ff;
+    --wplace-success: #0f0;
+    --wplace-error: #f00;
+    --wplace-warning: #fa0;
+
+    /* UI properties */
+    --wplace-radius: 12px;
+    --wplace-btn-radius: 16px;
+    --wplace-border-style: solid;
+    --wplace-border-width: 1px;
+    --wplace-border-color: #222;
+    --wplace-shadow: 0 8px 32px rgb(0 0 0 / 60%), 0 0 0 1px rgb(255 255 255 / 10%);
+    --wplace-backdrop: blur(10px);
+    --wplace-font: 'Segoe UI', roboto, sans-serif;
+
+    /* Z-index layers */
+    --wplace-z-overlay: 10000;
+    --wplace-z-alert: 10002;
+    --wplace-z-settings: 10002;
+
+    /* Feature toggles */
+    --wplace-scanline: 0;
+    --wplace-pixel-blink: 0;
+
+    /* Icon colors */
+    --wplace-icon-primary: #4facfe;
+    --wplace-icon-secondary: #00f2fe;
+    --wplace-icon-palette: #f093fb;
+
+    /* Additional UI colors */
+    --wplace-danger: #ff6a6a;
+    --wplace-danger-dark: #ff4757;
+    --wplace-muted-text: #fffb;
+
+    /* Text variants */
+    --wplace-text-secondary: rgb(255 255 255 / 90%);
+    --wplace-text-muted: rgb(255 255 255 / 70%);
+    --wplace-text-dim: rgb(255 255 255 / 60%);
+    --wplace-text-faded: rgb(255 255 255 / 80%);
+
+    /* Background variants */
+    --wplace-bg-input: rgb(255 255 255 / 15%);
+    --wplace-bg-subtle: rgb(255 255 255 / 10%);
+    --wplace-bg-faint: rgb(255 255 255 / 8%);
+    --wplace-bg-ghost: rgb(255 255 255 / 6%);
+    --wplace-bg-whisper: rgb(255 255 255 / 5%);
+
+    /* Border variants */
+    --wplace-border-subtle: rgb(255 255 255 / 20%);
+    --wplace-border-faint: rgb(255 255 255 / 15%);
+    --wplace-border-ghost: rgb(255 255 255 / 10%);
+    --wplace-border-ultra-faint: rgb(255 255 255 / 5%);
+
+    /* Shadow variants */
+    --wplace-shadow-drag: 0 12px 40px rgb(0 0 0 / 80%), 0 0 0 2px rgb(255 255 255 / 20%);
+    --wplace-shadow-notification: 0 4px 12px rgb(0 0 0 / 30%);
+    --wplace-shadow-slider-thumb: 0 3px 6px rgb(0 0 0 / 30%), 0 0 0 2px var(--wplace-icon-primary);
+    --wplace-shadow-slider-hover: 0 4px 8px rgb(0 0 0 / 40%), 0 0 0 3px var(--wplace-icon-primary);
+
+    /* Animation colors */
+    --wplace-pulse-start: rgb(0 255 0 / 70%);
+    --wplace-pulse-mid: rgb(0 255 0 / 0%);
+    --wplace-pulse-end: rgb(0 255 0 / 0%);
+
+    /* Slider colors - defaults for classic compatibility */
+    --wplace-slider-thumb-bg: white;
+    --wplace-slider-track-bg: linear-gradient(
+            to right,
+            var(--wplace-icon-primary) 0%,
+            var(--wplace-icon-secondary) 100%
+    );
+}

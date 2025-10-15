@@ -1,0 +1,69 @@
+.wplace-content {
+    display: block;
+    position: relative;
+    z-index: 2;
+    padding: 12px;
+    overflow: hidden auto;
+}
+
+.wplace-content.wplace-hidden {
+    display: none;
+}
+
+.wplace-status-section {
+    margin-bottom: 6px;
+    padding: 8px;
+}
+
+.wplace-section {
+    margin-bottom: 6px;
+    padding: 8px;
+}
+
+.wplace-section-title {
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    gap: 6px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.wplace-section-title i.arrow {
+    transition: transform 0.3s ease;
+}
+
+.wplace-section.collapsed .wplace-section-title i.arrow {
+    transform: rotate(-90deg);
+}
+
+.wplace-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wplace-section.collapsed > .wplace-controls,
+.wplace-section.collapsed > .wplace-cooldown-control {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+    padding: 0 !important;
+    margin: 0 !important;
+    border: none;
+    overflow: hidden;
+}
+
+.wplace-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.wplace-row.single {
+    grid-template-columns: 1fr;
+}

@@ -1,0 +1,121 @@
+.wplace-color-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 10px;
+    padding-top: 8px;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.wplace-color-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.wplace-color-item-name {
+    font-size: 9px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+}
+
+.wplace-color-swatch {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    transition:
+            transform 0.1s ease,
+            box-shadow 0.2s ease;
+    position: relative;
+    margin: 0 auto;
+}
+
+.wplace-color-swatch.unavailable {
+    border-style: dashed;
+    cursor: not-allowed;
+}
+
+.wplace-color-swatch:hover {
+    transform: scale(1.1);
+    z-index: 1;
+}
+
+.wplace-color-swatch:not(.active) {
+    opacity: 0.3;
+}
+
+.wplace-color-swatch.unavailable:not(.active) {
+    opacity: 0.2;
+}
+
+.wplace-color-swatch.active::after {
+    content: '✔';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--wplace-text);
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.wplace-filter-color-swatch {
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    transition:
+            transform 0.1s ease,
+            box-shadow 0.2s ease;
+    position: relative;
+    margin: 0 auto;
+}
+
+.wplace-filter-color-swatch.active {
+    opacity: 1;
+}
+
+.wplace-filter-color-swatch.active::after {
+    content: '✔';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: var(--wplace-text);
+    font-size: 12px;
+    font-weight: bold;
+    text-shadow: 0 0 3px #000;
+}
+
+.wplace-filter-color-swatch.filtered {
+    opacity: 0.4;
+    position: relative;
+}
+
+.wplace-filter-color-swatch.filtered::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 16px;
+    height: 2px;
+    background: rgb(255 0 0 / 80%);
+    transform: translate(-50%, -50%) rotate(-45deg);
+    border-radius: 1px;
+    text-shadow: 0 0 3px #000;
+}
+
+.wplace-filter-color-swatch.active:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 5px rgb(0 0 0 / 30%);
+    transition: transform 0.2s ease;
+}
+
+.wplace-color-divider {
+    border: none;
+    height: 1px;
+    margin: 8px 0;
+}

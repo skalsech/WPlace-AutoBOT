@@ -1,0 +1,21 @@
+.wplace-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100002;
+    display: none;
+}
+
+.wplace-overlay.show {
+    display: block;
+}
+
+.wplace-overlay-hidden {
+    display: none;
+}
+
+.wplace-overlay-visible {
+    display: block;
+}
