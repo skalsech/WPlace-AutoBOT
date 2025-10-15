@@ -150,7 +150,7 @@ export async function processImage() {
         mappedColorId: mappedTargetColor.id,
       };
     }
-    if (!mappedTargetColor.id) {
+    if (!state.availableColors.has(mappedTargetColor.id)) {
       return {
         eligible: false,
         reason: 'colorUnavailable',
