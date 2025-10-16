@@ -32,7 +32,8 @@
     "test:coverage": "vitest run --coverage",
     "coverage:clean": "rimraf coverage node_modules/.vite",
     "preview:watch": "chokidar \"src/**/*\" -c \"npm run build:prod\"",
-    "preview": "npm-run-all build:prod --parallel serve preview:watch"
+    "preview": "npm-run-all build:prod --parallel serve preview:watch",
+    "release": "node scripts/release.js"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",
@@ -61,5 +62,8 @@
     "stylelint-config-standard": "^39.0.0",
     "tsc": "^2.0.4",
     "vitest": "^3.2.4"
+  },
+  "dependencies": {
+    "process": "^0.11.10"
   }
 }
