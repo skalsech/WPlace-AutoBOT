@@ -233,31 +233,52 @@ class OverlayManager {
     const dX = Math.max(0, -imgStartX);
     const dY = Math.max(0, -imgStartY);
 
-    const chunkCanvas = new OffscreenCanvas(this.tileSize, this.tileSize);
-    const chunkCtx = chunkCanvas.getContext('2d');
-    chunkCtx.imageSmoothingEnabled = false;
+    const blueMarbleEnabled = state.blueMarbleEnabled;
 
-    chunkCtx.drawImage(this.imageBitmap, sX, sY, sW, sH, dX, dY, sW, sH);
+    if (blueMarbleEnabled) {
+      const scale = 3;
+      const scaledCanvas = new OffscreenCanvas(this.tileSize * scale, this.tileSize * scale);
+      const scaledCtx = scaledCanvas.getContext('2d');
+      scaledCtx.imageSmoothingEnabled = false;
 
-    if (state.blueMarbleEnabled) {
-      const imageData = chunkCtx.getImageData(dX, dY, sW, sH);
+      const scaledDX = dX * scale;
+      const scaledDY = dY * scale;
+      const scaledWidth = sW * scale;
+      const scaledHeight = sH * scale;
+
+      scaledCtx.drawImage(
+        this.imageBitmap,
+        sX,
+        sY,
+        sW,
+        sH,
+        scaledDX,
+        scaledDY,
+        scaledWidth,
+        scaledHeight
+      );
+
+      const imageData = scaledCtx.getImageData(scaledDX, scaledDY, scaledWidth, scaledHeight);
       const data = imageData.data;
 
-      // Faster pixel manipulation using typed arrays
-      for (let i = 0; i < data.length; i += 4) {
-        const pixelIndex = i / 4;
-        const pixelY = Math.floor(pixelIndex / sW);
-        const pixelX = pixelIndex % sW;
-
-        if ((pixelX + pixelY) % 2 === 0 && data[i + 3] > 0) {
-          data[i + 3] = 0; // Set alpha to 0
+      for (let y = 0; y < scaledHeight; y++) {
+        for (let x = 0; x < scaledWidth; x++) {
+          const i = (y * scaledWidth + x) * 4;
+          if (x % scale !== 1 || y % scale !== 1) {
+            data[i + 3] = 0;
+          }
         }
       }
 
-      chunkCtx.putImageData(imageData, dX, dY);
+      scaledCtx.putImageData(imageData, scaledDX, scaledDY);
+      return scaledCanvas.transferToImageBitmap();
+    } else {
+      const chunkCanvas = new OffscreenCanvas(this.tileSize, this.tileSize);
+      const chunkCtx = chunkCanvas.getContext('2d');
+      chunkCtx.imageSmoothingEnabled = false;
+      chunkCtx.drawImage(this.imageBitmap, sX, sY, sW, sH, dX, dY, sW, sH);
+      return chunkCanvas.transferToImageBitmap();
     }
-
-    return chunkCanvas.transferToImageBitmap();
   }
 
   async processAndRespondToTileRequest(eventData) {
@@ -513,24 +534,36 @@ class OverlayManager {
 
   async _compositeTileOptimized(originalBlob, overlayBitmap) {
     const originalBitmap = await createImageBitmap(originalBlob);
-    const canvas = new OffscreenCanvas(originalBitmap.width, originalBitmap.height);
-    const ctx = canvas.getContext('2d');
+    const blueMarbleEnabled = state.blueMarbleEnabled;
 
-    // Disable antialiasing for pixel-perfect rendering
+    const scale = blueMarbleEnabled ? 3 : 1;
+    const canvasWidth = originalBitmap.width * scale;
+    const canvasHeight = originalBitmap.height * scale;
+
+    const canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
+    const ctx = canvas.getContext('2d');
     ctx.imageSmoothingEnabled = false;
 
-    // Draw original tile first
-    ctx.drawImage(originalBitmap, 0, 0);
+    ctx.drawImage(
+      originalBitmap,
+      0,
+      0,
+      originalBitmap.width,
+      originalBitmap.height,
+      0,
+      0,
+      canvasWidth,
+      canvasHeight
+    );
 
-    // Set opacity and draw overlay with optimized blend mode
+    // Apply overlay with opacity
     ctx.globalAlpha = state.overlayOpacity;
     ctx.globalCompositeOperation = 'source-over';
     ctx.drawImage(overlayBitmap, 0, 0);
 
-    // Use faster blob conversion with compression settings
     return await canvas.convertToBlob({
       type: 'image/png',
-      quality: 0.95, // Slight compression for faster processing
+      quality: 0.95,
     });
   }
 
