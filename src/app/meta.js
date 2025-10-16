@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         WPlace AutoBOT UserScript
 // @namespace    https://github.com/skalsech/WPlace-AutoBOT
-// @version      __BUILD_VERSION__
+// @version      0.1.0
 // @description  A safe, developer-friendly Tampermonkey script for WPlace.live — no fake fingerprints, live reload, real browser profiles.
 // @author       skalsech
 // @match        https://wplace.live/*
