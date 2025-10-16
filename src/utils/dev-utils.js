@@ -20,8 +20,7 @@ export function createDevReloadButton() {
     const isAltPressed = e.altKey;
 
     const localUrl = 'http://127.0.0.1:8000/dist/script.user.js';
-    const githubUrl =
-      'https://github.com/skalsech/WPlace-AutoBOT/raw/custom-main/dist/script.user.js';
+    const githubUrl = 'https://skalsech.github.io/WPlace-AutoBOT/script.user.js';
 
     const targetUrl = isAltPressed ? githubUrl : localUrl;
 

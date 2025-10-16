@@ -7,6 +7,6 @@
 // @match        https://wplace.live/*
 // @grant        none
 // @run-at       document-start
-// @updateURL    https://raw.githubusercontent.com/skalsech/WPlace-AutoBOT/custom-main/dist/script.user.js
-// @downloadURL  https://raw.githubusercontent.com/skalsech/WPlace-AutoBOT/custom-main/dist/script.user.js
+// @updateURL    https://skalsech.github.io/WPlace-AutoBOT/script.user.js
+// @downloadURL  https://skalsech.github.io/WPlace-AutoBOT/script.user.js
 // ==/UserScript==

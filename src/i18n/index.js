@@ -12,8 +12,7 @@ export const loadTranslations = async (languageKey, retryCount = 0) => {
   }
 
   // todo make strict csp bypass through object injecting for dev mode?
-  const url =
-    `https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/i18n/${languageKey}.json`.trim();
+  const url = `https://skalsech.github.io/WPlace-AutoBOT/i18n/${languageKey}.json`.trim();
   const maxRetries = 3;
   const baseDelay = 1000;
 

@@ -34,10 +34,10 @@ async function build() {
     define: {
       __DEV__: isProd ? 'false' : 'true',
       __CSS_BASE_URL__: isProd
-        ? '"https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/css"'
+        ? '"https://skalsech.github.io/WPlace-AutoBOT/css"'
         : '"http://localhost:8000/dist/css"',
       __I18_BASE_URL__: isProd
-        ? '"https://skalsech.github.io/WPlace-AutoBOT/custom-main/dist/i18n"'
+        ? '"https://skalsech.github.io/WPlace-AutoBOT/i18n"'
         : '"http://localhost:8000/dist/i18n"',
     },
   });

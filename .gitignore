@@ -1,9 +1,6 @@
 # Node modules
 node_modules/
 
-# NPM/Yarn lock
-package-lock.json
-
 # Staged changes
 staged_changes.diff
 
@@ -14,3 +11,5 @@ staged_changes.diff
 /coverage/
 /project_structure.json
 scan_project.mjs
+
+dist/
