@@ -1,11 +1,7 @@
-import { state } from '../core/state.js';
-import { APP_CONSTANTS } from '../app/config/app-constants.js';
-import {
-  _lab,
-  calculateLabDistanceSquared,
-  calculateLegacyDistanceSquared,
-} from './color-matching/algorithms.js';
-import { colorCache, encodeCacheKey } from './color-matching/cache.js';
+import { state } from '../../core/state.js';
+import { APP_CONSTANTS } from '../../app/config/app-constants.js';
+import { _lab, calculateLabDistanceSquared, calculateLegacyDistanceSquared } from './algorithms.js';
+import { colorCache, encodeCacheKey } from './cache.js';
 
 /**
  * Finds the color from the given list that is closest to the target color (r, g, b)
@@ -94,6 +90,34 @@ export function colorsChanged(oldColors, newColors) {
 }
 
 /**
+ * Encodes RGBA color channels into a numeric key.
+ * If alpha is 0, returns a special transparent key.
+ *
+ * @param {number} r - Red channel value (0–255).
+ * @param {number} g - Green channel value (0–255).
+ * @param {number} b - Blue channel value (0–255).
+ * @param {number | undefined} [a] - Alpha channel value (0–255). If 0, the color is treated as fully transparent.
+ * @returns {number} A 24-bit RGB color key, or `APP_CONSTANTS.TRANSPARENT_COLOR_KEY` if alpha is 0.
+ */
+export function encodeRGBAToKey(r, g, b, a) {
+  if (a === 0) return APP_CONSTANTS.TRANSPARENT_COLOR_KEY;
+  return (r << 16) | (g << 8) | b;
+}
+
+/**
+ * Encodes an RGBA color array into a numeric key.
+ * If the alpha channel (4th element) is 0, returns a special transparent key.
+ *
+ * @param {[number, number, number, (number | undefined)?]} rgba - Array of color channels: `[r, g, b, a?]`.
+ *   Each of `r`, `g`, `b` must be integers in 0–255 range. `a` is optional and defaults to non-zero (opaque).
+ * @returns {number} A 24-bit RGB color key, or `APP_CONSTANTS.TRANSPARENT_COLOR_KEY` if alpha is 0.
+ */
+export function encodeRGBAToKeyFromArray(rgba) {
+  if (rgba[3] === 0) return APP_CONSTANTS.TRANSPARENT_COLOR_KEY;
+  return (rgba[0] << 16) | (rgba[1] << 8) | rgba[2];
+}
+
+/**
  * Resolves a target RGBA color to the nearest or exact match from a set of available color IDs.
  *
  * The function performs the following steps:
@@ -147,7 +171,7 @@ export function resolveColor(targetRgba, availableColors, exactMatch = false) {
     return { id: null, rgb: targetRgb };
   }
 
-  const rgbPacked = (targetRgb[0] << 16) | (targetRgb[1] << 8) | targetRgb[2];
+  const rgbPacked = encodeRGBAToKeyFromArray(targetRgba);
   const chromaFlag = state.enableChromaPenalty ? 1 : 0;
   const exactFlag = exactMatch ? 1 : 0;
   const algoFlag = state.colorMatchingAlgorithm === 'legacy' ? 0 : 1;

@@ -4,7 +4,7 @@ import { overlayManager } from '../../core/overlay/overlay-manager.js';
 import { calculateEstimatedTime, formatTime, getMsToTargetCharges } from '../../utils/time.js';
 import { getAvailableColors, msToTimeText } from '../../utils/helpers.js';
 import { updateChargesThresholdUI } from '../../utils/painting-helpers.js';
-import { colorsChanged } from '../../utils/color-matching.js';
+import { colorsChanged } from '../../utils/color-matching/color-matching.js';
 import { wplaceService } from '../../core/api/api-service.js';
 import { showAlert } from '../../shared/ui/alerts.js';
 import { NotificationManager } from '../../core/system/notification-manager.js';

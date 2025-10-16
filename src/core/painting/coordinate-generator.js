@@ -1,4 +1,5 @@
 import { APP_CONSTANTS } from '../../app/config/app-constants.js';
+import { encodeRGBAToKey } from '../../utils/color-matching/color-matching.js';
 
 /**
  * Generate coordinates for given parameters (blocking version).
@@ -191,12 +192,13 @@ function sortCoordsByFrequency(coords, width, pixels, artColorFrequency) {
     const r = pixels[idx];
     const g = pixels[idx + 1];
     const b = pixels[idx + 2];
+    const a = pixels[idx + 3];
 
-    const colorKey = (r << 16) | (g << 8) | b;
+    const colorKey = encodeRGBAToKey(r, g, b, a);
     const colorId = APP_CONSTANTS.RGB_KEY_TO_ID.get(colorKey);
 
     if (colorId === undefined) {
-      throw new Error(`Unknown color RGB(${r},${g},${b}) at [${x}, ${y}]`);
+      throw new Error(`Unknown color RGB(${r},${g},${b},${a}) at [${x}, ${y}]`);
     }
 
     const frequency = artColorFrequency.get(colorId) || 0;

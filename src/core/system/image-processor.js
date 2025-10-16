@@ -1,4 +1,5 @@
 import { APP_CONSTANTS } from '../../app/config/app-constants.js';
+import { encodeRGBAToKey } from '../../utils/color-matching/color-matching.js';
 
 export class ImageProcessor {
   constructor(imageSrcOrData) {
@@ -106,7 +107,7 @@ export class ImageProcessor {
       const b = data[i + 2];
       const a = data[i + 3];
 
-      const rgbKey = a === 0 ? APP_CONSTANTS.TRANSPARENT_COLOR_KEY : (r << 16) | (g << 8) | b;
+      const rgbKey = encodeRGBAToKey(r, g, b, a);
       const colorId = APP_CONSTANTS.RGB_KEY_TO_ID.get(rgbKey);
 
       if (colorId === undefined) {

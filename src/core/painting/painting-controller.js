@@ -3,7 +3,11 @@ import { updateStats, updateUI } from '../../app/startup/create-ui.js';
 import { sendBatchWithRetry } from './pixel-batch.js';
 import { performSmartSave } from '../system/auto-save.js';
 import { dynamicSleep } from '../../utils/helpers.js';
-import { isTransparentPixel, isWhitePixel, resolveColor } from '../../utils/color-matching.js';
+import {
+  isTransparentPixel,
+  isWhitePixel,
+  resolveColor,
+} from '../../utils/color-matching/color-matching.js';
 import { generateCoordinates } from './coordinate-generator.js';
 import { NotificationManager } from '../system/notification-manager.js';
 import { overlayManager } from '../overlay/overlay-manager.js';

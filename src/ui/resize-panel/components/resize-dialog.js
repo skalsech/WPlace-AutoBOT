@@ -4,7 +4,7 @@ import {
   findClosestColor,
   isTransparentPixel,
   isWhitePixel,
-} from '../../../utils/color-matching.js';
+} from '../../../utils/color-matching/color-matching.js';
 import { saveBotSettings } from '../../../storage/settings-manager.js';
 import { updateStats, updateUI } from '../../../app/startup/create-ui.js';
 import { overlayManager } from '../../../core/overlay/overlay-manager.js';
