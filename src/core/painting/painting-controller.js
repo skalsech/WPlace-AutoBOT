@@ -14,6 +14,8 @@ import { overlayManager } from '../overlay/overlay-manager.js';
 import { getMsToTargetCharges } from '../../utils/time.js';
 import { wplaceService } from '../api/api-service.js';
 import { saveProgress } from '../../storage/progress-service.js';
+import { showAlert } from '../../shared/ui/alerts.js';
+import { t } from '../../i18n/index.js';
 
 /**
  * @typedef {Object} PixelData
@@ -64,10 +66,6 @@ async function flushPixelBatch(batch) {
         `❌ Batch for ${batch.regionX}, ${batch.regionY} with ${batch.pixels.length} pixels
          failed permanently after retries. Stopping painting.`
       );
-      state.update({
-        stopFlag: true,
-      });
-      updateUI('paintingBatchFailed', 'error');
     }
   }
 
@@ -80,25 +78,12 @@ export async function processImage() {
   const { x: startX, y: startY } = state.startPosition;
   const { x: regionX, y: regionY } = state.region;
 
-  // todo add option in settings ui to choose loud instant/silent delayed canvas update (instant cache persists no matter what)
-  const tilesReady = await overlayManager.waitForTiles(false);
-
-  if (!tilesReady) {
-    updateUI('overlayTilesNotLoaded', 'error');
-    state.update({
-      stopFlag: true,
-    });
-    return;
-  }
-
-  /**
-   * @type {Map<string, PixelBatch>}
-   * Key - `${regionX},${regionY}`
-   */
-  const pixelBatches = new Map();
-
-  let globalPixelBatchTotalCount = 0;
-  let currentBatchSize = calculateBatchSize(state.batchMode);
+  const abortController = new AbortController();
+  const stopWatcher = setInterval(() => {
+    if (state.stopFlag && !abortController.signal.aborted) {
+      abortController.abort('user');
+    }
+  }, 50);
 
   const skippedPixels = {
     transparent: 0,
@@ -108,95 +93,103 @@ export async function processImage() {
     colorFiltered: 0,
   };
 
-  async function checkPixelEligibility(x, y, regionX, regionY, pixelX, pixelY) {
-    const idx = (y * width + x) * 4;
-    const r = pixels[idx],
-      g = pixels[idx + 1],
-      b = pixels[idx + 2],
-      a = pixels[idx + 3];
-
-    if (!state.paintTransparentPixels && isTransparentPixel(a, state.customTransparencyThreshold)) {
-      return {
-        eligible: false,
-        reason: 'transparent',
-      };
-    }
-    if (!state.paintWhitePixels && isWhitePixel(r, g, b, state.customWhiteThreshold)) {
-      return {
-        eligible: false,
-        reason: 'white',
-      };
-    }
-
-    /* 
-     todo check to work with resize dialog because deprecated for readability and performance
-      mappedTargetColor = resolveColor(
-      findClosestColor(r, g, b, state.activeColorPalette),
-      state.availableColors,
-      !state.paintUnavailablePixels
-      );
-    */
-
-    const mappedTargetColor = resolveColor(
-      [r, g, b, a],
-      state.availableColors,
-      !state.paintUnavailablePixels
-    );
-
-    if (state.hasActiveColorFilter && state.filteredColorIds.has(mappedTargetColor.id)) {
-      return {
-        eligible: false,
-        reason: 'colorFiltered',
-        r,
-        g,
-        b,
-        a,
-        mappedColorId: mappedTargetColor.id,
-      };
-    }
-    if (!state.availableColors.has(mappedTargetColor.id)) {
-      return {
-        eligible: false,
-        reason: 'colorUnavailable',
-        r,
-        g,
-        b,
-        a,
-        mappedColorId: mappedTargetColor.id,
-      };
-    }
-
-    const tilePixelRGBA = await overlayManager.getTilePixelColor(regionX, regionY, pixelX, pixelY);
-
-    if (!tilePixelRGBA) {
-      throw new Error('Failed to get canvas pixel color');
-    }
-    const mappedCanvasColor = resolveColor(tilePixelRGBA, state.availableColors, true);
-    const isMatch = mappedCanvasColor.id === mappedTargetColor.id;
-    if (isMatch) {
-      return {
-        eligible: false,
-        reason: 'alreadyPainted',
-        r,
-        g,
-        b,
-        a,
-        mappedColorId: mappedTargetColor.id,
-      };
-    }
-
-    return { eligible: true, r, g, b, a, mappedColorId: mappedTargetColor.id };
-  }
-
-  // eslint-disable-next-line no-unused-vars
-  function skipPixel(reason, id, rgb, x, y) {
-    /*if (reason === 'colorFiltered') {
-      console.log(`Skipped pixel for ${reason} (id: ${id}, (${rgb.join(', ')})) at (${x}, ${y})`);
-    }*/
-    skippedPixels[reason]++;
-  }
-
   try {
+    // todo add option in settings ui to choose loud instant/silent delayed canvas update (instant cache persists no matter what)
+    const tilesReady = await overlayManager.waitForTiles(false);
+    if (!tilesReady) {
+      updateUI('overlayTilesNotLoaded', 'error');
+      return;
+    }
+
+    /**
+     * @type {Map<string, PixelBatch>}
+     * Key - `${regionX},${regionY}`
+     */
+    const pixelBatches = new Map();
+    let globalPixelBatchTotalCount = 0;
+    let currentBatchSize = calculateBatchSize(state.batchMode);
+
+    function checkPixelEligibility(x, y, regionX, regionY, pixelX, pixelY) {
+      const idx = (y * width + x) * 4;
+      const r = pixels[idx],
+        g = pixels[idx + 1],
+        b = pixels[idx + 2],
+        a = pixels[idx + 3];
+
+      if (
+        !state.paintTransparentPixels &&
+        isTransparentPixel(a, state.customTransparencyThreshold)
+      ) {
+        return {
+          eligible: false,
+          reason: 'transparent',
+        };
+      }
+      if (!state.paintWhitePixels && isWhitePixel(r, g, b, state.customWhiteThreshold)) {
+        return {
+          eligible: false,
+          reason: 'white',
+        };
+      }
+
+      /* 
+      todo check to work with resize dialog because deprecated for readability and performance
+       mappedTargetColor = resolveColor(
+       findClosestColor(r, g, b, state.activeColorPalette),
+       state.availableColors,
+       !state.paintUnavailablePixels
+       );
+      */
+
+      const mappedTargetColor = resolveColor(
+        [r, g, b, a],
+        state.availableColors,
+        !state.paintUnavailablePixels
+      );
+
+      if (state.hasActiveColorFilter && state.filteredColorIds.has(mappedTargetColor.id)) {
+        return {
+          eligible: false,
+          reason: 'colorFiltered',
+          r,
+          g,
+          b,
+          a,
+          mappedColorId: mappedTargetColor.id,
+        };
+      }
+      if (!state.availableColors.has(mappedTargetColor.id)) {
+        return {
+          eligible: false,
+          reason: 'colorUnavailable',
+          r,
+          g,
+          b,
+          a,
+          mappedColorId: mappedTargetColor.id,
+        };
+      }
+
+      const tilePixelRGBA = overlayManager.getTilePixelColorSync(regionX, regionY, pixelX, pixelY);
+      if (!tilePixelRGBA) {
+        throw new Error('Failed to get canvas pixel color. Tile not loaded — this is unexpected');
+      }
+      const mappedCanvasColor = resolveColor(tilePixelRGBA, state.availableColors, true);
+      if (mappedCanvasColor.id === mappedTargetColor.id) {
+        return {
+          eligible: false,
+          reason: 'alreadyPainted',
+          r,
+          g,
+          b,
+          a,
+          mappedColorId: mappedTargetColor.id,
+        };
+      }
+
+      return { eligible: true, r, g, b, a, mappedColorId: mappedTargetColor.id };
+    }
+
     const coords = generateCoordinates(
       width,
       height,
@@ -209,111 +202,108 @@ export async function processImage() {
       state.sortCoordinateByFrequency,
       state.artColorFrequency
     );
-    const expected = width * height;
-    if (coords.length !== expected) {
-      const seen = new Set();
-      const duplicates = [];
-      for (const [x, y] of coords) {
-        const key = `${x},${y}`;
-        if (seen.has(key)) {
-          if (duplicates.length < 10) duplicates.push(key);
-        } else {
-          seen.add(key);
-        }
-      }
-      const uniqueCount = seen.size;
-      const diff = coords.length - uniqueCount;
 
-      console.warn(
-        `[DIAG] Coordinate mismatch: expected=${expected}, actual=${coords.length}, duplicates=${diff}`,
-        duplicates.length ? `first duplicates: ${duplicates.join(' | ')}` : ''
-      );
+    const expected = width * height;
+    /** @constant {boolean} __DEV__ - Set by esbuild define in build.mjs */
+    if (__DEV__) {
+      if (coords.length !== expected) {
+        const seen = new Set();
+        const duplicates = [];
+        for (const [x, y] of coords) {
+          const key = `${x},${y}`;
+          if (seen.has(key)) {
+            if (duplicates.length < 10) duplicates.push(key);
+          } else {
+            seen.add(key);
+          }
+        }
+        const uniqueCount = seen.size;
+        const diff = coords.length - uniqueCount;
+
+        console.warn(
+          `[DIAG] Coordinate mismatch: expected=${expected}, actual=${coords.length}, duplicates=${diff}`,
+          duplicates.length ? `first duplicates: ${duplicates.join(' | ')}` : ''
+        );
+      }
     }
-    outerLoop: for (const [x, y] of coords) {
+    for (const [x, y] of coords) {
+      if (abortController.signal.aborted) break;
+
       const absX = startX + x;
       const absY = startY + y;
-
       const adderX = Math.floor(absX / 1000);
       const adderY = Math.floor(absY / 1000);
       const pixelX = absX % 1000;
       const pixelY = absY % 1000;
+      const regionAbsX = regionX + adderX;
+      const regionAbsY = regionY + adderY;
 
-      const key = `${regionX + adderX},${regionY + adderY}`;
-      if (!pixelBatches.has(key)) {
-        pixelBatches.set(key, {
-          regionX: regionX + adderX,
-          regionY: regionY + adderY,
-          pixels: [],
-        });
-      }
-      const batch = pixelBatches.get(key);
-
+      let targetPixelInfo;
       try {
-        const targetPixelInfo = await checkPixelEligibility(
-          x,
-          y,
-          batch.regionX,
-          batch.regionY,
-          pixelX,
-          pixelY
-        );
-
-        if (!targetPixelInfo.eligible) {
-          skipPixel(
-            targetPixelInfo.reason,
-            targetPixelInfo.mappedColorId,
-            [targetPixelInfo.r, targetPixelInfo.g, targetPixelInfo.b],
-            pixelX,
-            pixelY
-          );
-          continue;
-        }
-
-        batch.pixels.push({
-          x: pixelX,
-          y: pixelY,
-          color: targetPixelInfo.mappedColorId,
-          localX: x,
-          localY: y,
+        targetPixelInfo = checkPixelEligibility(x, y, regionAbsX, regionAbsY, pixelX, pixelY, {
+          width,
+          height,
+          pixels,
         });
-        globalPixelBatchTotalCount++;
       } catch (e) {
-        console.error(`[DEBUG] Error checking existing pixel at (${pixelX}, ${pixelY}):`, e);
+        if (__DEV__) {
+          console.error(`[DEBUG] Error checking pixel`, e);
+        }
         updateUI('paintingPixelCheckFailed', 'error', { x: pixelX, y: pixelY });
-        state.update({
-          stopFlag: true,
-        });
-        // noinspection UnnecessaryLabelOnBreakStatementJS
-        break outerLoop;
+        abortController.abort();
+        break;
       }
+
+      if (!targetPixelInfo.eligible) {
+        skippedPixels[targetPixelInfo.reason]++;
+        continue;
+      }
+
+      const key = `${regionAbsX},${regionAbsY}`;
+      if (!pixelBatches.has(key)) {
+        pixelBatches.set(key, { regionX: regionAbsX, regionY: regionAbsY, pixels: [] });
+      }
+      pixelBatches.get(key).pixels.push({
+        x: pixelX,
+        y: pixelY,
+        color: targetPixelInfo.mappedColorId,
+        localX: x,
+        localY: y,
+      });
+      globalPixelBatchTotalCount++;
 
       if (globalPixelBatchTotalCount >= currentBatchSize) {
         for (const b of pixelBatches.values()) {
-          if (b.pixels.length > 0 && !state.stopFlag) {
+          if (b.pixels.length > 0 && !abortController.signal.aborted) {
             const success = await flushPixelBatch(b);
-
-            if (!success || state.stopFlag) {
-              // noinspection UnnecessaryLabelOnBreakStatementJS
-              break outerLoop;
+            if (!success) {
+              abortController.abort('batch-failed');
+              break;
             }
-            updateUI('paintingProgress', 'default', {
-              painted: state.currentPaintedPixels,
-              total: state.artTotalPixels,
-            });
+
+            if (!abortController.signal.aborted) {
+              updateUI('paintingProgress', 'default', {
+                painted: state.currentPaintedPixels,
+                total: state.artTotalPixels,
+              });
+            }
           }
         }
-
+        pixelBatches.clear();
         globalPixelBatchTotalCount = 0;
         currentBatchSize = calculateBatchSize(state.batchMode);
       }
 
-      if (state.preciseCurrentCharges < state.cooldownChargeThreshold && !state.stopFlag) {
+      if (
+        !abortController.signal.aborted &&
+        state.preciseCurrentCharges < state.cooldownChargeThreshold
+      ) {
         await dynamicSleep(() => {
+          if (abortController.signal.aborted) return 0;
           if (state.preciseCurrentCharges >= state.cooldownChargeThreshold) {
             NotificationManager.maybeNotifyChargesReached(true);
             return 0;
           }
-          if (state.stopFlag) return 0;
           return getMsToTargetCharges(
             state.preciseCurrentCharges,
             state.cooldownChargeThreshold,
@@ -321,67 +311,53 @@ export async function processImage() {
           );
         });
       }
-
-      if (state.stopFlag) {
-        // noinspection UnnecessaryLabelOnBreakStatementJS
-        break outerLoop;
-      }
     }
 
-    for (const [key, batch] of pixelBatches.entries()) {
-      if (batch.pixels.length > 0 && !state.stopFlag) {
-        console.log(`🏁 Sending final batch`);
-        const success = await flushPixelBatch(batch);
+    if (!abortController.signal.aborted) {
+      for (const [key, batch] of pixelBatches.entries()) {
+        if (batch.pixels.length > 0) {
+          const success = await flushPixelBatch(batch);
 
-        if (!success) {
-          console.warn(`⚠️ Final batch for ${key} failed with ${batch.pixels.length} pixels.`);
+          if (!success) {
+            console.warn(`⚠️ Final batch for ${key} failed with ${batch.pixels.length} pixels.`);
+          }
         }
       }
     }
-  } catch (e) {
-    state.update({
-      stopFlag: true,
+  } finally {
+    clearInterval(stopWatcher);
+    if (abortController.signal.aborted) {
+      state.update({ stopFlag: true });
+
+      const reason = abortController.signal.reason;
+      if (reason === 'user') {
+        updateUI('paintingStoppedByUser', 'warning');
+      } else if (reason === 'batch-failed') {
+        updateUI('paintingBatchFailed', 'error');
+      }
+    }
+    await finalizePainting(skippedPixels);
+  }
+}
+
+async function finalizePainting(skippedPixels) {
+  showAlert(t('autoSaved'), 'success');
+  await saveProgress();
+  if (!state.stopFlag) {
+    updateUI('paintingComplete', 'success', { count: state.currentPaintedPixels });
+    overlayManager.disable();
+    document.getElementById('toggleOverlayBtn')?.classList.remove('active');
+  }
+  if (__DEV__) {
+    console.groupCollapsed(
+      `%cSkipped Pixels Summary`,
+      'color: #5d4037; font-weight: bold; background: #efebe9; padding: 3px 8px; border-radius: 4px;'
+    );
+    Object.entries(skippedPixels).forEach(([key, count]) => {
+      console.log(`${key}: %c${count}`, 'font-weight: bold; color: #d2691e;');
     });
-    updateUI('paintingError', 'error');
-    const err = e instanceof Error ? e : new Error(String(e));
-    const groupStyle =
-      'color: #d32f2f; font-weight: bold; background: #ffebee; padding: 2px 6px; border-radius: 3px;';
-
-    console.groupCollapsed(`%cError: ${err.message}`, groupStyle);
-    console.log('time:', new Date().toISOString());
-    console.log('name:', err.name);
-    console.log('message:', err.message);
-    if (err.stack) console.log('stack:', err.stack);
-
-    // useful context:
-    // console.log('context:', { userId, input });
     console.groupEnd();
   }
-
-  await saveProgress();
-  if (state.stopFlag) {
-    /* empty */
-  } else {
-    updateUI('paintingComplete', 'success', { count: state.currentPaintedPixels });
-
-    overlayManager.disable();
-    /*const toggleOverlayBtn = document.getElementById('toggleOverlayBtn');
-    if (toggleOverlayBtn) {
-      toggleOverlayBtn.classList.remove('active');
-      toggleOverlayBtn.disabled = true;
-    }*/
-  }
-
-  const groupStyle =
-    'color: #5d4037; font-weight: bold; background: #efebe9; padding: 3px 8px; border-radius: 4px;';
-  console.groupCollapsed(
-    `%cSkipped Pixels Summary (not progress, only skipped reasons count)`,
-    groupStyle
-  );
-  Object.entries(skippedPixels).forEach(([key, count]) => {
-    console.log(`${key}: %c${count}`, 'font-weight: bold; color: #d2691e;');
-  });
-  console.groupEnd();
   await updateStats();
 }
 
@@ -392,7 +368,6 @@ function calculateBatchSize(batchMode) {
     const min = Math.max(1, state.randomBatchMin);
     const max = Math.max(min, state.randomBatchMax);
     targetBatchSize = Math.floor(Math.random() * (max - min + 1)) + min;
-    console.log(`🎲 Random batch size generated: ${targetBatchSize} (range: ${min}-${max})`);
   } else {
     targetBatchSize = state.paintingSpeed;
   }

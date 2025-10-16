@@ -170,7 +170,7 @@ const RGB_KEY_TO_ID = new Map(
  * @property {number} STONE - Color ID 62
  * @property {number} LIGHT_STONE - Color ID 63
  */
-export const COLOR_IDS = deepFreeze(
+const COLOR_IDS = deepFreeze(
   Object.fromEntries(
     Object.values(COLOR_MAP).map((color) => [
       color.name.toUpperCase().replace(/\s+/g, '_'),

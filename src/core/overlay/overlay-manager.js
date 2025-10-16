@@ -358,6 +358,27 @@ class OverlayManager {
    * @param tileY
    * @param pixelX
    * @param pixelY
+   * @returns {number[]|null}
+   */
+  getTilePixelColorSync(tileX, tileY, pixelX, pixelY) {
+    const tileKey = `${tileX},${tileY}`;
+    const cached = this.originalTilesData.get(tileKey);
+    if (!cached || !cached.data || cached.w <= 0 || cached.h <= 0) {
+      return null;
+    }
+    const x = Math.max(0, Math.min(cached.w - 1, pixelX));
+    const y = Math.max(0, Math.min(cached.h - 1, pixelY));
+    const idx = (y * cached.w + x) * 4;
+    const d = cached.data;
+    return [d[idx], d[idx + 1], d[idx + 2], d[idx + 3]];
+  }
+
+  /**
+   *
+   * @param tileX
+   * @param tileY
+   * @param pixelX
+   * @param pixelY
    * @returns {Promise<number[]|null>}
    */
   async getTilePixelColor(tileX, tileY, pixelX, pixelY) {

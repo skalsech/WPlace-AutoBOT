@@ -53,8 +53,8 @@ import { StateEventEmitter } from '../utils/StateEventEmitter.js';
  * @property {boolean} hideFiltered - Whether filtered colors should be hidden (default: false).
  * @property {Map<number, number>} filteredColorFrequency - color ID → pixel count after filter.
  * @property {StateEventEmitter} _eventEmitter - Custom event emitter instance for state and color changes.
- * @property {function(updates: State) : void} update - Function to update state properties and emit 'stateChange'.
- * @property {function(updates: State) : void} updateColorSettings - Function to update color settings and emit 'colorSettingsChange'.
+ * @property {function(updates: Object) : void} update - Function to update state properties and emit 'stateChange'.
+ * @property {function(updates: Object) : void} updateColorSettings - Function to update color settings and emit 'colorSettingsChange'.
  * @property {function(colorId: number) : void} toggleColorFilter - Toggle a color in the filter.
  * @property {function() : void} toggleHideFiltered - Toggle whether filtered colors are hidden.
  * @property {function() : void} clearColorFilter - Clear all color filters.

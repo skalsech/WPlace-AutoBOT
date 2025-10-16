@@ -27,13 +27,6 @@ export async function handleStopClick() {
     running: false,
   });
   updateControlButtonState();
-
-  updateUI('paintingStoppedByUser', 'warning');
-
-  if (state.imageLoaded && state.totalPaintedPixels > 0) {
-    await saveProgress();
-    showAlert(t('autoSaved'), 'success');
-  }
 }
 
 function updateControlButtonState() {
@@ -90,8 +83,17 @@ export async function handleStartPainting() {
   try {
     await processImage();
   } catch (e) {
-    console.error('Unexpected error:', e);
     updateUI('paintingError', 'error');
+    const err = e instanceof Error ? e : new Error(String(e));
+    const groupStyle =
+      'color: #d32f2f; font-weight: bold; background: #ffebee; padding: 2px 6px; border-radius: 3px;';
+
+    console.groupCollapsed(`%cError: ${err.message}`, groupStyle);
+    console.log('time:', new Date().toISOString());
+    console.log('name:', err.name);
+    console.log('message:', err.message);
+    if (err.stack) console.log('stack:', err.stack);
+    console.groupEnd();
   } finally {
     state.update({
       running: false,
@@ -110,14 +112,11 @@ export async function handleStartPainting() {
 }
 
 export async function handleTogglePainting() {
-  const isRunning = state.running;
-
-  if (isRunning) {
+  if (state.running) {
     await handleStopClick();
   } else {
     await handleStartPainting();
   }
-  updateControlButtonState();
 }
 
 export async function handleToggleOverlayClick() {

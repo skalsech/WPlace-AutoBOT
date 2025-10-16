@@ -31,7 +31,8 @@
     "test:watch": "vitest --watch",
     "test:coverage": "vitest run --coverage",
     "coverage:clean": "rimraf coverage node_modules/.vite",
-    "preview": "npm run build:prod && serve --listen 8000"
+    "preview:watch": "chokidar \"src/**/*\" -c \"npm run build:prod\"",
+    "preview": "npm-run-all build:prod --parallel serve preview:watch"
   },
   "devDependencies": {
     "@eslint/js": "^9.34.0",

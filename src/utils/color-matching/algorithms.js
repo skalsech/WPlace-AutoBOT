@@ -1,6 +1,4 @@
-export const colorDistance = (a, b) => {
-  return Math.sqrt(Math.pow(a[0] - b[0], 2) + Math.pow(a[1] - b[1], 2) + Math.pow(a[2] - b[2], 2));
-};
+import { APP_CONSTANTS } from '../../app/config/app-constants.js';
 
 /**
  * Returns the *squared* perceptual RGB distance (no square root).
@@ -63,38 +61,48 @@ export function calculateLabDistanceSquared(
   return dist;
 }
 
-const _labCache = new Map(); // key: (r<<16)|(g<<8)|b  value: [L,a,b]
+const srgbLUT = Array.from({ length: 256 }, (_, v) => {
+  const x = v / 255;
+  return x <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4;
+});
+
+const _f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
 
 export function _rgbToLab(r, g, b) {
-  const srgbToLinear = (v) => {
-    v /= 255;
-    return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-  };
-  const rl = srgbToLinear(r);
-  const gl = srgbToLinear(g);
-  const bl = srgbToLinear(b);
-  let X = rl * 0.4124 + gl * 0.3576 + bl * 0.1805;
-  let Y = rl * 0.2126 + gl * 0.7152 + bl * 0.0722;
-  let Z = rl * 0.0193 + gl * 0.1192 + bl * 0.9505;
-  X /= 0.95047;
-  Y /= 1.0;
-  Z /= 1.08883;
-  const f = (t) => (t > 0.008856 ? Math.cbrt(t) : 7.787 * t + 16 / 116);
-  const fX = f(X),
-    fY = f(Y),
-    fZ = f(Z);
-  const L = 116 * fY - 16;
-  const a = 500 * (fX - fY);
-  const b2 = 200 * (fY - fZ);
-  return [L, a, b2];
+  const rl = srgbLUT[r];
+  const gl = srgbLUT[g];
+  const bl = srgbLUT[b];
+
+  // Linear RGB -> XYZ (D65)
+  const X = (rl * 0.4124 + gl * 0.3576 + bl * 0.1805) / 0.95047;
+  // noinspection PointlessArithmeticExpressionJS
+  const Y = (rl * 0.2126 + gl * 0.7152 + bl * 0.0722) / 1.0;
+  const Z = (rl * 0.0193 + gl * 0.1192 + bl * 0.9505) / 1.08883;
+
+  const fX = _f(X);
+  const fY = _f(Y);
+  const fZ = _f(Z);
+
+  return [
+    116 * fY - 16, // L
+    500 * (fX - fY), // a
+    200 * (fY - fZ), // b
+  ];
+}
+
+const _labCache = new Map(); // key: (r<<16)|(g<<8)|b  value: [L,a,b]
+
+for (const data of Object.values(APP_CONSTANTS.COLOR_MAP)) {
+  const rgb = data.rgb;
+  _lab(rgb.r, rgb.g, rgb.b);
 }
 
 export function _lab(r, g, b) {
   const key = (r << 16) | (g << 8) | b;
   let v = _labCache.get(key);
-  if (!v) {
-    v = _rgbToLab(r, g, b);
-    _labCache.set(key, v);
-  }
+  if (v !== undefined) return v;
+
+  v = _rgbToLab(r, g, b);
+  _labCache.set(key, v);
   return v;
 }
